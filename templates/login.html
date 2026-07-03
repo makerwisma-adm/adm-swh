@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Masuk • SPPG Wisma Haji Madiun</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+        :root { --navy: #071e49; --blue: #55a7d4; --gold: #c9a558; }
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .font-display { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; }
+        .portal-bg {
+            background:
+                radial-gradient(ellipse 80% 60% at 10% 0%, rgba(85,167,212,0.18) 0%, transparent 55%),
+                radial-gradient(ellipse 60% 50% at 90% 100%, rgba(201,165,88,0.12) 0%, transparent 50%),
+                linear-gradient(160deg, #041229 0%, #071e49 40%, #0c3d6e 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255,255,255,0.97);
+            border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: 0 24px 64px -16px rgba(4,18,41,0.45);
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(85,167,212,0.18);
+        }
+        .btn-login:not(:disabled):hover { background: #065f46; }
+        .btn-login:disabled { opacity: .7; cursor: wait; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { animation: spin .7s linear infinite; }
+    </style>
+</head>
+<body class="portal-bg text-slate-800">
+    <div class="min-h-screen flex flex-col lg:flex-row">
+
+        <!-- Panel kiri: branding & akses cepat -->
+        <div class="lg:w-[46%] xl:w-[42%] flex flex-col justify-between p-6 md:p-10 lg:p-12 text-white">
+            <div>
+                <div class="flex items-center gap-4 mb-10">
+                    <img src="/static/images/logo-bgn.jpg" alt="BGN" class="w-16 h-16 object-contain rounded-2xl shadow-lg">
+                    <div>
+                        <div class="text-[10px] uppercase tracking-[0.2em] text-[#c9a558] font-semibold">Badan Gizi Nasional</div>
+                        <h1 class="font-display text-xl md:text-2xl font-bold tracking-tight">SPPG Wisma Haji Madiun</h1>
+                        <p class="text-white/55 text-xs mt-0.5">Satuan Pelayanan Pemenuhan Gizi NGEGONG 2.</p>
+                    </div>
+                </div>
+
+                <h2 class="font-display text-2xl md:text-3xl font-bold leading-tight mb-3">
+                    {% if user %}Selamat datang kembali{% else %}Portal Pelaporan Keuangan{% endif %}
+                </h2>
+                <p class="text-white/60 text-sm leading-relaxed max-w-md">
+                    {% if user %}
+                    Buka dashboard untuk mengelola laporan keuangan SPPG.
+                    {% else %}
+                    Masuk dengan akun Maker SPPG. Sesi aktif 7 hari agar tidak perlu login berulang.
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="mt-8 text-[11px] text-white/35">
+                <span><i class="fa-solid fa-shield-halved mr-1"></i> Akses internal SPPG</span>
+            </div>
+        </div>
+
+        <!-- Panel kanan: form login / portal user -->
+        <div class="flex-1 flex items-center justify-center p-6 md:p-10">
+            <div class="glass-card w-full max-w-md rounded-3xl p-7 md:p-8">
+
+                {% if user %}
+                <!-- Sudah login: portal cepat -->
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[#55a7d4] to-[#071e49] flex items-center justify-center text-white text-xl font-bold mb-4">
+                        {{ (user.full_name or user.username or 'U')[:1]|upper }}
+                    </div>
+                    <h2 class="font-display text-xl font-bold text-[#071e49]">{{ user.full_name or user.username }}</h2>
+                    <p class="text-sm text-slate-500 mt-1">Anda sudah masuk ke sistem</p>
+                </div>
+
+                {% if message %}
+                <div class="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-check-circle"></i><span>{{ message }}</span>
+                </div>
+                {% endif %}
+
+                <div class="space-y-3">
+                    <a href="/dashboard" class="flex items-center justify-center gap-2 w-full bg-[#071e49] hover:bg-[#0a2a5e] text-white font-semibold py-3.5 rounded-2xl text-sm transition">
+                        <i class="fa-solid fa-chart-line"></i> Buka Dashboard
+                    </a>
+                    <a href="/gaji-relawan" class="flex items-center justify-center gap-2 w-full border border-slate-200 hover:bg-slate-50 text-[#071e49] font-semibold py-3.5 rounded-2xl text-sm transition">
+                        <i class="fa-solid fa-users"></i> Gaji Relawan
+                    </a>
+                    <a href="/insentif-pic" class="flex items-center justify-center gap-2 w-full border border-slate-200 hover:bg-slate-50 text-[#071e49] font-semibold py-3.5 rounded-2xl text-sm transition">
+                        <i class="fa-solid fa-user-tie"></i> Insentif PIC
+                    </a>
+
+                </div>
+
+                <div class="mt-6 pt-5 border-t border-slate-100 text-center">
+                    <a href="/logout" class="text-sm text-slate-400 hover:text-red-500 transition">
+                        <i class="fa-solid fa-right-from-bracket mr-1"></i> Keluar &amp; ganti akun
+                    </a>
+                </div>
+
+                {% else %}
+                <!-- Form login -->
+                <div class="mb-6">
+                    <h2 class="font-display text-2xl font-bold text-[#071e49]">Masuk ke Sistem</h2>
+                    <p class="text-slate-500 text-sm mt-1">Gunakan akun Maker SPPG untuk melanjutkan</p>
+                </div>
+
+                {% if message %}
+                <div class="mb-4 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-info-circle"></i><span>{{ message }}</span>
+                </div>
+                {% endif %}
+
+                {% if error %}
+                <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm flex items-start gap-2">
+                    <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% endif %}
+
+                <form id="login-form" method="POST" action="/login" class="space-y-4" novalidate>
+                    <input type="hidden" name="next" id="next" value="{{ next_url }}">
+
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="text" id="username" name="username" required autocomplete="username"
+                                   value="{{ username_value or '' }}"
+                                   class="input-field w-full pl-11 pr-4 py-3.5 border border-slate-300 rounded-2xl text-sm"
+                                   placeholder="Masukkan username">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="password" id="password" name="password" required autocomplete="current-password"
+                                   class="input-field w-full pl-11 pr-12 py-3.5 border border-slate-300 rounded-2xl text-sm"
+                                   placeholder="Masukkan password">
+                            <button type="button" id="toggle-pw" tabindex="-1"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1">
+                                <i class="fa-solid fa-eye text-sm" id="pw-icon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
+                        <input type="checkbox" id="remember-user" class="rounded border-slate-300 text-emerald-700 focus:ring-emerald-500" checked>
+                        Ingat username saya
+                    </label>
+
+                    <button type="submit" id="btn-login"
+                            class="btn-login w-full bg-emerald-700 text-white font-semibold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-900/20">
+                        <span id="btn-text">Masuk Sekarang</span>
+                        <i class="fa-solid fa-arrow-right" id="btn-arrow"></i>
+                        <i class="fa-solid fa-circle-notch spinner hidden" id="btn-spinner"></i>
+                    </button>
+                </form>
+
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const STORAGE_KEY = 'sppg_last_username';
+            const usernameEl = document.getElementById('username');
+            const rememberEl = document.getElementById('remember-user');
+            const form = document.getElementById('login-form');
+            const togglePw = document.getElementById('toggle-pw');
+            const passwordEl = document.getElementById('password');
+            const pwIcon = document.getElementById('pw-icon');
+
+            if (usernameEl && rememberEl) {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved && !usernameEl.value) usernameEl.value = saved;
+                usernameEl.focus();
+            }
+
+            if (togglePw && passwordEl) {
+                togglePw.addEventListener('click', () => {
+                    const show = passwordEl.type === 'password';
+                    passwordEl.type = show ? 'text' : 'password';
+                    pwIcon.classList.toggle('fa-eye', !show);
+                    pwIcon.classList.toggle('fa-eye-slash', show);
+                });
+            }
+
+            if (form) {
+                form.addEventListener('submit', () => {
+                    if (rememberEl?.checked && usernameEl?.value) {
+                        localStorage.setItem(STORAGE_KEY, usernameEl.value.trim());
+                    } else {
+                        localStorage.removeItem(STORAGE_KEY);
+                    }
+                    const btn = document.getElementById('btn-login');
+                    const txt = document.getElementById('btn-text');
+                    const arrow = document.getElementById('btn-arrow');
+                    const spin = document.getElementById('btn-spinner');
+                    if (btn) btn.disabled = true;
+                    if (txt) txt.textContent = 'Memproses...';
+                    if (arrow) arrow.classList.add('hidden');
+                    if (spin) spin.classList.remove('hidden');
+                });
+            }
+
+            // next dari query string
+            const params = new URLSearchParams(window.location.search);
+            const next = params.get('next');
+            const nextInput = document.getElementById('next');
+            if (next && nextInput && next.startsWith('/') && !next.startsWith('//')) {
+                nextInput.value = next;
+            }
+        })();
+    </script>
+</body>
+</html>

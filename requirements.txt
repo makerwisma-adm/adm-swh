@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart
+itsdangerous
+passlib
+python-dateutil
+openpyxl
+xlsxwriter
+pdfplumber
+pypdf
+Pillow
+libsql

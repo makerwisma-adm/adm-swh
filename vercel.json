@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "fluid": true,
+  "functions": {
+    "main.py": {
+      "maxDuration": 60,
+      "includeFiles": "templates/**"
+    }
+  },
+  "env": {
+    "VERCEL": "1",
+    "PUBLIC_APP_URL": "https://adm-swh.vercel.app"
+  }
+}

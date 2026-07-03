@@ -1,0 +1,131 @@
+{# Variabel: active_menu ('dashboard'|'tagihan'|'petty_cash'|'gaji_relawan'|'insentif_mitra'|'pengembalian_dana'|'pengajuan_dana_mitra'), active_submenu ('gaji_relawan'|'insentif_pic'), active_kategori (opsional) #}
+<aside class="w-64 border-r border-slate-200 bg-white hidden lg:block min-h-[calc(100vh-64px)] p-4 no-print">
+    {% if active_menu == 'dashboard' %}
+    <div class="px-3 pt-2 pb-3">
+        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Beranda</div>
+    </div>
+    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
+        <i class="fa-solid fa-chart-line w-4"></i>
+        <span>Dashboard Keuangan</span>
+    </a>
+
+    <div class="px-3 pt-5 pb-2">
+        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Laporan</div>
+    </div>
+    <a href="/tagihan" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-file-invoice-dollar w-4"></i>
+        <span>Laporan Tagihan</span>
+    </a>
+    <a href="/petty-cash" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-wallet w-4"></i>
+        <span>Laporan Petty Cash</span>
+    </a>
+    <a href="/gaji-relawan" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition mt-4">
+        <i class="fa-solid fa-users w-4"></i>
+        <span>Laporan Gaji</span>
+    </a>
+    <a href="/insentif-mitra" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-handshake w-4"></i>
+        <span>Laporan Insentif Mitra</span>
+    </a>
+    <a href="/pengembalian-dana" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-rotate-left w-4"></i>
+        <span>Pengembalian Dana / Refund</span>
+    </a>
+
+    <div class="px-3 pt-5 pb-2">
+        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Mitra</div>
+    </div>
+    <a href="/pengajuan-dana-mitra" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-file-invoice w-4"></i>
+        <span>Pengajuan Dana Mitra</span>
+    </a>
+
+    {% elif active_menu == 'tagihan' %}
+    <div class="px-3 pt-2 pb-3">
+        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Tagihan</div>
+    </div>
+    <a href="/tagihan" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
+        <i class="fa-solid fa-file-invoice-dollar w-4"></i>
+        <span>Data Tagihan</span>
+    </a>
+
+    <div class="px-3 pt-5">
+        <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
+            <i class="fa-solid fa-arrow-left w-4"></i>
+            <span>Kembali ke Beranda</span>
+        </a>
+    </div>
+
+    {% elif active_menu == 'petty_cash' %}
+    <div class="px-3 pt-2 pb-3">
+        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Petty Cash</div>
+    </div>
+    <a href="/petty-cash" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
+        <i class="fa-solid fa-wallet w-4"></i>
+        <span>Laporan Petty Cash</span>
+    </a>
+    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-arrow-left w-4"></i>
+        <span>Kembali ke Beranda</span>
+    </a>
+
+    {% elif active_menu == 'gaji_relawan' %}
+    <a href="/gaji-relawan" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm nav-active">
+        <i class="fa-solid fa-users w-4"></i>
+        <span>Laporan Gaji</span>
+    </a>
+    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-arrow-left w-4"></i>
+        <span>Kembali ke Beranda</span>
+    </a>
+
+    {% elif active_menu == 'insentif_mitra' %}
+    <div class="px-3 pt-2 pb-3">
+        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Laporan</div>
+    </div>
+    <a href="/insentif-mitra" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
+        <i class="fa-solid fa-handshake w-4"></i>
+        <span>Laporan Insentif Mitra</span>
+    </a>
+    <a href="/pengembalian-dana" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-rotate-left w-4"></i>
+        <span>Pengembalian Dana / Refund</span>
+    </a>
+    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-arrow-left w-4"></i>
+        <span>Kembali ke Beranda</span>
+    </a>
+
+    {% elif active_menu == 'pengembalian_dana' %}
+    <div class="px-3 pt-2 pb-3">
+        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Laporan</div>
+    </div>
+    <a href="/pengembalian-dana" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
+        <i class="fa-solid fa-rotate-left w-4"></i>
+        <span>Pengembalian Dana / Refund</span>
+    </a>
+    <a href="/insentif-mitra" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-handshake w-4"></i>
+        <span>Laporan Insentif Mitra</span>
+    </a>
+    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-arrow-left w-4"></i>
+        <span>Kembali ke Beranda</span>
+    </a>
+
+    {% elif active_menu == 'pengajuan_dana_mitra' %}
+    <div class="px-3 pt-2 pb-3">
+        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Mitra</div>
+    </div>
+    <a href="/pengajuan-dana-mitra" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
+        <i class="fa-solid fa-file-invoice w-4"></i>
+        <span>Pengajuan Dana Mitra</span>
+    </a>
+    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
+        <i class="fa-solid fa-arrow-left w-4"></i>
+        <span>Kembali ke Beranda</span>
+    </a>
+
+    {% endif %}
+</aside>

@@ -1,0 +1,10 @@
+bin/
+uploads/
+*.db
+tunnel.log
+PUBLIC_URL.txt
+start-internet.sh
+__pycache__/
+.venv/
+*.pyc
+.grok/

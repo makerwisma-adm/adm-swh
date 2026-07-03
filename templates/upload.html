@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Laporan • SPPG Wisma Haji</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>{% include 'partials/layout_styles.html' %}</style>
+</head>
+<body class="bg-slate-100">
+    {% include 'partials/navbar.html' %}
+
+    <div class="max-w-screen-2xl mx-auto flex">
+        {% set active_menu = 'tagihan' %}
+        {% set active_kategori = 'tagihan' %}
+        {% include 'partials/sidebar.html' %}
+
+        <main class="flex-1 p-6 md:p-8 max-w-3xl">
+            <div class="mb-6">
+                <h1 class="text-2xl font-semibold tracking-tight">Upload Data Laporan</h1>
+                <p class="text-slate-500 mt-1">Upload Laporan sekarang sudah terintegrasi di setiap halaman menu Dashboard (Tagihan, Petty Cash, Insentif Mitra, dll). Silakan buka halaman kategori yang diinginkan untuk upload PDF.</p>
+            </div>
+
+            {% if message %}
+            <div class="mb-6 p-4 rounded-2xl {% if success %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid {% if success %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+                    <span>{{ message }}</span>
+                </div>
+                {% if upload_id %}
+                <a href="/tagihan?pos={{ pos|urlencode }}" class="text-sm underline mt-1 inline-block">Lihat data di halaman Tagihan →</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="bg-white border border-slate-200 rounded-3xl p-6">
+                <form method="POST" action="/upload" enctype="multipart/form-data" class="space-y-5">
+                    <!-- Kategori -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Kategori Laporan <span class="text-red-500">*</span></label>
+                        <select name="kategori" required class="w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm">
+                            <option value="tagihan">Tagihan</option>
+                        </select>
+                    </div>
+
+
+
+                    <!-- Periode -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Periode (opsional)</label>
+                        <input type="month" name="periode" class="px-4 py-2.5 border border-slate-300 rounded-2xl text-sm">
+                    </div>
+
+                    <!-- File -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">File Excel / CSV <span class="text-red-500">*</span></label>
+                        <input type="file" name="file" accept=".xlsx,.xls,.csv" required 
+                               class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-2xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-700 file:text-white hover:file:bg-emerald-800">
+                        <p class="text-xs text-slate-500 mt-1">Didukung: Excel/CSV biasa, atau <strong>PDF "Faktur Belum Lunas"</strong> dari Accurate. Data otomatis terekstrak.</p>
+                    </div>
+
+                    <button type="submit" 
+                            class="w-full mt-4 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-3 rounded-2xl flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-upload"></i>
+                        <span>Upload &amp; Proses Data</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="mt-6 text-xs text-slate-500 bg-white border border-slate-200 rounded-2xl p-4">
+                <strong>Tips:</strong> Untuk PDF Faktur, data supplier + keterangan + jumlah akan otomatis diekstrak dan masuk sebagai laporan dengan Pos yang Anda pilih. 
+                Buka Data Tagihan setelah upload untuk lihat &amp; analisa per Pos.
+            </div>
+        </main>
+    </div>
+</body>
+</html>

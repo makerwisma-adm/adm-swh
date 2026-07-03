@@ -1,0 +1,22 @@
+[project]
+name = "sppg-keuangan"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "jinja2>=3.0.0,<3.1.0",
+    "python-multipart>=0.0.9",
+    "itsdangerous>=2.2.0",
+    "passlib>=1.7.4",
+    "python-dateutil>=2.9.0",
+    "openpyxl>=3.1.0",
+    "xlsxwriter>=3.2.0",
+    "pdfplumber>=0.11.0",
+    "pypdf>=4.0.0",
+    "Pillow>=10.0.0",
+    "libsql>=0.1.4",
+]
+
+[tool.vercel]
+entrypoint = "main:app"

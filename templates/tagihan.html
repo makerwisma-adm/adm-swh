@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Tagihan • Pelaporan Keuangan SPPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        {% include 'partials/layout_styles.html' %}
+        :root { --bgn-light: #f8fafc; }
+        
+        .table-row:hover { background-color: #f8fafc; }
+        
+        .status-pill {
+            font-size: 0.65rem; font-weight: 700; padding: 2px 12px; border-radius: 9999px;
+            letter-spacing: .5px;
+        }
+        
+        .form-input {
+            transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: white;
+        }
+        .form-input:focus {
+            border-color: var(--bgn-blue);
+            box-shadow: 0 0 0 3px rgba(85, 167, 212, 0.15);
+            outline: none;
+        }
+        
+        .elegant-card {
+            background: #fffc;
+            backdrop-filter: blur(8px);
+            border: 1px solid #f1f5f9;
+            transition: transform .2s, box-shadow .2s;
+            box-shadow: 0 4px 24px -4px #071e4914;
+        }
+        .elegant-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 32px -4px #071e491f;
+        }
+
+        .glass-card {
+            background: #fffc;
+            backdrop-filter: blur(8px);
+            border: 1px solid #f1f5f9;
+        }
+        
+        .report-hero {
+            background: linear-gradient(135deg, #071e49 0%, #0c3d6e 45%, #1a5f8a 100%);
+            border-radius: 1.5rem;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        .report-hero::after {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -10%;
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(201,165,88,0.25) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero-kpi {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 1.25rem;
+            padding: 1.25rem 1.35rem;
+            transition: transform .2s, background .2s, border-color .2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-kpi::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent, #c9a558), transparent);
+            opacity: 0.7;
+        }
+        .hero-kpi:hover {
+            transform: translateY(-3px);
+            background: rgba(255,255,255,0.14);
+            border-color: rgba(255,255,255,0.28);
+        }
+        .hero-kpi-icon {
+            width: 42px; height: 42px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+        }
+        .hero-kpi-grand {
+            background: linear-gradient(135deg, rgba(201,165,88,0.25) 0%, rgba(255,255,255,0.12) 100%);
+            border-color: rgba(201,165,88,0.35);
+        }
+        .hero-kpi-grand .hero-kpi-icon {
+            background: rgba(201,165,88,0.3);
+            color: #f5d78e;
+        }
+        .money { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+        .ledger-table thead th {
+            background: var(--bgn-navy);
+            color: #fff;
+            font-size: 0.68rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            font-weight: 600;
+            padding: 0.85rem 1rem;
+            white-space: nowrap;
+        }
+        .ledger-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+        .ledger-table tbody tr:hover { background: #f8fafc; }
+        .ledger-table td { padding: 0.75rem 1rem; font-size: 0.82rem; vertical-align: middle; }
+    </style>
+</head>
+<body class="bg-[#f8fafc]">
+    {% include 'partials/navbar.html' %}
+
+    <div class="max-w-screen-2xl mx-auto flex">
+        {% set active_menu = 'tagihan' %}
+        {% set active_kategori = filters.kategori or 'tagihan' %}
+        {% include 'partials/sidebar.html' %}
+
+        <main class="flex-1 p-6 md:p-8">
+            <!-- Page Header -->
+            {% if message %}
+            <div class="mb-4 p-3 rounded-2xl {% if success %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
+                {{ message }}
+            </div>
+            {% endif %}
+
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h1 class="text-2xl font-bold text-[#071e49] font-display">Laporan Tagihan</h1>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="/export/csv" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2">
+                        <i class="fa-solid fa-download"></i>
+                        <span class="hidden sm:inline">CSV</span>
+                    </a>
+                    <a href="/export/xlsx" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2">
+                        <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                        <span class="hidden sm:inline">Excel</span>
+                    </a>
+                    <button onclick="showAddModal()"
+                            class="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 text-sm font-semibold rounded-2xl">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Tambah Baru</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Header Ringkasan -->
+            <div class="report-hero px-6 md:px-8 py-7 mb-6 relative">
+                <div class="relative z-10">
+                    <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+                        <div>
+                            <div class="text-[10px] uppercase tracking-[0.35em] text-[#c9a558] font-semibold mb-2">
+                                Ringkasan Tagihan
+                            </div>
+                            <h2 class="font-display text-2xl md:text-3xl font-bold tracking-tight">Laporan Tagihan</h2>
+                            <p class="text-white/60 text-sm mt-1.5">
+                                {{ tagihan|length }} entri ditampilkan • Total {{ format_rupiah(total_filtered) }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                        <div class="hero-kpi hero-kpi-grand" style="--accent: #c9a558;">
+                            <div class="hero-kpi-icon">
+                                <i class="fa-solid fa-sack-dollar"></i>
+                            </div>
+                            <div class="text-[10px] uppercase tracking-wider text-[#f5d78e]/90 font-semibold">Total Tagihan</div>
+                            <div class="mt-1 text-xl md:text-2xl font-bold money text-[#f5d78e] leading-tight">{{ format_rupiah(total_filtered) }}</div>
+                            <div class="text-[10px] text-white/50 mt-1">nilai keseluruhan</div>
+                        </div>
+
+                        <div class="hero-kpi" style="--accent: #55a7d4;">
+                            <div class="hero-kpi-icon bg-[#55a7d4]/25 text-[#7ec8eb]">
+                                <i class="fa-solid fa-list-ol"></i>
+                            </div>
+                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Jumlah Data</div>
+                            <div class="mt-1 text-2xl md:text-3xl font-bold money">{{ tagihan|length }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">baris tagihan</div>
+                        </div>
+
+                        <div class="hero-kpi" style="--accent: #60a5fa;">
+                            <div class="hero-kpi-icon bg-blue-400/20 text-blue-200">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Status Utama</div>
+                            {% if main_status == "Sukses" %}
+                            <div class="mt-1 flex items-center gap-2 text-xl md:text-2xl font-bold text-emerald-300">
+                                <span>SUKSES</span>
+                            </div>
+                            {% elif main_status == "Tertagih" %}
+                            <div class="mt-1 flex items-center gap-2 text-xl md:text-2xl font-bold text-amber-300 cursor-pointer hover:underline"
+                                 onclick="filterToPending()" title="Klik untuk filter data DIAJUKAN">
+                                <span>TERTAGIH</span>
+                            </div>
+                            {% else %}
+                            <div class="mt-1 text-2xl font-bold text-white/70">—</div>
+                            {% endif %}
+                            <div class="text-[10px] text-white/45 mt-1">berdasarkan data ditampilkan</div>
+                        </div>
+
+                        <div class="hero-kpi" style="--accent: #a78bfa;">
+                            <div class="hero-kpi-icon bg-violet-400/20 text-violet-200">
+                                <i class="fa-solid fa-building"></i>
+                            </div>
+                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Unit Kerja</div>
+                            <div class="mt-1 text-lg md:text-xl font-bold leading-tight">SPPG Wisma Haji</div>
+                            <div class="text-[10px] text-white/45 mt-1">pelaporan keuangan</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk selection toolbar -->
+            <div id="bulk-toolbar" style="display:none;" class="mb-4 p-3 bg-white border border-slate-200 rounded-3xl glass-card items-center gap-4 shadow-sm">
+                <span class="text-sm font-medium text-bgn-navy" id="selected-info">0 dipilih</span>
+                <button onclick="bulkDelete()" class="px-4 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl flex items-center gap-2 font-medium">
+                    <i class="fa-solid fa-trash"></i> 
+                    <span>Hapus yang Dipilih</span>
+                </button>
+
+                <button onclick="bulkSetStatus('DIAJUKAN')" class="px-4 py-1.5 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded-xl flex items-center gap-2 font-medium">
+                    <i class="fa-solid fa-clock"></i> 
+                    <span>Diajukan</span>
+                </button>
+                <button onclick="bulkSetStatus('TERBAYAR')" class="px-4 py-1.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl flex items-center gap-2 font-medium">
+                    <i class="fa-solid fa-check"></i> 
+                    <span>Terbayar</span>
+                </button>
+
+                <button onclick="clearSelection()" class="px-3 py-1.5 text-sm border border-slate-200 hover:bg-slate-50 rounded-xl text-bgn-navy">
+                    Batal Pilih
+                </button>
+            </div>
+
+            <!-- Upload Laporan PDF -->
+            <div class="mb-6 border-2 border-dashed border-slate-300 bg-[#f8fafc] rounded-3xl p-6">
+                <div class="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-file-pdf text-bgn-blue"></i>
+                            <span class="font-semibold text-bgn-navy">Upload Laporan PDF</span>
+                        </div>
+                        <div class="text-sm text-emerald-700">Unggah file PDF "Faktur Belum Lunas"</div>
+                    </div>
+                    <form action="/upload" method="POST" enctype="multipart/form-data" class="flex items-center gap-3">
+                        <input type="hidden" name="kategori" value="tagihan">
+                        <input type="file" name="file" accept=".pdf" required class="text-sm file:mr-3 file:py-2 file:px-4 file:rounded-2xl file:border-0 file:bg-white file:text-emerald-700 file:font-semibold hover:file:bg-emerald-100">
+                        <button type="submit" class="bg-bgn-blue hover:bg-blue-700 text-white px-6 py-2 rounded-2xl text-sm font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-upload"></i>
+                            <span>Upload PDF</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Filters - Elegant Blue -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-4 mb-6 shadow-sm">
+                <form method="GET" class="flex flex-wrap gap-3 items-end">
+                    <div class="flex-1 min-w-[180px]">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Cari</label>
+                        <input type="text" name="search" value="{{ filters.search }}" placeholder="Cari pengajuan / nama / bank..."
+                               class="w-full text-sm px-4 py-2 border rounded-2xl form-input">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                        <select name="status" class="text-sm px-3 py-2 border rounded-2xl form-input">
+                            <option value="">Semua</option>
+                            {% for s in status_options %}
+                            <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Rekening</label>
+                        <select name="rekening" class="text-sm px-3 py-2 border rounded-2xl form-input">
+                            <option value="">Semua</option>
+                            {% for r in rekening_options %}
+                            <option value="{{ r }}" {% if filters.rekening == r %}selected{% endif %}>{{ r }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Tanggal</label>
+                        <input type="date" name="tanggal" value="{{ filters.tanggal }}" class="text-sm px-3 py-2 border rounded-2xl form-input">
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="submit" class="px-5 py-2 text-sm font-semibold bg-bgn-blue text-white rounded-2xl hover:bg-blue-700">Terapkan</button>
+                        <a href="/tagihan" class="px-4 py-2 text-sm font-medium border border-slate-200 rounded-2xl hover:bg-slate-50 text-bgn-navy">Reset</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Summary bar -->
+            <div class="flex items-center justify-between mb-3 px-1">
+                <div class="text-sm text-bgn-navy/70">
+                    Menampilkan <span class="font-semibold text-bgn-navy">{{ tagihan|length }}</span> entri • Total: 
+                    <span class="font-semibold text-bgn-navy">{{ format_rupiah(total_filtered) }}</span>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="bg-white shadow-sm border border-slate-200 rounded-3xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="ledger-table w-full">
+                        <thead>
+                            <tr>
+                                <th class="w-8"><input type="checkbox" id="select-all" class="rounded"></th>
+                                <th class="text-left w-12">No</th>
+                                <th class="text-left min-w-[260px]">Keterangan</th>
+                                <th class="text-right">Jumlah</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-left">Rekening</th>
+                                <th class="text-left hidden xl:table-cell">Tanggal</th>
+                                <th class="text-left hidden lg:table-cell">Atas Nama</th>
+                                <th class="w-20">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for item in tagihan %}
+                            <tr class="table-row" data-id="{{ item.id }}">
+                                <td class="px-1"><input type="checkbox" class="row-checkbox" value="{{ item.id }}"></td>
+                                <td class="px-6 py-3 text-bgn-navy/60 font-mono text-xs">{{ item.no or '—' }}</td>
+                                <td class="px-4 py-3">
+                                    <div class="font-medium text-bgn-navy">{{ item.pengajuan }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <div class="font-semibold money text-bgn-navy">{{ format_rupiah(item.jumlah) }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-center status-cell">
+                                    {% set s = item.status %}
+                                    {% if s == 'TERBAYAR' %}
+                                        <span class="status-pill bg-emerald-100 text-emerald-700">TERBAYAR</span>
+                                    {% elif s == 'DIAJUKAN' %}
+                                        <span class="status-pill bg-amber-100 text-amber-700">DIAJUKAN</span>
+                                    {% else %}
+                                        <span class="status-pill bg-bgn-light text-bgn-navy">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-xs text-bgn-navy/70">
+                                    {% if item.rekening %}
+                                    {{ item.rekening }}
+                                    {% endif %}
+                                    {% if item.bank or item.nomor_rekening %}
+                                    <div class="text-[10px] text-bgn-navy/60">{{ item.bank or '' }} {{ item.nomor_rekening or '' }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-xs text-bgn-navy/70 hidden xl:table-cell">{{ item.tanggal or '—' }}</td>
+                                <td class="px-4 py-3 text-xs text-bgn-navy/70 hidden lg:table-cell">{{ item.atas_nama or '—' }}</td>
+                                <td class="px-4 py-2">
+                                    <div class="flex items-center gap-1">
+                                        <!-- Edit -->
+                                        <button onclick='editItem({{ item | tojson }})' 
+                                                class="p-2 text-bgn-navy/60 hover:text-bgn-blue hover:bg-bgn-light rounded-xl transition">
+                                            <i class="fa-solid fa-edit fa-sm"></i>
+                                        </button>
+                                        <!-- Delete -->
+                                        <form method="POST" action="/tagihan/{{ item.id }}/delete" onsubmit="return confirm('Hapus data ini?')">
+                                            <button type="submit" class="p-2 text-bgn-navy/60 hover:text-red-600 hover:bg-red-50 rounded-xl transition">
+                                                <i class="fa-solid fa-trash fa-sm"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            
+                            {% if not tagihan %}
+                            <tr>
+                                <td colspan="8" class="px-6 py-10 text-center text-sm text-slate-400">
+                                    Belum ada data tagihan. Klik tombol <span class="font-medium">"Tambah Baru"</span> untuk memulai.
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Info -->
+            <div class="mt-4 px-1 text-xs text-slate-500">
+                Template mengikuti struktur <span class="font-medium">"Tagihan Mitra"</span> dari file Excel KEBUTUHAN SPPG WISMA HAJI.
+            </div>
+        </main>
+    </div>
+
+    <!-- Add / Edit Modal -->
+    <div id="form-modal" class="hidden fixed inset-0 bg-black/70 z-[90] items-center justify-center p-4" onclick="if (event.target.id === 'form-modal') hideModal()">
+        <div onclick="event.stopImmediatePropagation()" class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200">
+            <!-- Modal Header -->
+            <div class="px-6 py-5 border-b flex items-center justify-between">
+                <div>
+                    <div id="modal-title" class="font-semibold text-xl text-bgn-navy">Tambah Tagihan Baru</div>
+                    <div class="text-xs text-bgn-blue">Sesuai format Tagihan Mitra</div>
+                </div>
+                <button onclick="hideModal()" class="text-slate-400 hover:text-slate-700 text-xl leading-none">&times;</button>
+            </div>
+
+            <form id="tagihan-form" method="POST" action="/tagihan" class="px-6 py-5">
+                <input type="hidden" id="edit-id" name="edit_id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
+                    <!-- NO -->
+                    <div>
+                        <label class="text-xs font-semibold text-bgn-navy">NO</label>
+                        <input id="no" name="no" type="text" placeholder="1, 2, ..." 
+                               class="form-input mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm">
+                    </div>
+                    
+                    <!-- Tanggal -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Tanggal</label>
+                        <input id="tanggal" name="tanggal" type="date" 
+                               class="form-input mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm">
+                    </div>
+
+                    <!-- Pengajuan (Full width) -->
+                    <div class="md:col-span-2">
+                        <label class="text-xs font-semibold text-slate-600">KETERANGAN <span class="text-red-500">*</span></label>
+                        <textarea id="pengajuan" name="pengajuan" rows="2" required placeholder="Deskripsi lengkap keterangan / tagihan..."
+                                  class="form-input mt-1 w-full px-4 py-3 border border-slate-300 rounded-2xl text-sm"></textarea>
+                    </div>
+
+                    <!-- JUMLAH -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">JUMLAH (Rp) <span class="text-red-500">*</span></label>
+                        <input id="jumlah" name="jumlah" type="number" step="1" required
+                               class="form-input mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm font-medium">
+                        <div class="text-[10px] text-slate-400 mt-1">Masukkan angka tanpa titik/koma, contoh: 1700000</div>
+                    </div>
+
+                    <!-- STATUS -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">STATUS</label>
+                        <select id="status" name="status" class="form-input mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm">
+                            <option value="DIAJUKAN">DIAJUKAN</option>
+                            <option value="TERBAYAR">TERBAYAR</option>
+                        </select>
+                    </div>
+
+                    <!-- REKENING -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">REKENING</label>
+                        <select id="rekening" name="rekening" class="form-input mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm">
+                            <option value="">— Pilih / kosongkan —</option>
+                            <option value="KAS STAFF">KAS STAFF</option>
+                            <option value="PETTY CASH">PETTY CASH</option>
+                            <option value="CV IPAL">CV IPAL</option>
+                        </select>
+                        <input type="text" id="rekening-other" placeholder="Lainnya (ketik manual)"
+                               class="mt-1.5 hidden w-full px-4 py-2 text-sm border border-slate-300 rounded-2xl form-input">
+                    </div>
+
+                    <input type="hidden" id="kategori" name="kategori" value="tagihan">
+
+                    <!-- ATAS NAMA -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">ATAS NAMA REK.</label>
+                        <input id="atas_nama" name="atas_nama" type="text" placeholder="Nama pemilik rekening"
+                               class="form-input mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm">
+                    </div>
+
+                    <!-- NOMOR REKENING -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">NOMOR REKENING</label>
+                        <input id="nomor_rekening" name="nomor_rekening" type="text" placeholder="1234567890"
+                               class="form-input mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm font-mono">
+                    </div>
+
+                    <!-- BANK -->
+                    <div class="md:col-span-2">
+                        <label class="text-xs font-semibold text-slate-600">BANK</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="bank" name="bank" class="form-input w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm">
+                                <option value="">— Pilih Bank —</option>
+                                <option value="MANDIRI">MANDIRI</option>
+                                <option value="MANDIRI SUDARJONO">MANDIRI SUDARJONO</option>
+                                <option value="BCA BAGUS SETIONO">BCA BAGUS SETIONO</option>
+                                <option value="VA Yayasan (Mandiri)">VA Yayasan (Mandiri)</option>
+                            </select>
+                            <input type="text" id="bank-other" placeholder="Bank lain / ketik manual" 
+                                   class="form-input w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 mt-8">
+                    <button type="button" onclick="hideModal()"
+                            class="flex-1 py-3 text-sm font-medium border border-slate-200 rounded-2xl hover:bg-slate-50 text-bgn-navy">Batal</button>
+                    <button type="submit"
+                            class="flex-1 py-3 text-sm font-semibold bg-bgn-blue hover:bg-blue-700 transition text-white rounded-2xl">Simpan Tagihan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showAddModal() {
+            const modal = document.getElementById('form-modal');
+            const form = document.getElementById('tagihan-form');
+            
+            form.reset();
+            form.action = '/tagihan';
+            document.getElementById('modal-title').innerText = 'Tambah Tagihan Baru';
+            document.getElementById('edit-id').value = '';
+            
+            // clear hidden
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function editItem(item) {
+            const modal = document.getElementById('form-modal');
+            const form = document.getElementById('tagihan-form');
+            
+            form.action = `/tagihan/${item.id}/update`;
+            document.getElementById('modal-title').innerText = 'Edit Tagihan';
+            
+            // Populate
+            document.getElementById('edit-id').value = item.id;
+            document.getElementById('no').value = item.no || '';
+            document.getElementById('pengajuan').value = item.pengajuan || '';
+            document.getElementById('jumlah').value = item.jumlah || '';
+            document.getElementById('status').value = item.status || 'DIAJUKAN';
+            document.getElementById('rekening').value = item.rekening || '';
+            document.getElementById('tanggal').value = item.tanggal || '';
+            document.getElementById('atas_nama').value = item.atas_nama || '';
+            document.getElementById('nomor_rekening').value = item.nomor_rekening || '';
+            document.getElementById('bank').value = item.bank || '';
+            document.getElementById('kategori').value = item.kategori || 'tagihan';
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function hideModal() {
+            const modal = document.getElementById('form-modal');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        // Auto close modal on success (simple)
+        const formEl = document.getElementById('tagihan-form');
+        if (formEl) {
+            formEl.addEventListener('submit', () => {
+                // Optional: hide immediately
+                setTimeout(() => {
+                    // We let the form submit normally (full reload)
+                }, 50);
+            });
+        }
+
+        // Keyboard escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === "Escape") {
+                const modal = document.getElementById('form-modal');
+                if (!modal.classList.contains('hidden')) hideModal();
+            }
+        });
+
+        // Optional: allow direct access via hash
+        if (window.location.hash === '#form') {
+            setTimeout(() => {
+                document.getElementById('form-modal').classList.remove('hidden');
+                document.getElementById('form-modal').classList.add('flex');
+            }, 300);
+        }
+
+        // Bulk selection logic
+        function updateBulkToolbar() {
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            const toolbar = document.getElementById('bulk-toolbar');
+            const info = document.getElementById('selected-info');
+            if (checked.length > 0) {
+                toolbar.style.display = 'flex';
+                info.textContent = checked.length + ' dipilih';
+            } else {
+                toolbar.style.display = 'none';
+            }
+        }
+
+        // Select all
+        const selectAll = document.getElementById('select-all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                document.querySelectorAll('.row-checkbox').forEach(cb => {
+                    cb.checked = selectAll.checked;
+                    const row = cb.closest('tr');
+                    if (row) row.classList.toggle('bg-emerald-50', cb.checked);
+                });
+                updateBulkToolbar();
+            });
+
+            // Row checkboxes
+            document.querySelectorAll('.row-checkbox').forEach(cb => {
+                cb.addEventListener('change', function() {
+                    const all = document.querySelectorAll('.row-checkbox');
+                    const checked = document.querySelectorAll('.row-checkbox:checked');
+                    selectAll.checked = all.length > 0 && all.length === checked.length;
+                    // highlight checked rows
+                    const row = cb.closest('tr');
+                    if (row) row.classList.toggle('bg-emerald-50', cb.checked);
+                    updateBulkToolbar();
+                });
+            });
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+            const selectAll = document.getElementById('select-all');
+            if (selectAll) selectAll.checked = false;
+            const toolbar = document.getElementById('bulk-toolbar');
+            toolbar.style.display = 'none';
+        }
+
+        function getSelectedIds() {
+            return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+        }
+
+        async function bulkDelete() {
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            if (!confirm(`Hapus ${ids.length} item yang dipilih?`)) return;
+
+            try {
+                const resp = await fetch('/api/tagihan/bulk-delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ids: ids})
+                });
+                const result = await resp.json().catch(e => ({parseError: e.message}));
+                console.log('Bulk delete response:', resp.status, result);
+                if (resp.status < 300) {
+                    location.reload();
+                } else {
+                    const msg = result.error || result.detail || JSON.stringify(result) || 'Unknown error (status ' + resp.status + ')';
+                    alert('Gagal menghapus: ' + msg);
+                }
+            } catch (e) {
+                alert('Error saat menghapus: ' + e.message);
+            }
+        }
+
+        async function bulkSetStatus(status) {
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            if (!confirm(`Ubah status ${ids.length} item menjadi ${status}?`)) return;
+
+            try {
+                const resp = await fetch('/api/tagihan/bulk-update', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ids: ids, status: status})
+                });
+                const result = await resp.json().catch(e => ({}));
+                if (resp.status < 300 && result.success) {
+                    // Live update the status column 
+                    const pillClass = status === 'TERBAYAR' 
+                        ? 'status-pill bg-emerald-100 text-emerald-700' 
+                        : 'status-pill bg-amber-100 text-amber-700';
+                    ids.forEach(id => {
+                        const row = document.querySelector(`tr[data-id="${id}"]`);
+                        if (row) {
+                            const statusTd = row.querySelector('.status-cell');
+                            if (statusTd) {
+                                statusTd.innerHTML = `<span class="${pillClass}">${status}</span>`;
+                            }
+                        }
+                    });
+                    clearSelection();
+                    // Reload to URL without status filter so the changed items are visible on refresh/pindah
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("status");
+                    window.location.href = url.toString();
+                } else {
+                    const msg = result.error || result.detail || JSON.stringify(result) || 'Unknown error (status ' + resp.status + ')';
+                    alert('Gagal mengubah status: ' + msg);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function filterToPending() {
+            // Set status filter to DIAJUKAN to show only pending items
+            // Preserves other current filters (search, tanggal, kategori, etc.)
+            const url = new URL(window.location.href);
+            url.searchParams.set("status", "DIAJUKAN");
+            window.location.href = url.toString();
+        }
+
+    </script>
+</body>
+</html>
