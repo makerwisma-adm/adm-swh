@@ -27,8 +27,9 @@ if [ -n "$DEPLOY_URL" ]; then
 fi
 
 echo ""
-echo "Selesai! URL: https://${PROD_DOMAIN}/login"
+echo "Selesai! URL: https://${PROD_DOMAIN}/masuk"
 echo ""
 echo "Untuk deploy otomatis:"
-echo "  ./push-and-deploy.sh          # push Git → Vercel auto-deploy"
-echo "  ./auto-deploy.sh              # watch file lokal → deploy"
+echo "  ./start-dev.sh                # dev lokal + auto-deploy ke Vercel"
+echo "  ./auto-deploy.sh              # watch file → deploy production"
+echo "  ./push-and-deploy.sh          # commit + deploy sekarang"

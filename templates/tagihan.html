@@ -137,13 +137,9 @@
                     <h1 class="text-2xl font-bold text-[#071e49] font-display">Laporan Tagihan</h1>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="/export/csv" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2">
-                        <i class="fa-solid fa-download"></i>
-                        <span class="hidden sm:inline">CSV</span>
-                    </a>
-                    <a href="/export/xlsx" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2">
-                        <i class="fa-solid fa-file-excel text-emerald-600"></i>
-                        <span class="hidden sm:inline">Excel</span>
+                    <a href="/export/pdf" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2 shadow-sm">
+                        <i class="fa-solid fa-file-pdf text-red-600"></i>
+                        <span>Download</span>
                     </a>
                     <button onclick="showAddModal()"
                             class="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 text-sm font-semibold rounded-2xl">
@@ -163,7 +159,7 @@
                             </div>
                             <h2 class="font-display text-2xl md:text-3xl font-bold tracking-tight">Laporan Tagihan</h2>
                             <p class="text-white/60 text-sm mt-1.5">
-                                {{ tagihan|length }} entri ditampilkan • Total {{ format_rupiah(total_filtered) }}
+                                {{ tagihan|length }} entri • Jumlah {{ format_rupiah(total_filtered) }} + Charges {{ format_rupiah(total_charges) }}
                             </p>
                         </div>
                     </div>
@@ -173,9 +169,9 @@
                             <div class="hero-kpi-icon">
                                 <i class="fa-solid fa-sack-dollar"></i>
                             </div>
-                            <div class="text-[10px] uppercase tracking-wider text-[#f5d78e]/90 font-semibold">Total Tagihan</div>
-                            <div class="mt-1 text-xl md:text-2xl font-bold money text-[#f5d78e] leading-tight">{{ format_rupiah(total_filtered) }}</div>
-                            <div class="text-[10px] text-white/50 mt-1">nilai keseluruhan</div>
+                            <div class="text-[10px] uppercase tracking-wider text-[#f5d78e]/90 font-semibold">Total Bayar</div>
+                            <div class="mt-1 text-xl md:text-2xl font-bold money text-[#f5d78e] leading-tight">{{ format_rupiah(total_grand) }}</div>
+                            <div class="text-[10px] text-white/50 mt-1">jumlah + charges</div>
                         </div>
 
                         <div class="hero-kpi" style="--accent: #55a7d4;">
@@ -302,8 +298,11 @@
             <!-- Summary bar -->
             <div class="flex items-center justify-between mb-3 px-1">
                 <div class="text-sm text-bgn-navy/70">
-                    Menampilkan <span class="font-semibold text-bgn-navy">{{ tagihan|length }}</span> entri • Total: 
-                    <span class="font-semibold text-bgn-navy">{{ format_rupiah(total_filtered) }}</span>
+                    Menampilkan <span class="font-semibold text-bgn-navy">{{ tagihan|length }}</span> entri •
+                    Jumlah <span class="font-semibold text-bgn-navy">{{ format_rupiah(total_filtered) }}</span> +
+                    Charges <span class="font-semibold text-bgn-navy">{{ format_rupiah(total_charges) }}</span> =
+                    <span class="font-semibold text-bgn-navy">{{ format_rupiah(total_grand) }}</span>
+                    <span class="text-bgn-navy/50 text-xs ml-1">(charges {{ format_rupiah(tagihan_charges_amount) }}, kecuali Mandiri)</span>
                 </div>
             </div>
 
@@ -317,6 +316,8 @@
                                 <th class="text-left w-12">No</th>
                                 <th class="text-left min-w-[260px]">Keterangan</th>
                                 <th class="text-right">Jumlah</th>
+                                <th class="text-right">Charges</th>
+                                <th class="text-right">Total</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-left">Rekening</th>
                                 <th class="text-left hidden xl:table-cell">Tanggal</th>
@@ -334,6 +335,16 @@
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <div class="font-semibold money text-bgn-navy">{{ format_rupiah(item.jumlah) }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    {% if item.charges %}
+                                    <span class="font-semibold text-slate-600 money text-sm">{{ format_rupiah(item.charges) }}</span>
+                                    {% else %}
+                                    <span class="text-slate-400 text-xs">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <span class="font-bold text-emerald-700 money text-base">{{ format_rupiah(item.total) }}</span>
                                 </td>
                                 <td class="px-4 py-3 text-center status-cell">
                                     {% set s = item.status %}
@@ -375,7 +386,7 @@
                             
                             {% if not tagihan %}
                             <tr>
-                                <td colspan="8" class="px-6 py-10 text-center text-sm text-slate-400">
+                                <td colspan="11" class="px-6 py-10 text-center text-sm text-slate-400">
                                     Belum ada data tagihan. Klik tombol <span class="font-medium">"Tambah Baru"</span> untuk memulai.
                                 </td>
                             </tr>

@@ -29,7 +29,7 @@ PUBLIC_APP_URL = os.getenv(
     "PUBLIC_APP_URL",
     "https://adm-swh.vercel.app" if IS_VERCEL else "http://localhost:8001",
 ).rstrip("/")
-PUBLIC_LOGIN_URL = f"{PUBLIC_APP_URL}/login"
+PUBLIC_LOGIN_URL = f"{PUBLIC_APP_URL}/masuk"
 SECRET_KEY = os.getenv("SECRET_KEY", "sppg-wisma-haji-madiun-2026-super-secret-key-change-in-prod")
 SESSION_COOKIE_NAME = "sppg_session"
 
@@ -523,7 +523,7 @@ def _safe_next_url(next_url: str) -> str:
     """Hanya izinkan redirect internal."""
     if not next_url or not next_url.startswith("/") or next_url.startswith("//"):
         return "/dashboard"
-    if next_url.startswith("/login") or next_url.startswith("/logout"):
+    if next_url.startswith("/login") or next_url.startswith("/masuk") or next_url.startswith("/logout"):
         return "/dashboard"
     return next_url
 
@@ -535,7 +535,7 @@ def require_login(request: Request):
         if request.url.query:
             next_path = f"{next_path}?{request.url.query}"
         from urllib.parse import quote
-        location = f"/login?next={quote(next_path, safe='')}"
+        location = f"/masuk?next={quote(next_path, safe='')}"
         raise HTTPException(status_code=302, headers={"Location": location})
     return user
 
@@ -624,19 +624,14 @@ async def root(request: Request):
     user = get_current_user(request)
     if user:
         return RedirectResponse("/dashboard")
-    return RedirectResponse("/login")
+    return RedirectResponse("/masuk")
+
 
 @app.get("/masuk", response_class=HTMLResponse)
-async def masuk_redirect(request: Request, next: str = ""):
-    target = f"/login?next={next}" if next else "/login"
-    return RedirectResponse(target, status_code=303)
-
-
-@app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = "", message: str = "", error: str = ""):
     if message:
         qs = f"?next={next}" if next else ""
-        return RedirectResponse(f"/login{qs}", status_code=303)
+        return RedirectResponse(f"/masuk{qs}", status_code=303)
     user = get_current_user(request)
     return render_template(request, "login.html", _login_context(
         user=user,
@@ -646,6 +641,19 @@ async def login_page(request: Request, next: str = "", message: str = "", error:
     ))
 
 
+@app.get("/login", response_class=HTMLResponse)
+async def login_redirect(request: Request, next: str = "", message: str = "", error: str = ""):
+    from urllib.parse import urlencode
+    params = {}
+    if next:
+        params["next"] = next
+    if error:
+        params["error"] = error
+    qs = f"?{urlencode(params)}" if params else ""
+    return RedirectResponse(f"/masuk{qs}", status_code=303)
+
+
+@app.post("/masuk", response_class=HTMLResponse)
 @app.post("/login", response_class=HTMLResponse)
 async def login(
     request: Request,
@@ -680,7 +688,7 @@ async def login(
 @app.get("/logout")
 async def logout(request: Request):
     request.session.clear()
-    resp = RedirectResponse("/login", status_code=303)
+    resp = RedirectResponse("/masuk", status_code=303)
     resp.delete_cookie(SESSION_COOKIE_NAME)
     return resp
 
@@ -748,7 +756,7 @@ async def tagihan_page(
     if tanggal: filters["tanggal"] = tanggal
     if kategori: filters["kategori"] = kategori
 
-    data = get_all_tagihan(filters)
+    data = [enrich_tagihan_item(d) for d in get_all_tagihan(filters)]
 
     # Compute main status automatically based on current filtered data
     if not data:
@@ -766,11 +774,16 @@ async def tagihan_page(
     conn.close()
 
     total_filtered = sum(d["jumlah"] for d in data)
+    total_charges = sum(d["charges"] for d in data)
+    total_grand = total_filtered + total_charges
 
     return render_template(request, "tagihan.html", {
         "user": user,
         "tagihan": data,
         "total_filtered": total_filtered,
+        "total_charges": total_charges,
+        "total_grand": total_grand,
+        "tagihan_charges_amount": TAGIHAN_CHARGES_AMOUNT,
         "main_status": main_status,
         "format_rupiah": format_rupiah,
         "filters": {"search": search, "status": status, "rekening": rekening, "tanggal": tanggal, "kategori": kategori},
@@ -780,6 +793,8 @@ async def tagihan_page(
         "message": message,
         "success": success,
     })
+
+TAGIHAN_CHARGES_AMOUNT = 6500
 
 FEE_PAYROL_PER_ORANG = 2500
 INSENTIF_MITRA_PER_HARI = 6_000_000
@@ -807,6 +822,23 @@ def get_gaji_relawan(filters: Dict = None) -> List[Dict]:
 
 def calc_fee_payrol(item_count: int) -> int:
     return FEE_PAYROL_PER_ORANG * max(item_count, 0)
+
+
+def calc_tagihan_charges(item: Dict) -> int:
+    """Biaya transfer Rp6.500 per baris, kecuali bank Mandiri."""
+    bank = (item.get("bank") or "").strip().lower()
+    if "mandiri" in bank:
+        return 0
+    return TAGIHAN_CHARGES_AMOUNT
+
+
+def enrich_tagihan_item(item: Dict) -> Dict:
+    row = dict(item)
+    jumlah = row.get("jumlah") or 0
+    charges = calc_tagihan_charges(row)
+    row["charges"] = charges
+    row["total"] = jumlah + charges
+    return row
 
 
 def get_gaji_relawan_laporans(active_only: bool = False) -> List[Dict[str, Any]]:
@@ -3762,6 +3794,102 @@ async def api_summary(user=Depends(require_login)):
 
 # ===================== Export =====================
 
+def _build_tagihan_pdf(rows: List[Dict]) -> bytes:
+    from fpdf import FPDF
+
+    data = [enrich_tagihan_item(r) for r in rows]
+    total_jumlah = sum(r["jumlah"] for r in data)
+    total_charges = sum(r["charges"] for r in data)
+    total_grand = total_jumlah + total_charges
+
+    pdf = FPDF(orientation="L", unit="mm", format="A4")
+    pdf.set_auto_page_break(auto=True, margin=12)
+    pdf.set_margins(10, 10, 10)
+    pdf.add_page()
+
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_text_color(7, 30, 73)
+    pdf.cell(0, 8, "LAPORAN TAGIHAN - SPPG WISMA HAJI MADIUN", ln=True, align="C")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(80, 80, 80)
+    pdf.cell(0, 6, f"Dicetak: {date.today().strftime('%d %B %Y')}  |  {len(data)} entri", ln=True, align="C")
+    pdf.ln(4)
+
+    col_widths = [22, 72, 24, 20, 24, 18, 22, 20, 28, 18]
+    headers = ["NO", "KETERANGAN", "JUMLAH", "CHARGES", "TOTAL", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA", "BANK"]
+    row_h = 7
+
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.set_fill_color(7, 30, 73)
+    pdf.set_text_color(255, 255, 255)
+    for i, header in enumerate(headers):
+        pdf.cell(col_widths[i], row_h, header, border=1, align="C", fill=True)
+    pdf.ln()
+
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_text_color(30, 30, 30)
+    fill = False
+    for item in data:
+        if pdf.get_y() > 185:
+            pdf.add_page()
+            pdf.set_font("Helvetica", "B", 7)
+            pdf.set_fill_color(7, 30, 73)
+            pdf.set_text_color(255, 255, 255)
+            for i, header in enumerate(headers):
+                pdf.cell(col_widths[i], row_h, header, border=1, align="C", fill=True)
+            pdf.ln()
+            pdf.set_font("Helvetica", "", 7)
+            pdf.set_text_color(30, 30, 30)
+
+        keterangan = (item.get("pengajuan") or "")[:55]
+        cells = [
+            str(item.get("no") or "")[:18],
+            keterangan,
+            format_rupiah(item.get("jumlah") or 0).replace("Rp", "Rp "),
+            format_rupiah(item.get("charges") or 0).replace("Rp", "Rp ") if item.get("charges") else "-",
+            format_rupiah(item.get("total") or 0).replace("Rp", "Rp "),
+            str(item.get("status") or "")[:10],
+            str(item.get("rekening") or "")[:12],
+            str(item.get("tanggal") or "")[:10],
+            str(item.get("atas_nama") or "")[:20],
+            str(item.get("bank") or "")[:10],
+        ]
+        aligns = ["L", "L", "R", "R", "R", "C", "L", "C", "L", "L"]
+        if fill:
+            pdf.set_fill_color(248, 250, 252)
+        else:
+            pdf.set_fill_color(255, 255, 255)
+        for i, (text, align) in enumerate(zip(cells, aligns)):
+            pdf.cell(col_widths[i], row_h, text, border=1, align=align, fill=True)
+        pdf.ln()
+        fill = not fill
+
+    pdf.ln(2)
+    pdf.set_font("Helvetica", "B", 8)
+    pdf.set_fill_color(236, 253, 245)
+    pdf.set_text_color(7, 30, 73)
+    pdf.cell(sum(col_widths[:2]), row_h, "TOTAL", border=1, align="R", fill=True)
+    pdf.cell(col_widths[2], row_h, format_rupiah(total_jumlah).replace("Rp", "Rp "), border=1, align="R", fill=True)
+    pdf.cell(col_widths[3], row_h, format_rupiah(total_charges).replace("Rp", "Rp "), border=1, align="R", fill=True)
+    pdf.cell(col_widths[4], row_h, format_rupiah(total_grand).replace("Rp", "Rp "), border=1, align="R", fill=True)
+    pdf.cell(sum(col_widths[5:]), row_h, "", border=1, fill=True)
+    pdf.ln()
+
+    return bytes(pdf.output())
+
+
+@app.get("/export/pdf")
+async def export_pdf(user=Depends(require_login)):
+    data = get_all_tagihan()
+    content = _build_tagihan_pdf(data)
+    filename = f"Laporan_Tagihan_SPPG_{date.today().isoformat()}.pdf"
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.get("/export/csv")
 async def export_csv(user=Depends(require_login)):
     import csv
@@ -3771,13 +3899,16 @@ async def export_csv(user=Depends(require_login)):
     output = StringIO()
     writer = csv.writer(output)
 
-    writer.writerow(["NO", "KETERANGAN", "JUMLAH", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA REK.", "NOMOR REKENING", "BANK"])
+    writer.writerow(["NO", "KETERANGAN", "JUMLAH", "CHARGES", "TOTAL", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA REK.", "NOMOR REKENING", "BANK"])
 
-    for d in data:
+    for raw in data:
+        d = enrich_tagihan_item(raw)
         writer.writerow([
             d["no"] or "",
             d["pengajuan"],
             d["jumlah"],
+            d["charges"],
+            d["total"],
             d["status"] or "",
             d["rekening"] or "",
             d["tanggal"] or "",
@@ -3825,7 +3956,7 @@ async def export_xlsx(user=Depends(require_login)):
     ws['B1'].alignment = Alignment(horizontal='center')
 
     # Headers (row 3 to match original structure)
-    headers = ["NO", "KETERANGAN", "JUMLAH", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA REK.", "NOMOR REKENING", "BANK"]
+    headers = ["NO", "KETERANGAN", "JUMLAH", "CHARGES", "TOTAL", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA REK.", "NOMOR REKENING", "BANK"]
     for col, header in enumerate(headers, start=2):
         cell = ws.cell(row=3, column=col, value=header)
         cell.fill = header_fill
@@ -3834,11 +3965,14 @@ async def export_xlsx(user=Depends(require_login)):
         cell.border = thin_border
 
     # Data rows
-    for idx, d in enumerate(data, start=4):
+    for idx, raw in enumerate(data, start=4):
+        d = enrich_tagihan_item(raw)
         row_data = [
             d["no"] or "",
             d["pengajuan"],
             d["jumlah"],
+            d["charges"],
+            d["total"],
             d["status"] or "",
             d["rekening"] or "",
             d["tanggal"] or "",
@@ -3849,12 +3983,12 @@ async def export_xlsx(user=Depends(require_login)):
         for col, val in enumerate(row_data, start=2):
             cell = ws.cell(row=idx, column=col, value=val)
             cell.border = thin_border
-            if col == 4:  # JUMLAH column
+            if col in (4, 5, 6):  # JUMLAH, CHARGES, TOTAL
                 cell.number_format = '#,##0'
             cell.alignment = Alignment(vertical='center', wrap_text=True)
 
     # Column widths (close to original)
-    widths = [7, 35, 15, 16, 16, 14, 22, 18, 22]
+    widths = [7, 35, 15, 12, 15, 16, 16, 14, 22, 18, 22]
     for i, w in enumerate(widths, start=2):
         ws.column_dimensions[get_column_letter(i)].width = w
 
@@ -3864,10 +3998,10 @@ async def export_xlsx(user=Depends(require_login)):
     # Total row
     total_row = 4 + len(data)
     ws.cell(row=total_row, column=2, value="TOTAL").font = Font(bold=True)
-    total_formula = f"=SUM(D4:D{total_row-1})"
-    total_cell = ws.cell(row=total_row, column=4, value=f"=SUM(D4:D{total_row-1})")
-    total_cell.font = Font(bold=True)
-    total_cell.number_format = '#,##0'
+    for col in (4, 5, 6):
+        total_cell = ws.cell(row=total_row, column=col, value=f"=SUM({get_column_letter(col)}4:{get_column_letter(col)}{total_row-1})")
+        total_cell.font = Font(bold=True)
+        total_cell.number_format = '#,##0'
 
     buffer = BytesIO()
     wb.save(buffer)

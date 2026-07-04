@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 export PATH="$(pwd)/bin/bin:$PATH"
 
 PROD_URL="https://adm-swh.vercel.app"
-INTERVAL="${AUTO_DEPLOY_INTERVAL:-8}"
+INTERVAL="${AUTO_DEPLOY_INTERVAL:-5}"
 LOCK="/tmp/adm-swh-deploy.lock"
 
 if ! command -v vercel >/dev/null 2>&1; then
@@ -42,7 +42,7 @@ while true; do
       trap 'rmdir "$LOCK" 2>/dev/null' EXIT
       echo "[$(date '+%H:%M:%S')] Perubahan terdeteksi, deploy ke production..."
       if vercel deploy --prod --yes; then
-        echo "[$(date '+%H:%M:%S')] Selesai → $PROD_URL/login"
+        echo "[$(date '+%H:%M:%S')] Selesai → $PROD_URL/masuk"
       else
         echo "[$(date '+%H:%M:%S')] Deploy gagal, coba lagi saat file berubah."
       fi
