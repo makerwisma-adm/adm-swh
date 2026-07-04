@@ -24,6 +24,4 @@ if [ -d .git ]; then
 fi
 
 echo "=== Deploy ke production ==="
-vercel deploy --prod --yes
-echo ""
-echo "Selesai → ${PROD_URL}/masuk"
+./vercel-deploy.sh

@@ -4,6 +4,6 @@ cd "$(git rev-parse --show-toplevel)"
 export PATH="$(pwd)/bin/bin:$PATH"
 
 if command -v vercel >/dev/null 2>&1 && vercel whoami >/dev/null 2>&1; then
-  nohup vercel deploy --prod --yes >/tmp/adm-swh-deploy.log 2>&1 &
+  ./vercel-deploy.sh >>/tmp/adm-swh-deploy.log 2>&1 &
   echo "→ Deploy ke adm-swh.vercel.app dimulai (lihat /tmp/adm-swh-deploy.log)"
 fi

@@ -18,14 +18,7 @@ if ! vercel whoami >/dev/null 2>&1; then
 fi
 
 echo "=== Deploy ke production ==="
-DEPLOY_URL=$(vercel deploy --prod --yes 2>&1 | tee /dev/stderr | grep -oE 'https://[a-z0-9-]+-adm-musik\.vercel\.app' | tail -1)
-
-if [ -n "$DEPLOY_URL" ]; then
-  echo ""
-  echo "=== Pastikan alias production ==="
-  vercel alias set "$DEPLOY_URL" "$PROD_DOMAIN" || true
-fi
-
+./vercel-deploy.sh
 echo ""
 echo "Selesai! URL: https://${PROD_DOMAIN}/masuk"
 echo ""

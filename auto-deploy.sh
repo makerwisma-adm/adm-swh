@@ -41,7 +41,7 @@ while true; do
     if mkdir "$LOCK" 2>/dev/null; then
       trap 'rmdir "$LOCK" 2>/dev/null' EXIT
       echo "[$(date '+%H:%M:%S')] Perubahan terdeteksi, deploy ke production..."
-      if vercel deploy --prod --yes; then
+      if ./vercel-deploy.sh >>/tmp/adm-swh-deploy.log 2>&1; then
         echo "[$(date '+%H:%M:%S')] Selesai → $PROD_URL/masuk"
       else
         echo "[$(date '+%H:%M:%S')] Deploy gagal, coba lagi saat file berubah."
