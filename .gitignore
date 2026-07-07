@@ -11,3 +11,4 @@ __pycache__/
 *.pyc
 .grok/
 .DS_Store
+.env*

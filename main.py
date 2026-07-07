@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBasic
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from passlib.hash import pbkdf2_sha256
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 from dateutil import parser as date_parser
@@ -38,14 +39,6 @@ serializer = URLSafeTimedSerializer(SECRET_KEY)
 
 # FastAPI
 app = FastAPI(title="Pelaporan Keuangan SPPG Wisma Haji", version="1.0")
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=SECRET_KEY,
-    session_cookie=SESSION_COOKIE_NAME,
-    max_age=60 * 60 * 24 * 7,
-    same_site="lax",
-    https_only=IS_VERCEL,
-)
 
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 # Vercel + Jinja2 3.x: nonaktifkan cache template (hindari TypeError unhashable dict)
@@ -64,6 +57,7 @@ if not IS_VERCEL:
 UPLOAD_DIR = "/tmp/sppg-uploads" if IS_VERCEL else os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(os.path.join(UPLOAD_DIR, "nota"), exist_ok=True)
+os.makedirs(os.path.join(UPLOAD_DIR, "lampiran"), exist_ok=True)
 
 
 @app.exception_handler(HTTPException)
@@ -144,6 +138,11 @@ def init_db():
         c.execute("ALTER TABLE tagihan ADD COLUMN nota_path TEXT")
     except:
         pass
+    for col in ("pict_path", "bukti_path"):
+        try:
+            c.execute(f"ALTER TABLE tagihan ADD COLUMN {col} TEXT")
+        except:
+            pass
     for col, typedef in [
         ("debit", "INTEGER DEFAULT 0"),
         ("kredit", "INTEGER DEFAULT 0"),
@@ -304,9 +303,50 @@ def init_db():
             )
 
     c.execute(
-        "UPDATE users SET password_hash = ? WHERE username = 'swhm'",
-        (pbkdf2_sha256.hash("A0312"),),
+        "UPDATE users SET password_hash = ?, full_name = ? WHERE username = 'swhm'",
+        (pbkdf2_sha256.hash("A0312"), "Adam Primaskoro"),
     )
+
+    icha_ph = pbkdf2_sha256.hash("sppg123")
+    if c.execute("SELECT id FROM users WHERE username = 'icha'").fetchone():
+        c.execute(
+            "UPDATE users SET password_hash = ?, full_name = ?, role = ? WHERE username = 'icha'",
+            (icha_ph, "Icha Salsabila", "member"),
+        )
+    elif c.execute("SELECT id FROM users WHERE username = 'member'").fetchone():
+        c.execute(
+            "UPDATE users SET username = 'icha', password_hash = ?, full_name = ?, role = ? WHERE username = 'member'",
+            (icha_ph, "Icha Salsabila", "member"),
+        )
+    else:
+        c.execute(
+            "INSERT INTO users (username, password_hash, full_name, role) VALUES (?,?,?,?)",
+            ("icha", icha_ph, "Icha Salsabila", "member"),
+        )
+
+    ulil_ph = pbkdf2_sha256.hash("swh123")
+    if c.execute("SELECT id FROM users WHERE username = 'ulil'").fetchone():
+        c.execute(
+            "UPDATE users SET password_hash = ?, full_name = ?, role = ? WHERE username = 'ulil'",
+            (ulil_ph, "Moch. Ulil Amri", "viewer"),
+        )
+    else:
+        c.execute(
+            "INSERT INTO users (username, password_hash, full_name, role) VALUES (?,?,?,?)",
+            ("ulil", ulil_ph, "Moch. Ulil Amri", "viewer"),
+        )
+
+    wisma_ph = pbkdf2_sha256.hash("a123")
+    if c.execute("SELECT id FROM users WHERE username = 'wisma'").fetchone():
+        c.execute(
+            "UPDATE users SET password_hash = ?, full_name = ?, role = ? WHERE username = 'wisma'",
+            (wisma_ph, "Bapak Herman", "viewer"),
+        )
+    else:
+        c.execute(
+            "INSERT INTO users (username, password_hash, full_name, role) VALUES (?,?,?,?)",
+            ("wisma", wisma_ph, "Bapak Herman", "viewer"),
+        )
 
     conn.commit()
     conn.close()
@@ -383,6 +423,23 @@ def format_tanggal_display(tgl_str: str) -> str:
         return f"{dt.day} - {bulan} - {dt.year}"
     except Exception:
         return tgl_str
+
+
+def format_tanggal_pengajuan(tgl_str: str) -> str:
+    """Format seperti formulir PDF: 20 Mei 2026."""
+    if not tgl_str:
+        return "—"
+    raw = tgl_str.strip()
+    iso = raw if len(raw) == 10 and raw[4] == "-" and raw[7] == "-" else _parse_id_date(raw)
+    if not iso:
+        return tgl_str
+    try:
+        dt = datetime.strptime(iso, "%Y-%m-%d")
+        bulan = ID_MONTH_NAMES[dt.month] if 1 <= dt.month <= 12 else str(dt.month)
+        return f"{dt.day} {bulan} {dt.year}"
+    except Exception:
+        return tgl_str
+
 
 def _parse_slash_date(tgl_str: str) -> Optional[str]:
     """Parse tanggal format M/D/YYYY dari tanda tangan PDF, contoh 6/10/2026."""
@@ -474,6 +531,19 @@ def filter_petty_cash_items(
         ]
     return result
 
+
+def sum_petty_pengeluaran(items: List[Dict[str, Any]]) -> int:
+    """Total pengeluaran = jumlah semua baris kredit / biaya yang ditambahkan."""
+    total = sum(int(i.get("kredit") or 0) for i in items)
+    if total > 0:
+        return total
+    return sum(
+        int(i.get("jumlah") or 0)
+        for i in items
+        if int(i.get("debit") or 0) == 0
+    )
+
+
 def get_current_user(request: Request):
     """Ambil user dari session middleware saja — hindari konflik cookie ganda."""
     try:
@@ -500,12 +570,133 @@ PORTAL_MODULES = [
 ]
 
 
+ROLE_ADMIN = "admin"
+ROLE_MEMBER = "member"
+ROLE_VIEWER = "viewer"
+AUTH_ONLY_PATHS = {"/masuk", "/login", "/logout"}
+MEMBER_WRITE_PATHS = AUTH_ONLY_PATHS | {
+    "/upload",
+    "/pengajuan-dana-mitra/upload",
+    "/petty-cash/upload",
+    "/gaji-relawan/upload",
+    "/insentif-pic/upload",
+    "/insentif-mitra/upload",
+}
+
+
+def user_role(user: Optional[Dict]) -> str:
+    if not user:
+        return ""
+    return (user.get("role") or ROLE_MEMBER).lower()
+
+
+def is_admin(user: Optional[Dict]) -> bool:
+    return user_role(user) == ROLE_ADMIN
+
+
+def is_viewer(user: Optional[Dict]) -> bool:
+    return user_role(user) == ROLE_VIEWER
+
+
+def can_member_upload(user: Optional[Dict]) -> bool:
+    """Member dengan hak upload (bukan viewer read-only)."""
+    return user_role(user) == ROLE_MEMBER
+
+
+def _member_owns_pdm_item(conn, item_id: int, user_id: int) -> bool:
+    """Member hanya boleh hapus data pengajuan dana mitra yang ia upload."""
+    row = conn.execute(
+        """
+        SELECT t.created_by, t.upload_id, u.created_by AS upload_creator
+        FROM tagihan t
+        LEFT JOIN uploads u ON u.id = t.upload_id
+        WHERE t.id = ? AND t.kategori = 'pengajuan_dana_mitra'
+        """,
+        (item_id,),
+    ).fetchone()
+    if not row:
+        return False
+    if row["created_by"] == user_id:
+        return True
+    if row["upload_id"] and row["upload_creator"] == user_id:
+        return True
+    return False
+
+
+def _is_member_pdm_delete_path(path: str) -> bool:
+    import re
+    if path == "/api/pengajuan-dana-mitra/bulk-delete":
+        return True
+    return bool(re.match(r"^/pengajuan-dana-mitra/\d+/delete$", path))
+
+
+def _is_member_petty_cash_write_path(path: str) -> bool:
+    """Member boleh upload PDF, nota, dan keterangan di halaman Petty Cash."""
+    import re
+    if path == "/petty-cash/upload":
+        return True
+    if re.match(r"^/api/petty-cash/\d+/nota$", path):
+        return True
+    if re.match(r"^/api/petty-cash/\d+/ket$", path):
+        return True
+    return False
+
+
+TAGIHAN_ATTACHMENT_FIELDS = {"pict", "nota", "bukti"}
+TAGIHAN_ATTACHMENT_KATEGORI = {"pengajuan_dana_mitra", "insentif_mitra"}
+
+
+def _is_member_tagihan_attachment_path(path: str) -> bool:
+    import re
+    return bool(
+        re.match(
+            r"^/api/tagihan/\d+/(pict|nota|bukti)$",
+            path,
+        )
+    )
+
+
+def redirect_with_flash(
+    request: Request,
+    url: str,
+    message: str = "",
+    success: bool = False,
+    status_code: int = 303,
+) -> RedirectResponse:
+    """Redirect dengan pesan sekali pakai (session flash), tanpa query ?message=."""
+    if message:
+        request.session["flash"] = {"message": message, "success": success}
+    return RedirectResponse(url, status_code=status_code)
+
+
 def render_template(request: Request, name: str, context: Dict = None, status_code: int = 200):
     """Starlette baru: TemplateResponse(request, name, context)."""
     ctx = {k: v for k, v in (context or {}).items() if k != "request"}
+    flash = request.session.pop("flash", None)
+    if flash:
+        ctx["message"] = flash.get("message", "")
+        ctx["success"] = bool(flash.get("success", False))
+    elif ctx.get("message"):
+        ctx["strip_message_params"] = True
     ctx.setdefault("public_app_url", PUBLIC_APP_URL)
     ctx.setdefault("public_login_url", PUBLIC_LOGIN_URL)
     ctx.setdefault("is_vercel", IS_VERCEL)
+    user = ctx.get("user") or get_current_user(request)
+    if user:
+        ctx["user"] = user
+        ctx["is_admin"] = is_admin(user)
+        ctx["can_edit"] = is_admin(user)
+        ctx["can_upload"] = is_admin(user) or can_member_upload(user)
+        ctx["can_download"] = is_admin(user) or can_member_upload(user)
+        ctx.setdefault("can_delete_upload", can_member_upload(user))
+        ctx["user_role"] = user_role(user)
+    else:
+        ctx.setdefault("is_admin", False)
+        ctx.setdefault("can_edit", False)
+        ctx.setdefault("can_upload", False)
+        ctx.setdefault("can_download", False)
+        ctx.setdefault("can_delete_upload", False)
+        ctx.setdefault("user_role", "")
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
 
 
@@ -539,6 +730,63 @@ def require_login(request: Request):
         raise HTTPException(status_code=302, headers={"Location": location})
     return user
 
+
+def require_admin(request: Request):
+    user = require_login(request)
+    if not is_admin(user):
+        raise HTTPException(status_code=403, detail="Akses ditolak. Hanya admin yang dapat mengubah data.")
+    return user
+
+
+class MemberWriteGuardMiddleware(BaseHTTPMiddleware):
+    """Member: upload di Tagihan, Petty Cash, Gaji Relawan & Pengajuan Dana Mitra. Viewer: hanya lihat."""
+
+    async def dispatch(self, request: Request, call_next):
+        if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            path = request.url.path.rstrip("/") or "/"
+            user = get_current_user(request)
+            if user and not is_admin(user):
+                if is_viewer(user):
+                    if path not in AUTH_ONLY_PATHS:
+                        if path.startswith("/api/"):
+                            return JSONResponse(
+                                {"error": "Akses ditolak. Akun Anda hanya dapat melihat data."},
+                                status_code=403,
+                            )
+                        return redirect_with_flash(
+                            request,
+                            "/dashboard",
+                            "Akses ditolak. Akun Anda hanya dapat melihat data.",
+                        )
+                elif (
+                    path not in MEMBER_WRITE_PATHS
+                    and not _is_member_pdm_delete_path(path)
+                    and not _is_member_petty_cash_write_path(path)
+                    and not _is_member_tagihan_attachment_path(path)
+                ):
+                    if path.startswith("/api/"):
+                        return JSONResponse(
+                            {"error": "Akses ditolak. Member hanya dapat upload di halaman Tagihan, Petty Cash, Gaji Relawan, dan Pengajuan Dana Mitra."},
+                            status_code=403,
+                        )
+                    return redirect_with_flash(
+                        request,
+                        "/tagihan",
+                        "Akses ditolak. Anda tidak dapat mengubah data.",
+                    )
+        return await call_next(request)
+
+
+app.add_middleware(MemberWriteGuardMiddleware)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    session_cookie=SESSION_COOKIE_NAME,
+    max_age=60 * 60 * 24 * 7,
+    same_site="lax",
+    https_only=IS_VERCEL,
+)
+
 def get_all_tagihan(filters: Dict = None) -> List[Dict]:
     conn = get_db()
     query = "SELECT * FROM tagihan"
@@ -552,9 +800,9 @@ def get_all_tagihan(filters: Dict = None) -> List[Dict]:
 
     if filters:
         if filters.get("search"):
-            where.append("(pengajuan LIKE ? OR atas_nama LIKE ? OR bank LIKE ?)")
+            where.append("(pengajuan LIKE ? OR atas_nama LIKE ? OR bank LIKE ? OR pos LIKE ? OR no LIKE ? OR nomor_rekening LIKE ?)")
             s = f"%{filters['search']}%"
-            params.extend([s, s, s])
+            params.extend([s, s, s, s, s, s])
         if filters.get("status"):
             where.append("status = ?")
             params.append(filters["status"])
@@ -680,9 +928,11 @@ async def login(
         "user_id": user["id"],
         "username": user["username"],
         "full_name": user["full_name"],
+        "role": user["role"] or ROLE_MEMBER,
     }
 
-    return RedirectResponse(_safe_next_url(next), status_code=303)
+    dest = _safe_next_url(next)
+    return RedirectResponse(dest, status_code=303)
 
 
 @app.get("/logout")
@@ -786,6 +1036,7 @@ async def tagihan_page(
         "tagihan_charges_amount": TAGIHAN_CHARGES_AMOUNT,
         "main_status": main_status,
         "format_rupiah": format_rupiah,
+        "format_tanggal": format_tanggal_display,
         "filters": {"search": search, "status": status, "rekening": rekening, "tanggal": tanggal, "kategori": kategori},
         "status_options": sorted([s for s in statuses if s]),
         "rekening_options": sorted([r for r in rekenings if r]),
@@ -832,12 +1083,28 @@ def calc_tagihan_charges(item: Dict) -> int:
     return TAGIHAN_CHARGES_AMOUNT
 
 
+def format_tagihan_rekening_export(item: Dict) -> str:
+    """REKENING untuk export: gabung nomor rekening + atas nama (bukan label kategori)."""
+    nomor = str(item.get("nomor_rekening") or "").strip()
+    atas = str(item.get("atas_nama") or "").strip()
+    bank = str(item.get("bank") or "").strip()
+    if nomor and atas:
+        prefix = f"{bank} " if bank else ""
+        return f"{prefix}{nomor} a.n. {atas}".strip()
+    if nomor:
+        return f"{bank} {nomor}".strip() if bank else nomor
+    if atas:
+        return atas
+    return str(item.get("rekening") or "").strip()
+
+
 def enrich_tagihan_item(item: Dict) -> Dict:
     row = dict(item)
     jumlah = row.get("jumlah") or 0
     charges = calc_tagihan_charges(row)
     row["charges"] = charges
     row["total"] = jumlah + charges
+    row["rekening_export"] = format_tagihan_rekening_export(row)
     return row
 
 
@@ -915,10 +1182,31 @@ def _parse_mandiri_csv_date(raw: str) -> Optional[str]:
     return _parse_id_date(raw)
 
 
-def parse_pic_transfer_csv(file_path: str, filename: str = "", default_label: str = "Gaji Relawan") -> Dict[str, Any]:
-    """Parse CSV format transfer massal Mandiri (PIC), contoh CSV PIC PERIODE10."""
-    import csv
+def _pic_cell_str(val) -> str:
+    if val is None:
+        return ""
+    if hasattr(val, "strftime"):
+        return val.strftime("%Y%m%d")
+    if isinstance(val, float) and val == int(val):
+        return str(int(val))
+    if isinstance(val, int):
+        return str(val)
+    return str(val).strip()
 
+
+def _pic_parse_amount(val) -> int:
+    if val is None or val == "":
+        return 0
+    if isinstance(val, (int, float)):
+        return int(val)
+    try:
+        return int(str(val).strip().replace(".", "").replace(",", "") or 0)
+    except ValueError:
+        return 0
+
+
+def _parse_pic_transfer_rows(raw_rows: List, filename: str = "", default_label: str = "Gaji Relawan") -> Dict[str, Any]:
+    """Parse baris format transfer massal Mandiri (header P + data per kolom)."""
     meta = {
         "tanggal_pembayaran": None,
         "rekening_sumber": None,
@@ -929,11 +1217,9 @@ def parse_pic_transfer_csv(file_path: str, filename: str = "", default_label: st
         "kota": "Madiun",
         "filename": filename,
     }
-    items = []
+    items: List[Dict[str, Any]] = []
 
-    with open(file_path, newline="", encoding="utf-8-sig") as f:
-        rows = list(csv.reader(f))
-
+    rows = [[_pic_cell_str(c) for c in row] for row in raw_rows if row is not None]
     if not rows:
         return {"meta": meta, "items": items}
 
@@ -945,16 +1231,13 @@ def parse_pic_transfer_csv(file_path: str, filename: str = "", default_label: st
             meta["jumlah_penerima"] = int((header[3] if len(header) > 3 else "0").strip() or 0)
         except ValueError:
             meta["jumlah_penerima"] = 0
-        try:
-            meta["total_gaji"] = int((header[4] if len(header) > 4 else "0").strip() or 0)
-        except ValueError:
-            meta["total_gaji"] = 0
+        meta["total_gaji"] = _pic_parse_amount(header[4] if len(header) > 4 else 0)
         data_rows = rows[1:]
     else:
         data_rows = rows
 
     for row in data_rows:
-        if not row or not any(cell.strip() for cell in row if cell):
+        if not row or not any(cell for cell in row):
             continue
         nomor_rek = (row[0] if len(row) > 0 else "").strip()
         nama = _strip_nama_gelar((row[1] if len(row) > 1 else "").strip())
@@ -963,10 +1246,7 @@ def parse_pic_transfer_csv(file_path: str, filename: str = "", default_label: st
         if not nama:
             continue
 
-        try:
-            jumlah = int((row[6] if len(row) > 6 else "0").strip().replace(".", "").replace(",", "") or 0)
-        except ValueError:
-            jumlah = 0
+        jumlah = _pic_parse_amount(row[6] if len(row) > 6 else 0)
         if jumlah <= 0:
             continue
 
@@ -975,14 +1255,11 @@ def parse_pic_transfer_csv(file_path: str, filename: str = "", default_label: st
         if kota:
             meta["kota"] = kota
 
-        atas_nama = nama
         periode_label = meta.get("periode") or default_label
-        pengajuan = f"{nama} — {periode_label}"
-
         items.append({
             "no": str(len(items) + 1),
-            "pengajuan": pengajuan,
-            "atas_nama": atas_nama,
+            "pengajuan": f"{nama} — {periode_label}",
+            "atas_nama": nama,
             "nomor_rekening": nomor_rek or None,
             "bank": bank,
             "jumlah": jumlah,
@@ -999,12 +1276,191 @@ def parse_pic_transfer_csv(file_path: str, filename: str = "", default_label: st
     return {"meta": meta, "items": items}
 
 
+def parse_pic_transfer_csv(file_path: str, filename: str = "", default_label: str = "Gaji Relawan") -> Dict[str, Any]:
+    """Parse CSV format transfer massal Mandiri (PIC), contoh CSV PIC PERIODE10."""
+    import csv
+
+    with open(file_path, newline="", encoding="utf-8-sig") as f:
+        rows = list(csv.reader(f))
+    return _parse_pic_transfer_rows(rows, filename, default_label)
+
+
+def parse_pic_transfer_xlsx(file_path: str, filename: str = "", default_label: str = "Gaji Relawan") -> Dict[str, Any]:
+    """Parse Excel (.xlsx/.xls) dengan struktur kolom yang sama seperti CSV transfer massal Mandiri."""
+    from openpyxl import load_workbook
+
+    wb = load_workbook(file_path, read_only=True, data_only=True)
+    ws = wb.active
+    rows = [list(row) for row in ws.iter_rows(values_only=True)]
+    wb.close()
+    return _parse_pic_transfer_rows(rows, filename, default_label)
+
+
+PIC_TRANSFER_COL_COUNT = 43
+
+
+def _nama_from_gaji_item(item: Dict) -> str:
+    atas = (item.get("atas_nama") or "").strip()
+    if atas:
+        return atas
+    pengajuan = item.get("pengajuan") or ""
+    if " — " in pengajuan:
+        return pengajuan.split(" — ", 1)[0].strip()
+    return pengajuan.strip()
+
+
+def _export_filename_from_laporan(laporan: Dict, ext: str) -> str:
+    import re
+
+    raw = (laporan.get("filename") or laporan.get("periode") or "gaji_relawan").strip()
+    raw = re.sub(r'[<>:"/\\|?*]', "_", raw)
+    base = raw.rsplit(".", 1)[0] if "." in raw else raw
+    if ext == "csv" and base.lower().endswith((".xlsx", ".xls")):
+        base = base.rsplit(".", 1)[0]
+    return f"{base}.{ext}"
+
+
+def resolve_gaji_relawan_export(upload_id: int = 0) -> tuple:
+    """Ambil laporan + baris untuk export sesuai batch upload."""
+    laporans = get_gaji_relawan_laporans(active_only=True)
+    laporan = None
+
+    if upload_id:
+        laporan = next((lap for lap in laporans if lap["upload_id"] == upload_id), None)
+        if not laporan:
+            conn = get_db()
+            row = conn.execute(
+                """
+                SELECT g.*, u.filename AS upload_filename
+                FROM gaji_relawan_laporan g
+                LEFT JOIN uploads u ON u.id = g.upload_id
+                WHERE g.upload_id = ?
+                """,
+                (upload_id,),
+            ).fetchone()
+            conn.close()
+            if row:
+                laporan = dict(row)
+    elif laporans:
+        laporan = laporans[0]
+        upload_id = laporan["upload_id"]
+
+    if not laporan or not upload_id:
+        return None, [], 0
+
+    items = get_gaji_relawan({"upload_id": upload_id})
+    return laporan, items, upload_id
+
+
+def build_pic_transfer_export_rows(laporan: Dict, items: List[Dict]) -> List[List]:
+    """Bangun baris export format CSV transfer massal Mandiri (sama seperti file upload)."""
+    tgl_raw = (laporan.get("tanggal_pembayaran") or "").strip()
+    tgl_export = tgl_raw.replace("-", "") if len(tgl_raw) == 10 and tgl_raw[4] == "-" else tgl_raw.replace("-", "")
+
+    total_gaji = sum(int(i.get("jumlah") or 0) for i in items)
+    jumlah_penerima = len(items)
+
+    header = [
+        "P",
+        tgl_export,
+        str(laporan.get("rekening_sumber") or ""),
+        str(jumlah_penerima),
+        str(total_gaji),
+    ]
+    header += [""] * (PIC_TRANSFER_COL_COUNT - len(header))
+    rows = [header[:PIC_TRANSFER_COL_COUNT]]
+
+    bank = laporan.get("bank") or "MANDIRI"
+    kota = laporan.get("kota") or "Madiun"
+
+    for item in items:
+        row = [""] * PIC_TRANSFER_COL_COUNT
+        row[0] = str(item.get("nomor_rekening") or "")
+        row[1] = _nama_from_gaji_item(item)
+        row[6] = str(int(item.get("jumlah") or 0))
+        row[9] = "IBU"
+        row[11] = bank
+        row[12] = kota
+        row[16] = "N"
+        row[37] = "OUR"
+        row[38] = "1"
+        row[39] = "E"
+        rows.append(row)
+    return rows
+
+
+def build_pic_transfer_xlsx_bytes(laporan: Dict, items: List[Dict]) -> bytes:
+    """Bangun file Excel format transfer massal Mandiri — struktur sama dengan file upload."""
+    from openpyxl import Workbook
+    from io import BytesIO
+
+    rows = build_pic_transfer_export_rows(laporan, items)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Transfer Massal"
+
+    numeric_cols = {4, 5, 7}
+    for r_idx, row in enumerate(rows, start=1):
+        for c_idx, val in enumerate(row, start=1):
+            cell_val = val
+            if c_idx in numeric_cols and str(val).isdigit():
+                cell_val = int(val)
+            cell = ws.cell(row=r_idx, column=c_idx, value=cell_val)
+            if isinstance(cell_val, int):
+                cell.number_format = "#,##0"
+
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
 def parse_gaji_relawan_csv(file_path: str, filename: str = "") -> Dict[str, Any]:
     return parse_pic_transfer_csv(file_path, filename, "Gaji Relawan")
 
 
+def parse_gaji_relawan_xlsx(file_path: str, filename: str = "") -> Dict[str, Any]:
+    return parse_pic_transfer_xlsx(file_path, filename, "Gaji Relawan")
+
+
 def parse_insentif_pic_csv(file_path: str, filename: str = "") -> Dict[str, Any]:
     return parse_pic_transfer_csv(file_path, filename, "Insentif PIC")
+
+
+def parse_insentif_pic_xlsx(file_path: str, filename: str = "") -> Dict[str, Any]:
+    return parse_pic_transfer_xlsx(file_path, filename, "Insentif PIC")
+
+
+def resolve_insentif_pic_export(upload_id: int = 0) -> tuple:
+    """Ambil laporan + baris untuk export sesuai batch upload Insentif PIC."""
+    laporans = get_insentif_pic_laporans(active_only=True)
+    laporan = None
+
+    if upload_id:
+        laporan = next((lap for lap in laporans if lap["upload_id"] == upload_id), None)
+        if not laporan:
+            conn = get_db()
+            row = conn.execute(
+                """
+                SELECT g.*, u.filename AS upload_filename
+                FROM insentif_pic_laporan g
+                LEFT JOIN uploads u ON u.id = g.upload_id
+                WHERE g.upload_id = ?
+                """,
+                (upload_id,),
+            ).fetchone()
+            conn.close()
+            if row:
+                laporan = dict(row)
+    elif laporans:
+        laporan = laporans[0]
+        upload_id = laporan["upload_id"]
+
+    if not laporan or not upload_id:
+        return None, [], 0
+
+    items = get_insentif_pic({"upload_id": upload_id})
+    return laporan, items, upload_id
 
 
 def get_insentif_pic(filters: Dict = None) -> List[Dict]:
@@ -1059,6 +1515,42 @@ def recalc_insentif_pic_laporan(conn, upload_id: int):
 
 def parse_insentif_mitra_csv(file_path: str, filename: str = "") -> Dict[str, Any]:
     return parse_pic_transfer_csv(file_path, filename, "Insentif Mitra")
+
+
+def parse_insentif_mitra_xlsx(file_path: str, filename: str = "") -> Dict[str, Any]:
+    return parse_pic_transfer_xlsx(file_path, filename, "Insentif Mitra")
+
+
+def resolve_insentif_mitra_export(upload_id: int = 0) -> tuple:
+    """Ambil laporan + baris untuk export sesuai batch upload Insentif Mitra."""
+    laporans = get_insentif_mitra_laporans(active_only=True)
+    laporan = None
+
+    if upload_id:
+        laporan = next((lap for lap in laporans if lap["upload_id"] == upload_id), None)
+        if not laporan:
+            conn = get_db()
+            row = conn.execute(
+                """
+                SELECT g.*, u.filename AS upload_filename
+                FROM insentif_mitra_laporan g
+                LEFT JOIN uploads u ON u.id = g.upload_id
+                WHERE g.upload_id = ?
+                """,
+                (upload_id,),
+            ).fetchone()
+            conn.close()
+            if row:
+                laporan = dict(row)
+    elif laporans:
+        laporan = laporans[0]
+        upload_id = laporan["upload_id"]
+
+    if not laporan or not upload_id:
+        return None, [], 0
+
+    items = get_insentif_mitra({"upload_id": upload_id})
+    return laporan, items, upload_id
 
 
 def get_insentif_mitra(filters: Dict = None) -> List[Dict]:
@@ -1157,11 +1649,62 @@ def recalc_pengembalian_dana_laporan(conn, upload_id: int):
     conn.execute("UPDATE uploads SET record_count = ? WHERE id = ?", (count, upload_id))
 
 
+def get_pengajuan_dana_mitra_tanggal_options() -> List[str]:
+    """Daftar tanggal pengajuan unik dari laporan PDF & entri manual."""
+    conn = get_db()
+    dates = set()
+    for row in conn.execute("""
+        SELECT DISTINCT tanggal_pembayaran AS t FROM pengajuan_dana_mitra_laporan
+        WHERE tanggal_pembayaran IS NOT NULL AND tanggal_pembayaran != ''
+        UNION
+        SELECT DISTINCT tanggal AS t FROM tagihan
+        WHERE kategori = 'pengajuan_dana_mitra' AND tanggal IS NOT NULL AND tanggal != ''
+    """).fetchall():
+        if row[0]:
+            dates.add(row[0])
+    conn.close()
+    return sorted(dates, reverse=True)
+
+
 def get_pengajuan_dana_mitra(filters: Dict = None) -> List[Dict]:
+    """Filter tanggal = Tanggal Pengajuan dari formulir PDF (header upload)."""
     f = dict(filters or {})
-    f["kategori"] = "pengajuan_dana_mitra"
-    rows = get_all_tagihan(f)
-    return sorted(rows, key=_sort_key_no)
+    tanggal_pengajuan = f.pop("tanggal", None)
+    search = f.pop("search", None)
+    status = f.pop("status", None)
+    rekening = f.pop("rekening", None)
+    upload_id = f.pop("upload_id", None)
+
+    conn = get_db()
+    query = """
+        SELECT t.* FROM tagihan t
+        LEFT JOIN pengajuan_dana_mitra_laporan g ON g.upload_id = t.upload_id
+    """
+    where = ["t.kategori = 'pengajuan_dana_mitra'"]
+    params: List[Any] = []
+
+    if search:
+        where.append("(t.pengajuan LIKE ? OR t.atas_nama LIKE ? OR t.bank LIKE ?)")
+        s = f"%{search}%"
+        params.extend([s, s, s])
+    if status:
+        where.append("t.status = ?")
+        params.append(status)
+    if rekening:
+        where.append("t.rekening = ?")
+        params.append(rekening)
+    if tanggal_pengajuan:
+        where.append("(t.tanggal = ? OR g.tanggal_pembayaran = ?)")
+        params.extend([tanggal_pengajuan, tanggal_pengajuan])
+    if upload_id:
+        where.append("t.upload_id = ?")
+        params.append(upload_id)
+
+    query += " WHERE " + " AND ".join(where)
+    query += " ORDER BY COALESCE(t.tanggal, g.tanggal_pembayaran, '9999-12-31') DESC, t.id DESC"
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return sorted([dict(r) for r in rows], key=_sort_key_no)
 
 
 def get_pengajuan_dana_mitra_laporans(active_only: bool = False) -> List[Dict[str, Any]]:
@@ -1315,7 +1858,19 @@ async def gaji_relawan_upload(
     user=Depends(require_login),
     file: UploadFile = File(...),
 ):
-    """Upload CSV PIC / Excel daftar gaji relawan — format transfer massal Mandiri."""
+    """Upload Excel daftar gaji relawan — format transfer massal Mandiri; download CSV mengekstrak ke format bank."""
+    if is_viewer(user):
+        return redirect_with_flash(
+            request,
+            "/gaji-relawan",
+            "Akses ditolak. Akun Anda hanya dapat melihat data.",
+        )
+    if not is_admin(user) and not can_member_upload(user):
+        return redirect_with_flash(
+            request,
+            "/gaji-relawan",
+            "Akses ditolak. Anda tidak dapat mengunggah file.",
+        )
     safe_name = f"{date.today().isoformat()}_{file.filename.replace(' ', '_')}"
     file_path = os.path.join(UPLOAD_DIR, safe_name)
     with open(file_path, "wb") as f:
@@ -1332,51 +1887,25 @@ async def gaji_relawan_upload(
     upload_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
     try:
-        if ext == "csv":
-            parsed = parse_gaji_relawan_csv(file_path, file.filename)
+        if ext in ("xlsx", "xls"):
+            parsed = parse_gaji_relawan_xlsx(file_path, file.filename)
         else:
-            parsed = parse_upload_file(file_path, file.filename, "gaji_relawan", upload_id)
-            if isinstance(parsed, list):
-                meta = {"periode": _parse_pic_periode(file.filename), "filename": file.filename}
-                items = []
-                for idx, row in enumerate(parsed, start=1):
-                    nama = (
-                        row.get("nama") or row.get("atas_nama") or row.get("atas nama")
-                        or row.get("pengajuan") or row.get("nama relawan") or ""
-                    )
-                    if isinstance(nama, str):
-                        nama = _strip_nama_gelar(nama.strip())
-                    if not nama:
-                        continue
-                    try:
-                        jumlah = int(float(row.get("jumlah") or row.get("total") or row.get("gaji") or 0))
-                    except (TypeError, ValueError):
-                        jumlah = 0
-                    if jumlah <= 0:
-                        continue
-                    periode_label = meta.get("periode") or "Gaji Relawan"
-                    items.append({
-                        "no": str(idx),
-                        "pengajuan": f"{nama} — {periode_label}",
-                        "atas_nama": nama,
-                        "nomor_rekening": str(row.get("nomor_rekening") or row.get("nomor rekening") or row.get("no rekening") or "").strip() or None,
-                        "bank": str(row.get("bank") or "MANDIRI").strip(),
-                        "jumlah": jumlah,
-                        "tanggal": str(row.get("tanggal") or "").strip() or None,
-                        "rekening": "TRANSFER MASSAL",
-                        "status": "DIAJUKAN",
-                    })
-                parsed = {"meta": meta, "items": items}
+            conn.close()
+            return redirect_with_flash(
+                request,
+                "/gaji-relawan",
+                "Format tidak didukung. Upload file Excel (.xlsx / .xls).",
+            )
     except Exception as e:
         conn.close()
-        return RedirectResponse(f"/gaji-relawan?message=Error parsing file: {str(e)}", status_code=303)
+        return redirect_with_flash(request, "/gaji-relawan", f"Error parsing file: {str(e)}")
 
     item_list = parsed.get("items", []) if isinstance(parsed, dict) else []
     gr_meta = parsed.get("meta", {}) if isinstance(parsed, dict) else {}
 
     if not item_list:
         conn.close()
-        return RedirectResponse("/gaji-relawan?message=Tidak ada data yang bisa dibaca dari file", status_code=303)
+        return redirect_with_flash(request, "/gaji-relawan", "Tidak ada data yang bisa dibaca dari file")
 
     inserted = 0
     for item in item_list:
@@ -1438,7 +1967,7 @@ async def gaji_relawan_upload(
     msg = f"Berhasil mengunggah {inserted} data gaji relawan"
     if gr_meta.get("periode"):
         msg += f" ({gr_meta['periode']})"
-    return RedirectResponse(f"/gaji-relawan?message={msg}&success=true", status_code=303)
+    return redirect_with_flash(request, f"/gaji-relawan?upload_id={upload_id}", msg, success=True)
 
 
 @app.post("/gaji-relawan")
@@ -1581,109 +2110,226 @@ async def api_gaji_relawan_bulk_update(request: Request, user=Depends(require_lo
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+def _pdf_sanitize_text(text) -> str:
+    if text is None:
+        return ""
+    return str(text).encode("latin-1", "replace").decode("latin-1")
+
+
+def _pdf_fit_cell(pdf, text, width_mm: float) -> str:
+    text = _pdf_sanitize_text(text)
+    if not text:
+        return ""
+    usable = max(width_mm - 2, 4)
+    if pdf.get_string_width(text) <= usable:
+        return text
+    ell = "..."
+    trimmed = text
+    while trimmed and pdf.get_string_width(trimmed + ell) > usable:
+        trimmed = trimmed[:-1]
+    return (trimmed + ell) if trimmed else ell
+
+
+def _gaji_relawan_pdf_status(_status: str = "") -> str:
+    """Label status di PDF rincian transaksi — selalu Sukses."""
+    return "Sukses"
+
+
+def _enrich_gaji_relawan_export_items(laporan: Dict, items: List[Dict]) -> List[Dict]:
+    periode_label = laporan.get("periode") or laporan.get("filename") or "—"
+    enriched = []
+    for item in items:
+        row = dict(item)
+        row["periode_label"] = periode_label
+        row["fee_payrol"] = FEE_PAYROL_PER_ORANG
+        row["total_bayar"] = int(row.get("jumlah") or 0) + FEE_PAYROL_PER_ORANG
+        enriched.append(row)
+    return enriched
+
+
+def _build_gaji_relawan_pdf(laporan: Dict, items: List[Dict]) -> bytes:
+    """PDF rincian transaksi gaji relawan — ringkasan + tabel sama dengan halaman web."""
+    from fpdf import FPDF
+
+    items = _enrich_gaji_relawan_export_items(laporan, items)
+    periode_label = laporan.get("periode") or laporan.get("filename") or "—"
+    total_gaji = sum(int(i.get("jumlah") or 0) for i in items)
+    total_fee = calc_fee_payrol(len(items))
+    total_grand = total_gaji + total_fee
+
+    pdf = FPDF(orientation="L", unit="mm", format="A4")
+    pdf.set_auto_page_break(auto=False)
+    pdf.set_margins(10, 10, 10)
+    pdf.add_page()
+
+    page_bottom = pdf.h - pdf.b_margin
+    table_width = 277
+    col_widths = [10, 58, 28, 36, 22, 32, 28, 32, 31]
+    headers = ["NO", "NAMA RELAWAN", "PERIODE", "REK. TUJUAN", "BANK", "JUMLAH GAJI", "FEE PAYROL", "TOTAL", "STATUS"]
+    row_h = 7
+    header_h = 8
+
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.set_text_color(7, 30, 73)
+    pdf.cell(0, 9, "LAPORAN GAJI RELAWAN - SPPG WISMA HAJI MADIUN", ln=True, align="C")
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(80, 80, 80)
+    subtitle = f"Periode: {periode_label}  |  Dicetak: {date.today().strftime('%d %B %Y')}"
+    if laporan.get("tanggal_pembayaran"):
+        subtitle += f"  |  Tanggal bayar: {laporan['tanggal_pembayaran']}"
+    pdf.cell(0, 6, _pdf_sanitize_text(subtitle), ln=True, align="C")
+    pdf.ln(3)
+
+    kpi_w = table_width / 4
+    kpi_h = 18
+    kpi_data = [
+        ("JUMLAH PENERIMA", str(len(items)), "relawan / transaksi"),
+        ("JUMLAH GAJI", format_rupiah(total_gaji), "total gaji relawan"),
+        ("JUMLAH FEE PAYROL", format_rupiah(total_fee), f"{len(items)} x {format_rupiah(FEE_PAYROL_PER_ORANG)}"),
+        ("GRAND TOTAL", format_rupiah(total_grand), "gaji + fee payrol"),
+    ]
+    kpi_y = pdf.get_y()
+    for col_idx, (label, value, note) in enumerate(kpi_data):
+        x0 = pdf.l_margin + col_idx * kpi_w
+        pdf.set_fill_color(248, 250, 252)
+        pdf.set_draw_color(226, 232, 240)
+        pdf.rect(x0, kpi_y, kpi_w, kpi_h, style="DF")
+        pdf.set_xy(x0 + 3, kpi_y + 2)
+        pdf.set_font("Helvetica", "B", 7)
+        pdf.set_text_color(7, 30, 73)
+        pdf.cell(kpi_w - 6, 4, label, ln=0)
+        pdf.set_xy(x0 + 3, kpi_y + 6)
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.cell(kpi_w - 6, 6, _pdf_fit_cell(pdf, value, kpi_w - 6), ln=0)
+        pdf.set_xy(x0 + 3, kpi_y + 12)
+        pdf.set_font("Helvetica", "", 6)
+        pdf.set_text_color(120, 120, 120)
+        pdf.cell(kpi_w - 6, 4, _pdf_fit_cell(pdf, note, kpi_w - 6), ln=0)
+    pdf.set_xy(pdf.l_margin, kpi_y + kpi_h + 4)
+
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_text_color(7, 30, 73)
+    pdf.cell(0, 7, "Rincian Transaksi", ln=True)
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(0, 5, f"{len(items)} baris pembayaran", ln=True)
+    pdf.ln(2)
+
+    def _draw_table_header():
+        pdf.set_x(pdf.l_margin)
+        pdf.set_font("Helvetica", "B", 7)
+        pdf.set_fill_color(7, 30, 73)
+        pdf.set_text_color(255, 255, 255)
+        for i, header in enumerate(headers):
+            pdf.cell(col_widths[i], header_h, header, border=1, align="C", ln=0, fill=True)
+        pdf.ln(header_h)
+
+    def _ensure_row_space(height: float):
+        if pdf.get_y() + height > page_bottom:
+            pdf.add_page()
+            _draw_table_header()
+            pdf.set_font("Helvetica", "", 7)
+            pdf.set_text_color(30, 30, 30)
+
+    def _draw_data_row(cells: List[str], aligns: List[str], fill: bool):
+        _ensure_row_space(row_h)
+        pdf.set_x(pdf.l_margin)
+        pdf.set_fill_color(248, 250, 252) if fill else pdf.set_fill_color(255, 255, 255)
+        for i, (text, align) in enumerate(zip(cells, aligns)):
+            pdf.cell(
+                col_widths[i],
+                row_h,
+                _pdf_fit_cell(pdf, text, col_widths[i]),
+                border=1,
+                align=align,
+                ln=0,
+                fill=True,
+            )
+        pdf.ln(row_h)
+
+    _draw_table_header()
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_text_color(30, 30, 30)
+    fill = False
+    for idx, item in enumerate(items, start=1):
+        cells = [
+            str(item.get("no") or idx),
+            _nama_from_gaji_item(item),
+            item.get("periode_label") or periode_label,
+            str(item.get("nomor_rekening") or ""),
+            str(item.get("bank") or ""),
+            format_rupiah(int(item.get("jumlah") or 0)),
+            format_rupiah(int(item.get("fee_payrol") or FEE_PAYROL_PER_ORANG)),
+            format_rupiah(int(item.get("total_bayar") or 0)),
+            _gaji_relawan_pdf_status(item.get("status")),
+        ]
+        aligns = ["C", "L", "L", "L", "C", "R", "R", "R", "C"]
+        _draw_data_row(cells, aligns, fill)
+        fill = not fill
+
+    _ensure_row_space(row_h + 2)
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font("Helvetica", "B", 8)
+    pdf.set_fill_color(236, 253, 245)
+    pdf.set_text_color(7, 30, 73)
+    pdf.cell(sum(col_widths[:5]), row_h, "TOTAL", border=1, align="R", ln=0, fill=True)
+    pdf.cell(col_widths[5], row_h, _pdf_fit_cell(pdf, format_rupiah(total_gaji), col_widths[5]), border=1, align="R", ln=0, fill=True)
+    pdf.cell(col_widths[6], row_h, _pdf_fit_cell(pdf, format_rupiah(total_fee), col_widths[6]), border=1, align="R", ln=0, fill=True)
+    pdf.cell(col_widths[7], row_h, _pdf_fit_cell(pdf, format_rupiah(total_grand), col_widths[7]), border=1, align="R", ln=0, fill=True)
+    pdf.cell(col_widths[8], row_h, "", border=1, ln=0, fill=True)
+    pdf.ln(row_h)
+
+    return bytes(pdf.output())
+
+
+@app.get("/export/gaji-relawan/pdf")
+async def export_gaji_relawan_pdf(user=Depends(require_login), upload_id: int = 0):
+    laporan, items, _ = resolve_gaji_relawan_export(upload_id)
+    if not laporan or not items:
+        return Response("Tidak ada data gaji relawan untuk diunduh.", status_code=404)
+
+    content = _build_gaji_relawan_pdf(laporan, items)
+    filename = _export_filename_from_laporan(laporan, "pdf")
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.get("/export/gaji-relawan/csv")
-async def export_gaji_relawan_csv(user=Depends(require_login)):
+async def export_gaji_relawan_csv(user=Depends(require_login), upload_id: int = 0):
     import csv
     from io import StringIO
 
-    data = get_gaji_relawan()
+    laporan, items, _ = resolve_gaji_relawan_export(upload_id)
+    if not laporan or not items:
+        return Response("Tidak ada data gaji relawan untuk diunduh.", status_code=404)
+
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["NO", "NAMA / KETERANGAN", "JUMLAH", "FEE PAYROL", "TOTAL", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA REK.", "NOMOR REKENING", "BANK"])
-    for d in data:
-        fee = FEE_PAYROL_PER_ORANG
-        writer.writerow([
-            d["no"] or "",
-            d["pengajuan"],
-            d["jumlah"],
-            fee,
-            (d["jumlah"] or 0) + fee,
-            d["status"] or "",
-            d["rekening"] or "",
-            d["tanggal"] or "",
-            d["atas_nama"] or "",
-            d["nomor_rekening"] or "",
-            d["bank"] or "",
-        ])
+    for row in build_pic_transfer_export_rows(laporan, items):
+        writer.writerow(row)
     output.seek(0)
-    filename = f"gaji_relawan_sppg_{date.today().isoformat()}.csv"
+    filename = _export_filename_from_laporan(laporan, "csv")
     return Response(
         content=output.getvalue(),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
 @app.get("/export/gaji-relawan/xlsx")
-async def export_gaji_relawan_xlsx(user=Depends(require_login)):
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from openpyxl.utils import get_column_letter
-    from io import BytesIO
+async def export_gaji_relawan_xlsx(user=Depends(require_login), upload_id: int = 0):
+    laporan, items, _ = resolve_gaji_relawan_export(upload_id)
+    if not laporan or not items:
+        return Response("Tidak ada data gaji relawan untuk diunduh.", status_code=404)
 
-    data = get_gaji_relawan()
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Gaji Relawan"
-
-    header_fill = PatternFill(start_color="071E49", end_color="071E49", fill_type="solid")
-    header_font = Font(bold=True, color="FFFFFF", size=11)
-    thin_border = Border(
-        left=Side(style="thin", color="CCCCCC"),
-        right=Side(style="thin", color="CCCCCC"),
-        top=Side(style="thin", color="CCCCCC"),
-        bottom=Side(style="thin", color="CCCCCC"),
-    )
-
-    ws.merge_cells("B1:L1")
-    ws["B1"] = "GAJI RELAWAN - SPPG WISMA HAJI MADIUN"
-    ws["B1"].font = Font(bold=True, size=14, color="071E49")
-    ws["B1"].alignment = Alignment(horizontal="center")
-
-    headers = ["NO", "NAMA / KETERANGAN", "JUMLAH", "FEE PAYROL", "TOTAL", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA REK.", "NOMOR REKENING", "BANK"]
-    for col, header in enumerate(headers, start=2):
-        cell = ws.cell(row=3, column=col, value=header)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = thin_border
-
-    for idx, d in enumerate(data, start=4):
-        fee = FEE_PAYROL_PER_ORANG
-        row_data = [
-            d["no"] or "",
-            d["pengajuan"],
-            d["jumlah"],
-            fee,
-            (d["jumlah"] or 0) + fee,
-            d["status"] or "",
-            d["rekening"] or "",
-            d["tanggal"] or "",
-            d["atas_nama"] or "",
-            d["nomor_rekening"] or "",
-            d["bank"] or "",
-        ]
-        for col, val in enumerate(row_data, start=2):
-            cell = ws.cell(row=idx, column=col, value=val)
-            cell.border = thin_border
-            if col in (4, 5, 6):
-                cell.number_format = "#,##0"
-            cell.alignment = Alignment(vertical="center", wrap_text=True)
-
-    widths = [7, 35, 15, 12, 15, 16, 16, 14, 22, 18, 22]
-    for i, w in enumerate(widths, start=2):
-        ws.column_dimensions[get_column_letter(i)].width = w
-
-    ws.freeze_panes = "A4"
-
-    buffer = BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
-    filename = f"Gaji_Relawan_SPPG_{date.today().isoformat()}.xlsx"
+    filename = _export_filename_from_laporan(laporan, "xlsx")
     return Response(
-        content=buffer.getvalue(),
+        content=build_pic_transfer_xlsx_bytes(laporan, items),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -1797,6 +2443,19 @@ async def insentif_pic_upload(
     user=Depends(require_login),
     file: UploadFile = File(...),
 ):
+    """Upload Excel insentif PIC — format transfer massal Mandiri; download CSV mengekstrak ke format bank."""
+    if is_viewer(user):
+        return redirect_with_flash(
+            request,
+            "/insentif-pic",
+            "Akses ditolak. Akun Anda hanya dapat melihat data.",
+        )
+    if not is_admin(user) and not can_member_upload(user):
+        return redirect_with_flash(
+            request,
+            "/insentif-pic",
+            "Akses ditolak. Anda tidak dapat mengunggah file.",
+        )
     safe_name = f"{date.today().isoformat()}_{file.filename.replace(' ', '_')}"
     file_path = os.path.join(UPLOAD_DIR, safe_name)
     with open(file_path, "wb") as f:
@@ -1813,51 +2472,25 @@ async def insentif_pic_upload(
     upload_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
     try:
-        if ext == "csv":
-            parsed = parse_insentif_pic_csv(file_path, file.filename)
+        if ext in ("xlsx", "xls"):
+            parsed = parse_insentif_pic_xlsx(file_path, file.filename)
         else:
-            parsed = parse_upload_file(file_path, file.filename, "insentif_pic", upload_id)
-            if isinstance(parsed, list):
-                meta = {"periode": _parse_pic_periode(file.filename), "filename": file.filename}
-                items = []
-                for idx, row in enumerate(parsed, start=1):
-                    nama = (
-                        row.get("nama") or row.get("atas_nama") or row.get("atas nama")
-                        or row.get("pengajuan") or row.get("nama pic") or ""
-                    )
-                    if isinstance(nama, str):
-                        nama = _strip_nama_gelar(nama.strip())
-                    if not nama:
-                        continue
-                    try:
-                        jumlah = int(float(row.get("jumlah") or row.get("total") or row.get("gaji") or 0))
-                    except (TypeError, ValueError):
-                        jumlah = 0
-                    if jumlah <= 0:
-                        continue
-                    periode_label = meta.get("periode") or "Insentif PIC"
-                    items.append({
-                        "no": str(idx),
-                        "pengajuan": f"{nama} — {periode_label}",
-                        "atas_nama": nama,
-                        "nomor_rekening": str(row.get("nomor_rekening") or row.get("nomor rekening") or row.get("no rekening") or "").strip() or None,
-                        "bank": str(row.get("bank") or "MANDIRI").strip(),
-                        "jumlah": jumlah,
-                        "tanggal": str(row.get("tanggal") or "").strip() or None,
-                        "rekening": "TRANSFER MASSAL",
-                        "status": "DIAJUKAN",
-                    })
-                parsed = {"meta": meta, "items": items}
+            conn.close()
+            return redirect_with_flash(
+                request,
+                "/insentif-pic",
+                "Format tidak didukung. Upload file Excel (.xlsx / .xls).",
+            )
     except Exception as e:
         conn.close()
-        return RedirectResponse(f"/insentif-pic?message=Error parsing file: {str(e)}", status_code=303)
+        return redirect_with_flash(request, "/insentif-pic", f"Error parsing file: {str(e)}")
 
     item_list = parsed.get("items", []) if isinstance(parsed, dict) else []
     ip_meta = parsed.get("meta", {}) if isinstance(parsed, dict) else {}
 
     if not item_list:
         conn.close()
-        return RedirectResponse("/insentif-pic?message=Tidak ada data yang bisa dibaca dari file", status_code=303)
+        return redirect_with_flash(request, "/insentif-pic", "Tidak ada data yang bisa dibaca dari file")
 
     inserted = 0
     for item in item_list:
@@ -1919,7 +2552,7 @@ async def insentif_pic_upload(
     msg = f"Berhasil mengunggah {inserted} data insentif PIC"
     if ip_meta.get("periode"):
         msg += f" ({ip_meta['periode']})"
-    return RedirectResponse(f"/insentif-pic?message={msg}&success=true", status_code=303)
+    return redirect_with_flash(request, f"/insentif-pic?upload_id={upload_id}", msg, success=True)
 
 
 @app.post("/insentif-pic")
@@ -2062,108 +2695,38 @@ async def api_insentif_pic_bulk_update(request: Request, user=Depends(require_lo
 
 
 @app.get("/export/insentif-pic/csv")
-async def export_insentif_pic_csv(user=Depends(require_login)):
+async def export_insentif_pic_csv(user=Depends(require_login), upload_id: int = 0):
     import csv
     from io import StringIO
 
-    data = get_insentif_pic()
+    laporan, items, _ = resolve_insentif_pic_export(upload_id)
+    if not laporan or not items:
+        return Response("Tidak ada data insentif PIC untuk diunduh.", status_code=404)
+
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["NO", "NAMA / KETERANGAN", "JUMLAH", "FEE PAYROL", "TOTAL", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA REK.", "NOMOR REKENING", "BANK"])
-    for d in data:
-        fee = FEE_PAYROL_PER_ORANG
-        writer.writerow([
-            d["no"] or "",
-            d["pengajuan"],
-            d["jumlah"],
-            fee,
-            (d["jumlah"] or 0) + fee,
-            d["status"] or "",
-            d["rekening"] or "",
-            d["tanggal"] or "",
-            d["atas_nama"] or "",
-            d["nomor_rekening"] or "",
-            d["bank"] or "",
-        ])
+    for row in build_pic_transfer_export_rows(laporan, items):
+        writer.writerow(row)
     output.seek(0)
-    filename = f"insentif_pic_sppg_{date.today().isoformat()}.csv"
+    filename = _export_filename_from_laporan(laporan, "csv")
     return Response(
         content=output.getvalue(),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
 @app.get("/export/insentif-pic/xlsx")
-async def export_insentif_pic_xlsx(user=Depends(require_login)):
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from openpyxl.utils import get_column_letter
-    from io import BytesIO
+async def export_insentif_pic_xlsx(user=Depends(require_login), upload_id: int = 0):
+    laporan, items, _ = resolve_insentif_pic_export(upload_id)
+    if not laporan or not items:
+        return Response("Tidak ada data insentif PIC untuk diunduh.", status_code=404)
 
-    data = get_insentif_pic()
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Insentif PIC"
-
-    header_fill = PatternFill(start_color="071E49", end_color="071E49", fill_type="solid")
-    header_font = Font(bold=True, color="FFFFFF", size=11)
-    thin_border = Border(
-        left=Side(style="thin", color="CCCCCC"),
-        right=Side(style="thin", color="CCCCCC"),
-        top=Side(style="thin", color="CCCCCC"),
-        bottom=Side(style="thin", color="CCCCCC"),
-    )
-
-    ws.merge_cells("B1:L1")
-    ws["B1"] = "INSENTIF PIC - SPPG WISMA HAJI MADIUN"
-    ws["B1"].font = Font(bold=True, size=14, color="071E49")
-    ws["B1"].alignment = Alignment(horizontal="center")
-
-    headers = ["NO", "NAMA / KETERANGAN", "JUMLAH", "FEE PAYROL", "TOTAL", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA REK.", "NOMOR REKENING", "BANK"]
-    for col, header in enumerate(headers, start=2):
-        cell = ws.cell(row=3, column=col, value=header)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = thin_border
-
-    for idx, d in enumerate(data, start=4):
-        fee = FEE_PAYROL_PER_ORANG
-        row_data = [
-            d["no"] or "",
-            d["pengajuan"],
-            d["jumlah"],
-            fee,
-            (d["jumlah"] or 0) + fee,
-            d["status"] or "",
-            d["rekening"] or "",
-            d["tanggal"] or "",
-            d["atas_nama"] or "",
-            d["nomor_rekening"] or "",
-            d["bank"] or "",
-        ]
-        for col, val in enumerate(row_data, start=2):
-            cell = ws.cell(row=idx, column=col, value=val)
-            cell.border = thin_border
-            if col in (4, 5, 6):
-                cell.number_format = "#,##0"
-            cell.alignment = Alignment(vertical="center", wrap_text=True)
-
-    widths = [7, 35, 15, 12, 15, 16, 16, 14, 22, 18, 22]
-    for i, w in enumerate(widths, start=2):
-        ws.column_dimensions[get_column_letter(i)].width = w
-
-    ws.freeze_panes = "A4"
-
-    buffer = BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
-    filename = f"Insentif_PIC_SPPG_{date.today().isoformat()}.xlsx"
+    filename = _export_filename_from_laporan(laporan, "xlsx")
     return Response(
-        content=buffer.getvalue(),
+        content=build_pic_transfer_xlsx_bytes(laporan, items),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -2280,6 +2843,19 @@ async def insentif_mitra_upload(
     user=Depends(require_login),
     file: UploadFile = File(...),
 ):
+    """Upload Excel insentif mitra — format transfer massal Mandiri; download CSV mengekstrak ke format bank."""
+    if is_viewer(user):
+        return redirect_with_flash(
+            request,
+            "/insentif-mitra",
+            "Akses ditolak. Akun Anda hanya dapat melihat data.",
+        )
+    if not is_admin(user) and not can_member_upload(user):
+        return redirect_with_flash(
+            request,
+            "/insentif-mitra",
+            "Akses ditolak. Anda tidak dapat mengunggah file.",
+        )
     safe_name = f"{date.today().isoformat()}_{file.filename.replace(' ', '_')}"
     file_path = os.path.join(UPLOAD_DIR, safe_name)
     with open(file_path, "wb") as f:
@@ -2296,51 +2872,25 @@ async def insentif_mitra_upload(
     upload_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
 
     try:
-        if ext == "csv":
-            parsed = parse_insentif_mitra_csv(file_path, file.filename)
+        if ext in ("xlsx", "xls"):
+            parsed = parse_insentif_mitra_xlsx(file_path, file.filename)
         else:
-            parsed = parse_upload_file(file_path, file.filename, "insentif_mitra", upload_id)
-            if isinstance(parsed, list):
-                meta = {"periode": _parse_pic_periode(file.filename), "filename": file.filename}
-                items = []
-                for idx, row in enumerate(parsed, start=1):
-                    nama = (
-                        row.get("nama") or row.get("atas_nama") or row.get("atas nama")
-                        or row.get("pengajuan") or row.get("nama mitra") or ""
-                    )
-                    if isinstance(nama, str):
-                        nama = _strip_nama_gelar(nama.strip())
-                    if not nama:
-                        continue
-                    try:
-                        jumlah = int(float(row.get("jumlah") or row.get("total") or row.get("gaji") or 0))
-                    except (TypeError, ValueError):
-                        jumlah = 0
-                    if jumlah <= 0:
-                        continue
-                    periode_label = meta.get("periode") or "Insentif Mitra"
-                    items.append({
-                        "no": str(idx),
-                        "pengajuan": f"{nama} — {periode_label}",
-                        "atas_nama": nama,
-                        "nomor_rekening": str(row.get("nomor_rekening") or row.get("nomor rekening") or row.get("no rekening") or "").strip() or None,
-                        "bank": str(row.get("bank") or "MANDIRI").strip(),
-                        "jumlah": jumlah,
-                        "tanggal": str(row.get("tanggal") or "").strip() or None,
-                        "rekening": "TRANSFER MASSAL",
-                        "status": "DIAJUKAN",
-                    })
-                parsed = {"meta": meta, "items": items}
+            conn.close()
+            return redirect_with_flash(
+                request,
+                "/insentif-mitra",
+                "Format tidak didukung. Upload file Excel (.xlsx / .xls).",
+            )
     except Exception as e:
         conn.close()
-        return RedirectResponse(f"/insentif-mitra?message=Error parsing file: {str(e)}", status_code=303)
+        return redirect_with_flash(request, "/insentif-mitra", f"Error parsing file: {str(e)}")
 
     item_list = parsed.get("items", []) if isinstance(parsed, dict) else []
     ip_meta = parsed.get("meta", {}) if isinstance(parsed, dict) else {}
 
     if not item_list:
         conn.close()
-        return RedirectResponse("/insentif-mitra?message=Tidak ada data yang bisa dibaca dari file", status_code=303)
+        return redirect_with_flash(request, "/insentif-mitra", "Tidak ada data yang bisa dibaca dari file")
 
     inserted = 0
     for item in item_list:
@@ -2402,7 +2952,7 @@ async def insentif_mitra_upload(
     msg = f"Berhasil mengunggah {inserted} data insentif mitra"
     if ip_meta.get("periode"):
         msg += f" ({ip_meta['periode']})"
-    return RedirectResponse(f"/insentif-mitra?message={msg}&success=true", status_code=303)
+    return redirect_with_flash(request, f"/insentif-mitra?upload_id={upload_id}", msg, success=True)
 
 
 @app.post("/insentif-mitra")
@@ -2545,100 +3095,38 @@ async def api_insentif_mitra_bulk_update(request: Request, user=Depends(require_
 
 
 @app.get("/export/insentif-mitra/csv")
-async def export_insentif_mitra_csv(user=Depends(require_login)):
+async def export_insentif_mitra_csv(user=Depends(require_login), upload_id: int = 0):
     import csv
     from io import StringIO
 
-    data = get_insentif_mitra()
+    laporan, items, _ = resolve_insentif_mitra_export(upload_id)
+    if not laporan or not items:
+        return Response("Tidak ada data insentif mitra untuk diunduh.", status_code=404)
+
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(["NO", "TANGGAL", "KETERANGAN", "NAMA REKENING", "NOMOR REKENING", "BANK", "JUMLAH", "STATUS"])
-    for d in data:
-        writer.writerow([
-            d["no"] or "",
-            d["tanggal"] or "",
-            d["pengajuan"],
-            d["atas_nama"] or "",
-            d["nomor_rekening"] or "",
-            d["bank"] or "",
-            d["jumlah"],
-            d["status"] or "",
-        ])
+    for row in build_pic_transfer_export_rows(laporan, items):
+        writer.writerow(row)
     output.seek(0)
-    filename = f"insentif_mitra_sppg_{date.today().isoformat()}.csv"
+    filename = _export_filename_from_laporan(laporan, "csv")
     return Response(
         content=output.getvalue(),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
 @app.get("/export/insentif-mitra/xlsx")
-async def export_insentif_mitra_xlsx(user=Depends(require_login)):
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from openpyxl.utils import get_column_letter
-    from io import BytesIO
+async def export_insentif_mitra_xlsx(user=Depends(require_login), upload_id: int = 0):
+    laporan, items, _ = resolve_insentif_mitra_export(upload_id)
+    if not laporan or not items:
+        return Response("Tidak ada data insentif mitra untuk diunduh.", status_code=404)
 
-    data = get_insentif_mitra()
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Insentif Mitra"
-
-    header_fill = PatternFill(start_color="071E49", end_color="071E49", fill_type="solid")
-    header_font = Font(bold=True, color="FFFFFF", size=11)
-    thin_border = Border(
-        left=Side(style="thin", color="CCCCCC"),
-        right=Side(style="thin", color="CCCCCC"),
-        top=Side(style="thin", color="CCCCCC"),
-        bottom=Side(style="thin", color="CCCCCC"),
-    )
-
-    ws.merge_cells("B1:I1")
-    ws["B1"] = "INSENTIF MITRA - SPPG WISMA HAJI MADIUN"
-    ws["B1"].font = Font(bold=True, size=14, color="071E49")
-    ws["B1"].alignment = Alignment(horizontal="center")
-
-    headers = ["NO", "TANGGAL", "KETERANGAN", "NAMA REKENING", "NOMOR REKENING", "BANK", "JUMLAH", "STATUS"]
-    for col, header in enumerate(headers, start=2):
-        cell = ws.cell(row=3, column=col, value=header)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = thin_border
-
-    for idx, d in enumerate(data, start=4):
-        row_data = [
-            d["no"] or "",
-            d["tanggal"] or "",
-            d["pengajuan"],
-            d["atas_nama"] or "",
-            d["nomor_rekening"] or "",
-            d["bank"] or "",
-            d["jumlah"],
-            d["status"] or "",
-        ]
-        for col, val in enumerate(row_data, start=2):
-            cell = ws.cell(row=idx, column=col, value=val)
-            cell.border = thin_border
-            if col == 8:
-                cell.number_format = "#,##0"
-            cell.alignment = Alignment(vertical="center", wrap_text=True)
-
-    widths = [7, 14, 35, 22, 18, 14, 15, 14]
-    for i, w in enumerate(widths, start=2):
-        ws.column_dimensions[get_column_letter(i)].width = w
-
-    ws.freeze_panes = "A4"
-
-    buffer = BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
-    filename = f"Insentif_Mitra_SPPG_{date.today().isoformat()}.xlsx"
+    filename = _export_filename_from_laporan(laporan, "xlsx")
     return Response(
-        content=buffer.getvalue(),
+        content=build_pic_transfer_xlsx_bytes(laporan, items),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -3016,9 +3504,15 @@ async def pengajuan_dana_mitra_page(
     data = get_pengajuan_dana_mitra(filters)
 
     periode_map = {lap["upload_id"]: lap.get("periode") or lap.get("filename") for lap in laporans}
+    conn = get_db()
+    user_id = user.get("user_id")
     for item in data:
         uid = item.get("upload_id")
         item["periode_label"] = periode_map.get(uid, "Input Manual") if uid else "Input Manual"
+        if is_admin(user):
+            item["can_delete"] = True
+        else:
+            item["can_delete"] = _member_owns_pdm_item(conn, item["id"], user_id)
 
     if not data:
         main_status = "—"
@@ -3026,7 +3520,6 @@ async def pengajuan_dana_mitra_page(
         all_terbayar = all((item.get("status") or "").upper() == "TERBAYAR" for item in data)
         main_status = "Sukses" if all_terbayar else "Belum Lunas"
 
-    conn = get_db()
     pdm_filter = "kategori = 'pengajuan_dana_mitra'"
     statuses = [
         r[0] for r in conn.execute(
@@ -3063,13 +3556,135 @@ async def pengajuan_dana_mitra_page(
         "main_status": main_status,
         "format_rupiah": format_rupiah,
         "format_tanggal": format_tanggal_display,
+        "format_tanggal_pengajuan": format_tanggal_pengajuan,
         "filters": {"search": search, "status": status, "rekening": rekening, "tanggal": tanggal, "periode": upload_id},
         "periode_options": periode_options,
         "status_options": sorted([s for s in statuses if s]),
         "rekening_options": sorted([r for r in rekenings if r]),
+        "tanggal_pengajuan_options": get_pengajuan_dana_mitra_tanggal_options(),
+        "can_delete_upload": can_member_upload(user),
         "message": message,
         "success": success,
     })
+
+
+@app.post("/pengajuan-dana-mitra/upload")
+async def pengajuan_dana_mitra_upload(
+    request: Request,
+    user=Depends(require_login),
+    file: UploadFile = File(...),
+):
+    """Upload PDF Formulir Pengajuan Dana Mitra — ekstrak otomatis baris rincian."""
+    if is_viewer(user):
+        return redirect_with_flash(
+            request,
+            "/pengajuan-dana-mitra",
+            "Akses ditolak. Akun Anda hanya dapat melihat data.",
+        )
+
+    ext = (file.filename or "").lower().rsplit(".", 1)[-1] if "." in (file.filename or "") else ""
+    if ext != "pdf":
+        return redirect_with_flash(
+            request,
+            "/pengajuan-dana-mitra",
+            "Hanya file PDF Formulir Pengajuan Dana Mitra yang didukung",
+        )
+
+    safe_name = f"{date.today().isoformat()}_{file.filename.replace(' ', '_')}"
+    file_path = os.path.join(UPLOAD_DIR, safe_name)
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO uploads (filename, created_by) VALUES (?, ?)",
+        (file.filename, user["id"]),
+    )
+    upload_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    try:
+        parsed = parse_pengajuan_dana_mitra_pdf(file_path, file.filename)
+    except Exception as e:
+        conn.close()
+        return redirect_with_flash(request, "/pengajuan-dana-mitra", f"Error parsing file: {str(e)}")
+
+    item_list = parsed.get("items", []) if isinstance(parsed, dict) else []
+    pdm_meta = parsed.get("meta", {}) if isinstance(parsed, dict) else {}
+
+    if not item_list:
+        conn.close()
+        return redirect_with_flash(
+            request,
+            "/pengajuan-dana-mitra",
+            "Tidak ada data yang bisa dibaca dari PDF. Pastikan format Formulir Pengajuan Dana Mitra.",
+        )
+
+    inserted = 0
+    for item in item_list:
+        pengajuan = item.get("pengajuan") or ""
+        if not pengajuan:
+            continue
+        jumlah = int(item.get("jumlah") or 0)
+        if jumlah <= 0:
+            continue
+
+        dup = conn.execute("""
+            SELECT 1 FROM tagihan
+            WHERE upload_id = ? AND COALESCE(no, '') = COALESCE(?, '') AND pengajuan = ? AND jumlah = ?
+            LIMIT 1
+        """, (upload_id, item.get("no"), pengajuan, jumlah)).fetchone()
+        if dup:
+            continue
+
+        conn.execute("""
+            INSERT INTO tagihan
+            (no, pengajuan, jumlah, status, rekening, tanggal, atas_nama, nomor_rekening, bank, kategori, upload_id, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pengajuan_dana_mitra', ?, ?)
+        """, (
+            item.get("no"),
+            pengajuan,
+            jumlah,
+            item.get("status") or "DIAJUKAN",
+            item.get("rekening") or "PENGAJUAN DANA MITRA",
+            pdm_meta.get("tanggal_pengajuan") or item.get("tanggal"),
+            item.get("atas_nama"),
+            item.get("nomor_rekening"),
+            item.get("bank"),
+            upload_id,
+            user["id"],
+        ))
+        inserted += 1
+
+    total_gaji = sum(int(it.get("jumlah") or 0) for it in item_list)
+    first_bank = item_list[0].get("bank") if item_list else "MANDIRI"
+    first_rek = item_list[0].get("nomor_rekening") if item_list else None
+
+    conn.execute("""
+        INSERT OR REPLACE INTO pengajuan_dana_mitra_laporan
+        (upload_id, tanggal_pembayaran, rekening_sumber, jumlah_penerima, total_gaji,
+         periode, bank, kota, filename)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        upload_id,
+        pdm_meta.get("tanggal_pengajuan"),
+        first_rek,
+        inserted,
+        total_gaji,
+        pdm_meta.get("periode") or file.filename,
+        first_bank,
+        pdm_meta.get("divisi"),
+        file.filename,
+    ))
+    conn.execute("UPDATE uploads SET record_count = ? WHERE id = ?", (inserted, upload_id))
+    conn.commit()
+    conn.close()
+
+    pemohon = pdm_meta.get("pemohon") or ""
+    msg = f"Berhasil mengekstrak {inserted} baris dari PDF"
+    if pemohon:
+        msg += f" — Pemohon: {pemohon}"
+    return redirect_with_flash(request, f"/pengajuan-dana-mitra?upload_id={upload_id}", msg, success=True)
 
 
 @app.post("/pengajuan-dana-mitra")
@@ -3146,8 +3761,15 @@ async def update_pengajuan_dana_mitra(
 
 
 @app.post("/pengajuan-dana-mitra/{item_id}/delete")
-async def delete_pengajuan_dana_mitra(item_id: int, user=Depends(require_login)):
+async def delete_pengajuan_dana_mitra(item_id: int, request: Request, user=Depends(require_login)):
     conn = get_db()
+    if not is_admin(user) and not _member_owns_pdm_item(conn, item_id, user["id"]):
+        conn.close()
+        return redirect_with_flash(
+            request,
+            "/pengajuan-dana-mitra",
+            "Akses ditolak. Hanya data upload Anda yang dapat dihapus.",
+        )
     row = conn.execute(
         "SELECT upload_id FROM tagihan WHERE id = ? AND kategori = 'pengajuan_dana_mitra'", (item_id,)
     ).fetchone()
@@ -3168,6 +3790,14 @@ async def api_pengajuan_dana_mitra_bulk_delete(request: Request, user=Depends(re
         if not ids:
             return JSONResponse({"error": "no valid ids"}, status_code=400)
         conn = get_db()
+        if not is_admin(user):
+            ids = [i for i in ids if _member_owns_pdm_item(conn, i, user["id"])]
+            if not ids:
+                conn.close()
+                return JSONResponse(
+                    {"error": "Akses ditolak. Hanya data upload Anda yang dapat dihapus."},
+                    status_code=403,
+                )
         placeholders = ",".join("?" * len(ids))
         upload_rows = conn.execute(
             f"""SELECT DISTINCT upload_id FROM tagihan
@@ -3346,25 +3976,17 @@ async def petty_cash_page(
     has_filters = bool(search.strip() or tanggal or jenis.strip())
     items = filter_petty_cash_items(all_items, search, tanggal, jenis)
 
-    total_pengeluaran = sum(i.get("kredit") or 0 for i in items)
-    if not total_pengeluaran:
-        total_pengeluaran = sum(
-            i["jumlah"] for i in items if (i.get("debit") or 0) == 0
-        )
-    total_penerimaan = sum(i.get("debit") or 0 for i in items)
+    total_pengeluaran = sum_petty_pengeluaran(items)
+    total_penerimaan = sum(int(i.get("debit") or 0) for i in items)
 
-    total_pengeluaran_all = sum(i.get("kredit") or 0 for i in all_items)
-    total_penerimaan_all = sum(i.get("debit") or 0 for i in all_items)
+    total_pengeluaran_all = sum_petty_pengeluaran(all_items)
+    total_penerimaan_all = sum(int(i.get("debit") or 0) for i in all_items)
     is_reimbursement = laporan and (laporan.get("report_type") or "") == "reimbursement"
-    if laporan and not has_filters:
-        if is_reimbursement:
-            total_pengeluaran = laporan.get("total_digantikan") or sum(i.get("jumlah") or 0 for i in all_items)
-            total_penerimaan = 0
-        else:
-            if laporan.get("total_kredit"):
-                total_pengeluaran = laporan.get("total_kredit")
-            if laporan.get("total_debit"):
-                total_penerimaan = laporan.get("total_debit")
+    if laporan and not has_filters and not is_reimbursement:
+        if laporan.get("total_kredit"):
+            total_pengeluaran = laporan.get("total_kredit")
+        if laporan.get("total_debit"):
+            total_penerimaan = laporan.get("total_debit")
 
     nota_count = sum(1 for i in all_items if i.get("nota_path"))
 
@@ -3400,6 +4022,18 @@ async def petty_cash_upload(
     periode: str = Form(""),
 ):
     """Upload PDF petty cash — terpisah dari modul Tagihan."""
+    if is_viewer(user):
+        return redirect_with_flash(
+            request,
+            "/petty-cash",
+            "Akses ditolak. Akun Anda hanya dapat melihat data.",
+        )
+    if not is_admin(user) and not can_member_upload(user):
+        return redirect_with_flash(
+            request,
+            "/petty-cash",
+            "Akses ditolak. Anda tidak dapat mengunggah file.",
+        )
     safe_name = f"{date.today().isoformat()}_{file.filename.replace(' ', '_')}"
     file_path = os.path.join(UPLOAD_DIR, safe_name)
     with open(file_path, "wb") as f:
@@ -3417,14 +4051,14 @@ async def petty_cash_upload(
         parsed = parse_petty_cash_pdf(file_path, upload_id, file.filename)
     except Exception as e:
         conn.close()
-        return RedirectResponse(f"/petty-cash?message=Error parsing file: {str(e)}", status_code=303)
+        return redirect_with_flash(request, "/petty-cash", f"Error parsing file: {str(e)}")
 
     item_list = parsed.get("items", []) if isinstance(parsed, dict) else []
     petty_meta = parsed.get("meta", {}) if isinstance(parsed, dict) else {}
 
     if not item_list:
         conn.close()
-        return RedirectResponse("/petty-cash?message=Tidak ada data yang bisa dibaca dari file", status_code=303)
+        return redirect_with_flash(request, "/petty-cash", "Tidak ada data yang bisa dibaca dari file")
 
     inserted = 0
     for item in item_list:
@@ -3501,7 +4135,7 @@ async def petty_cash_upload(
     conn.close()
 
     msg = f"Berhasil mengunggah {inserted} baris data Petty Cash"
-    return RedirectResponse(f"/petty-cash?upload_id={upload_id}&message={msg}&success=true", status_code=303)
+    return redirect_with_flash(request, f"/petty-cash?upload_id={upload_id}", msg, success=True)
 
 @app.post("/tagihan")
 async def create_tagihan(
@@ -3619,17 +4253,26 @@ def recalc_petty_cash_laporan(conn, upload_id: int):
     conn.execute("UPDATE uploads SET record_count = ? WHERE id = ?", (len(rows), upload_id))
 
 ALLOWED_NOTA_EXT = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".pdf"}
+TAGIHAN_ATTACHMENT_COLS = {
+    "pict": "pict_path",
+    "nota": "nota_path",
+    "bukti": "bukti_path",
+}
 
 
-def _delete_nota_file(nota_path: str):
-    if not nota_path:
+def _delete_upload_file(rel_path: str):
+    if not rel_path:
         return
-    full = os.path.join(UPLOAD_DIR, nota_path)
+    full = os.path.join(UPLOAD_DIR, rel_path)
     if os.path.isfile(full):
         try:
             os.remove(full)
         except OSError:
             pass
+
+
+def _delete_nota_file(nota_path: str):
+    _delete_upload_file(nota_path)
 
 
 @app.post("/api/petty-cash/{item_id}/nota")
@@ -3715,6 +4358,83 @@ async def api_petty_cash_delete_nota(item_id: int, user=Depends(require_login)):
     conn.commit()
     conn.close()
     return JSONResponse({"success": True})
+
+
+@app.post("/api/tagihan/{item_id}/{field}")
+async def api_tagihan_upload_attachment(
+    item_id: int,
+    field: str,
+    user=Depends(require_login),
+    file: UploadFile = File(...),
+):
+    field = (field or "").lower()
+    if field not in TAGIHAN_ATTACHMENT_FIELDS:
+        return JSONResponse({"error": "Field lampiran tidak valid"}, status_code=400)
+
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in ALLOWED_NOTA_EXT:
+        return JSONResponse({"error": "Format file tidak didukung"}, status_code=400)
+
+    col = TAGIHAN_ATTACHMENT_COLS[field]
+    conn = get_db()
+    row = conn.execute(
+        f"SELECT id, upload_id, kategori, {col} AS file_path FROM tagihan WHERE id = ?",
+        (item_id,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return JSONResponse({"error": "Transaksi tidak ditemukan"}, status_code=404)
+    if (row["kategori"] or "") not in TAGIHAN_ATTACHMENT_KATEGORI:
+        conn.close()
+        return JSONResponse({"error": "Lampiran tidak didukung untuk kategori ini"}, status_code=400)
+
+    upload_key = row["upload_id"] or item_id
+    attach_dir = os.path.join(UPLOAD_DIR, "lampiran", str(upload_key))
+    os.makedirs(attach_dir, exist_ok=True)
+    safe_ext = ".jpg" if ext in (".jpg", ".jpeg") else ext
+    fname = f"{field}_item_{item_id}{safe_ext}"
+    rel_path = f"lampiran/{upload_key}/{fname}"
+    full_path = os.path.join(UPLOAD_DIR, rel_path)
+
+    if row["file_path"] and row["file_path"] != rel_path:
+        _delete_upload_file(row["file_path"])
+
+    content = await file.read()
+    with open(full_path, "wb") as f:
+        f.write(content)
+
+    conn.execute(f"UPDATE tagihan SET {col} = ? WHERE id = ?", (rel_path, item_id))
+    conn.commit()
+    conn.close()
+    return JSONResponse({"success": True, "path": rel_path, "field": field})
+
+
+@app.delete("/api/tagihan/{item_id}/{field}")
+async def api_tagihan_delete_attachment(item_id: int, field: str, user=Depends(require_login)):
+    field = (field or "").lower()
+    if field not in TAGIHAN_ATTACHMENT_FIELDS:
+        return JSONResponse({"error": "Field lampiran tidak valid"}, status_code=400)
+
+    col = TAGIHAN_ATTACHMENT_COLS[field]
+    conn = get_db()
+    row = conn.execute(
+        f"SELECT id, kategori, {col} AS file_path FROM tagihan WHERE id = ?",
+        (item_id,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return JSONResponse({"error": "Transaksi tidak ditemukan"}, status_code=404)
+    if (row["kategori"] or "") not in TAGIHAN_ATTACHMENT_KATEGORI:
+        conn.close()
+        return JSONResponse({"error": "Lampiran tidak didukung untuk kategori ini"}, status_code=400)
+
+    if row["file_path"]:
+        _delete_upload_file(row["file_path"])
+
+    conn.execute(f"UPDATE tagihan SET {col} = NULL WHERE id = ?", (item_id,))
+    conn.commit()
+    conn.close()
+    return JSONResponse({"success": True, "field": field})
 
 
 @app.post("/api/petty-cash/bulk-delete")
@@ -3815,8 +4535,8 @@ def _build_tagihan_pdf(rows: List[Dict]) -> bytes:
     pdf.cell(0, 6, f"Dicetak: {date.today().strftime('%d %B %Y')}  |  {len(data)} entri", ln=True, align="C")
     pdf.ln(4)
 
-    col_widths = [22, 72, 24, 20, 24, 18, 22, 20, 28, 18]
-    headers = ["NO", "KETERANGAN", "JUMLAH", "CHARGES", "TOTAL", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA", "BANK"]
+    col_widths = [20, 28, 52, 22, 18, 22, 16, 14, 22, 22, 18]
+    headers = ["NO", "PEMASOK", "KETERANGAN", "JUMLAH", "CHARGES", "TOTAL", "STATUS", "BANK", "NO. REK", "ATAS NAMA", "TANGGAL"]
     row_h = 7
 
     pdf.set_font("Helvetica", "B", 7)
@@ -3841,20 +4561,21 @@ def _build_tagihan_pdf(rows: List[Dict]) -> bytes:
             pdf.set_font("Helvetica", "", 7)
             pdf.set_text_color(30, 30, 30)
 
-        keterangan = (item.get("pengajuan") or "")[:55]
+        keterangan = (item.get("pengajuan") or "")[:45]
         cells = [
             str(item.get("no") or "")[:18],
+            str(item.get("pos") or "")[:22],
             keterangan,
             format_rupiah(item.get("jumlah") or 0).replace("Rp", "Rp "),
             format_rupiah(item.get("charges") or 0).replace("Rp", "Rp ") if item.get("charges") else "-",
             format_rupiah(item.get("total") or 0).replace("Rp", "Rp "),
             str(item.get("status") or "")[:10],
-            str(item.get("rekening") or "")[:12],
-            str(item.get("tanggal") or "")[:10],
+            str(item.get("bank") or "")[:12],
+            str(item.get("nomor_rekening") or "")[:18],
             str(item.get("atas_nama") or "")[:20],
-            str(item.get("bank") or "")[:10],
+            str(item.get("tanggal") or "")[:10],
         ]
-        aligns = ["L", "L", "R", "R", "R", "C", "L", "C", "L", "L"]
+        aligns = ["L", "L", "L", "R", "R", "R", "C", "L", "L", "L", "C"]
         if fill:
             pdf.set_fill_color(248, 250, 252)
         else:
@@ -3868,11 +4589,11 @@ def _build_tagihan_pdf(rows: List[Dict]) -> bytes:
     pdf.set_font("Helvetica", "B", 8)
     pdf.set_fill_color(236, 253, 245)
     pdf.set_text_color(7, 30, 73)
-    pdf.cell(sum(col_widths[:2]), row_h, "TOTAL", border=1, align="R", fill=True)
-    pdf.cell(col_widths[2], row_h, format_rupiah(total_jumlah).replace("Rp", "Rp "), border=1, align="R", fill=True)
-    pdf.cell(col_widths[3], row_h, format_rupiah(total_charges).replace("Rp", "Rp "), border=1, align="R", fill=True)
-    pdf.cell(col_widths[4], row_h, format_rupiah(total_grand).replace("Rp", "Rp "), border=1, align="R", fill=True)
-    pdf.cell(sum(col_widths[5:]), row_h, "", border=1, fill=True)
+    pdf.cell(sum(col_widths[:3]), row_h, "TOTAL", border=1, align="R", fill=True)
+    pdf.cell(col_widths[3], row_h, format_rupiah(total_jumlah).replace("Rp", "Rp "), border=1, align="R", fill=True)
+    pdf.cell(col_widths[4], row_h, format_rupiah(total_charges).replace("Rp", "Rp "), border=1, align="R", fill=True)
+    pdf.cell(col_widths[5], row_h, format_rupiah(total_grand).replace("Rp", "Rp "), border=1, align="R", fill=True)
+    pdf.cell(sum(col_widths[6:]), row_h, "", border=1, fill=True)
     pdf.ln()
 
     return bytes(pdf.output())
@@ -3899,22 +4620,22 @@ async def export_csv(user=Depends(require_login)):
     output = StringIO()
     writer = csv.writer(output)
 
-    writer.writerow(["NO", "KETERANGAN", "JUMLAH", "CHARGES", "TOTAL", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA REK.", "NOMOR REKENING", "BANK"])
+    writer.writerow(["NO", "PEMASOK", "KETERANGAN", "JUMLAH", "CHARGES", "TOTAL", "STATUS", "BANK", "NOMOR REKENING", "ATAS NAMA REK.", "TANGGAL"])
 
     for raw in data:
         d = enrich_tagihan_item(raw)
         writer.writerow([
             d["no"] or "",
+            d.get("pos") or "",
             d["pengajuan"],
             d["jumlah"],
             d["charges"],
             d["total"],
             d["status"] or "",
-            d["rekening"] or "",
-            d["tanggal"] or "",
-            d["atas_nama"] or "",
-            d["nomor_rekening"] or "",
             d["bank"] or "",
+            d["nomor_rekening"] or "",
+            d["atas_nama"] or "",
+            d["tanggal"] or "",
         ])
 
     output.seek(0)
@@ -3956,7 +4677,7 @@ async def export_xlsx(user=Depends(require_login)):
     ws['B1'].alignment = Alignment(horizontal='center')
 
     # Headers (row 3 to match original structure)
-    headers = ["NO", "KETERANGAN", "JUMLAH", "CHARGES", "TOTAL", "STATUS", "REKENING", "TANGGAL", "ATAS NAMA REK.", "NOMOR REKENING", "BANK"]
+    headers = ["NO", "PEMASOK", "KETERANGAN", "JUMLAH", "CHARGES", "TOTAL", "STATUS", "BANK", "NOMOR REKENING", "ATAS NAMA REK.", "TANGGAL"]
     for col, header in enumerate(headers, start=2):
         cell = ws.cell(row=3, column=col, value=header)
         cell.fill = header_fill
@@ -3969,26 +4690,26 @@ async def export_xlsx(user=Depends(require_login)):
         d = enrich_tagihan_item(raw)
         row_data = [
             d["no"] or "",
+            d.get("pos") or "",
             d["pengajuan"],
             d["jumlah"],
             d["charges"],
             d["total"],
             d["status"] or "",
-            d["rekening"] or "",
-            d["tanggal"] or "",
-            d["atas_nama"] or "",
-            d["nomor_rekening"] or "",
             d["bank"] or "",
+            d["nomor_rekening"] or "",
+            d["atas_nama"] or "",
+            d["tanggal"] or "",
         ]
         for col, val in enumerate(row_data, start=2):
             cell = ws.cell(row=idx, column=col, value=val)
             cell.border = thin_border
-            if col in (4, 5, 6):  # JUMLAH, CHARGES, TOTAL
+            if col in (5, 6, 7):  # JUMLAH, CHARGES, TOTAL
                 cell.number_format = '#,##0'
             cell.alignment = Alignment(vertical='center', wrap_text=True)
 
     # Column widths (close to original)
-    widths = [7, 35, 15, 12, 15, 16, 16, 14, 22, 18, 22]
+    widths = [7, 22, 35, 15, 12, 15, 16, 14, 18, 22, 14]
     for i, w in enumerate(widths, start=2):
         ws.column_dimensions[get_column_letter(i)].width = w
 
@@ -3997,8 +4718,10 @@ async def export_xlsx(user=Depends(require_login)):
 
     # Total row
     total_row = 4 + len(data)
+    ws.merge_cells(start_row=total_row, start_column=2, end_row=total_row, end_column=4)
     ws.cell(row=total_row, column=2, value="TOTAL").font = Font(bold=True)
-    for col in (4, 5, 6):
+    ws.cell(row=total_row, column=2).alignment = Alignment(horizontal='right', vertical='center')
+    for col in (5, 6, 7):
         total_cell = ws.cell(row=total_row, column=col, value=f"=SUM({get_column_letter(col)}4:{get_column_letter(col)}{total_row-1})")
         total_cell.font = Font(bold=True)
         total_cell.number_format = '#,##0'
@@ -4352,25 +5075,200 @@ def parse_petty_cash_pdf(pdf_path: str, upload_id: int, filename: str = "") -> D
     return parse_reimbursement_petty_cash(pdf_path, upload_id, filename)
 
 def parse_faktur_belum_lunas(pdf_path: str):
-    """Parse the specific SPPG 'Faktur Belum Lunas' PDF (Accurate format).
-    Automatically detects the header date "Per Tgl. DD Mon YYYY" (as shown in the faktur header image)
-    and uses it for item['tanggal'] so that all records from the upload are filed/sorted
-    into the Tanggal column on the /tagihan page.
-    Falls back to per-line dates only if header date not found.
-    Handles Indonesian months (Jun, Mei, etc).
+    """Parse PDF 'Faktur Belum Lunas' (Accurate) ke struktur kolom tagihan web.
+
+    Mapping kolom PDF → database:
+      - Baris sebelum PI.*           → pos (pemasok)
+      - PI.2026.06.xxxxx             → no
+      - Tanggal pertama pada baris PI → tanggal
+      - PEMBELIAN ... / keterangan   → pengajuan
+      - Jumlah (Total Utang)         → jumlah
+      - MANDIRI/BRI/BCA/...          → bank
+      - Nomor setelah bank           → nomor_rekening
+      - Nama setelah nomor rekening  → atas_nama
     """
     import pdfplumber
     import re
     from dateutil import parser as date_parser
 
-    items = []
-    current_supplier = None
+    BANK_RE = re.compile(r"\b(MANDIRI|BRI|BCA|BSI|VA|BNI)\s+(\d{5,})\s+(.+)$", re.IGNORECASE)
+    PI_FULL_RE = re.compile(
+        r"^(PI\.\d{4}\.\d{2}\.\d{5})\s+(\d{1,2}\s+\w+\s+\d{4})\s+(\d{1,2}\s+\w+\s+\d{4})\s+(.+)$"
+    )
+    PI_SHORT_RE = re.compile(r"^(PI\.\d{4}\.\d{2}\.\d{5})\s+(\d{1,2}\s+\w+\s+\d{4})\s+(.+)$")
+    AMOUNT_RE = re.compile(r"(\d{1,3}(?:\.\d{3})+)")
+    SUBTOTAL_RE = re.compile(r"^\d{1,3}(?:\.\d{3})+(?:\.\d{3})*\s+\d")
+    SKIP_KEYWORDS = [
+        "sppg wisma haji", "faktur belum lunas", "accurate", "tercetak", "halaman",
+        "indonesian", "nomor #", "cabang :", "per tgl", "total utang", "rupiah",
+        "daftar rekening pemasok", "jatuh tempo keterangan",
+    ]
 
     def _parse_date(tgl_str: str):
         if not tgl_str:
             return None
         tgl = tgl_str.strip()
-        # Normalize Indonesian months to English equivalents for dateutil
+        norm = tgl.lower()
+        for indo, eng in [("mei", "may"), ("agu", "aug"), ("agt", "aug"), ("okt", "oct"), ("des", "dec")]:
+            norm = norm.replace(indo, eng)
+        try:
+            dt = date_parser.parse(norm, dayfirst=True, fuzzy=True)
+            return dt.strftime("%Y-%m-%d")
+        except Exception:
+            pass
+        try:
+            p = tgl.lower().split()
+            d = int(p[0])
+            mon_str = p[1][:3]
+            mon_map = {
+                "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "mei": 5,
+                "jun": 6, "jul": 7, "aug": 8, "agu": 8, "sep": 9,
+                "oct": 10, "okt": 10, "nov": 11, "dec": 12, "des": 12,
+            }
+            mon = mon_map.get(mon_str, 1)
+            y = int(p[2])
+            return f"{y:04d}-{mon:02d}-{d:02d}"
+        except Exception:
+            return None
+
+    def _should_skip(line: str) -> bool:
+        low = line.lower()
+        return any(kw in low for kw in SKIP_KEYWORDS)
+
+    def _is_subtotal(line: str) -> bool:
+        return bool(SUBTOTAL_RE.match(line))
+
+    def _is_keterangan_continuation(line: str) -> bool:
+        if line.startswith("PI.") or _is_subtotal(line) or _should_skip(line):
+            return False
+        if AMOUNT_RE.search(line) or BANK_RE.search(line):
+            return False
+        return len(line) <= 40
+
+    def _is_supplier_line(line: str) -> bool:
+        if line.startswith("PI.") or _is_subtotal(line) or _should_skip(line):
+            return False
+        if len(line) <= 2 or re.match(r"^\d", line):
+            return False
+        low = line.lower()
+        if any(kw in low for kw in ["pembelian", "total", "peb", "report", "0 0", "rupiah", "wifi bulan"]):
+            return False
+        if re.search(r"\d", line) and len(line) < 28:
+            return False
+        if "," in line and len(line) < 30:
+            return False
+        return True
+
+    def _is_supplier_continuation(line: str) -> bool:
+        if line.startswith("PI.") or _is_subtotal(line) or _should_skip(line):
+            return False
+        if AMOUNT_RE.search(line) or BANK_RE.search(line):
+            return False
+        return len(line.split()) <= 3 and len(line) <= 24
+
+    def _parse_pi_line(line: str, pemasok: str):
+        m = PI_FULL_RE.match(line)
+        if m:
+            no, tgl_str, _, rest = m.group(1), m.group(2), m.group(3), m.group(4)
+        else:
+            m = PI_SHORT_RE.match(line)
+            if not m:
+                return None
+            no, tgl_str, rest = m.group(1), m.group(2), m.group(3)
+
+        tanggal = _parse_date(tgl_str)
+        bank = ""
+        rek = ""
+        atas_nama = ""
+        bank_m = BANK_RE.search(rest)
+        if bank_m:
+            bank = bank_m.group(1).upper()
+            rek = bank_m.group(2)
+            atas_nama = re.sub(r"\s+\d+\s+\d+\s*$", "", bank_m.group(3).strip()).strip()
+            rest = rest[: bank_m.start()].strip()
+
+        amount_m = AMOUNT_RE.search(rest)
+        jumlah = 0
+        keterangan = rest
+        if amount_m:
+            try:
+                jumlah = int(amount_m.group(1).replace(".", ""))
+            except Exception:
+                jumlah = 0
+            keterangan = rest[: amount_m.start()].strip()
+
+        keterangan = re.sub(r"\s+", " ", keterangan).strip()
+        if not keterangan or keterangan.isdigit():
+            keterangan = f"Tagihan {pemasok}" if pemasok else f"Tagihan {no}"
+        if jumlah <= 0:
+            return None
+
+        return {
+            "no": no,
+            "pos": pemasok or None,
+            "pengajuan": keterangan,
+            "jumlah": jumlah,
+            "tanggal": tanggal,
+            "bank": bank,
+            "nomor_rekening": rek,
+            "atas_nama": atas_nama or None,
+            "status": "DIAJUKAN",
+        }
+
+    with pdfplumber.open(pdf_path) as pdf:
+        all_lines = []
+        for page in pdf.pages:
+            text = page.extract_text() or ""
+            all_lines.extend([l.strip() for l in text.split("\n") if l.strip()])
+
+    items = []
+    current_supplier = None
+    pending_supplier_parts: List[str] = []
+    awaiting_keterangan = False
+
+    for line in all_lines:
+        if not line or _should_skip(line) or _is_subtotal(line):
+            awaiting_keterangan = False
+            continue
+
+        if line.startswith("PI."):
+            pemasok = " ".join(pending_supplier_parts).strip() if pending_supplier_parts else current_supplier
+            item = _parse_pi_line(line, pemasok)
+            if item:
+                items.append(item)
+                if pemasok:
+                    current_supplier = pemasok
+                awaiting_keterangan = True
+            pending_supplier_parts = []
+            continue
+
+        if awaiting_keterangan and items and _is_keterangan_continuation(line):
+            items[-1]["pengajuan"] = f"{items[-1]['pengajuan']} {line}".strip()
+            continue
+
+        awaiting_keterangan = False
+
+        if pending_supplier_parts and _is_supplier_continuation(line):
+            pending_supplier_parts.append(line)
+            continue
+
+        if _is_supplier_line(line):
+            pending_supplier_parts = [line]
+            continue
+
+    return items
+
+
+def parse_pengajuan_dana_mitra_pdf(pdf_path: str, filename: str = "") -> Dict[str, Any]:
+    """Parse formulir PDF 'Pengajuan Dana Mitra SPPG Wisma Haji'."""
+    import pdfplumber
+    import re
+    from dateutil import parser as date_parser
+
+    def _parse_date(tgl_str: str):
+        if not tgl_str:
+            return None
+        tgl = tgl_str.strip()
         norm = tgl.lower()
         for indo, eng in [('mei', 'may'), ('agu', 'aug'), ('agt', 'aug'), ('okt', 'oct'), ('des', 'dec')]:
             norm = norm.replace(indo, eng)
@@ -4379,15 +5277,14 @@ def parse_faktur_belum_lunas(pdf_path: str):
             return dt.strftime("%Y-%m-%d")
         except Exception:
             pass
-        # Manual fallback (supports both ID/EN short months)
         try:
             p = tgl.lower().split()
             d = int(p[0])
             mon_str = p[1][:3]
             mon_map = {
-                'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'mei':5,
-                'jun':6,'jul':7,'aug':8,'agu':8,'sep':9,
-                'oct':10,'okt':10,'nov':11,'dec':12,'des':12
+                'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'mei': 5,
+                'jun': 6, 'jul': 7, 'aug': 8, 'agu': 8, 'sep': 9,
+                'oct': 10, 'okt': 10, 'nov': 11, 'dec': 12, 'des': 12,
             }
             mon = mon_map.get(mon_str, 1)
             y = int(p[2])
@@ -4395,148 +5292,146 @@ def parse_faktur_belum_lunas(pdf_path: str):
         except Exception:
             return None
 
+    lines: List[str] = []
     with pdfplumber.open(pdf_path) as pdf:
-        all_lines = []
         for page in pdf.pages:
             text = page.extract_text() or ""
-            all_lines.extend([l.strip() for l in text.split("\n") if l.strip()])
+            lines.extend([l.strip() for l in text.split("\n") if l.strip()])
 
-    # Detect the header "Per Tgl. 20 Jun 2026" (or similar) — this is the date to use for the web Tanggal column
-    header_tanggal = None
-    for line in all_lines:
-        if "per tgl" in line.lower():
-            m = re.search(r'Per Tgl\.?\s*(\d{1,2}\s+\w+\s+\d{4})', line, re.IGNORECASE)
+    if not any("pengajuan dana mitra" in ln.lower() for ln in lines):
+        return {"meta": {}, "items": []}
+
+    meta: Dict[str, Any] = {"filename": filename}
+    total_pengajuan = 0
+
+    for line in lines:
+        low = line.lower()
+        if "no. form" in low or "no form" in low:
+            m = re.search(r"No\.?\s*Form:?\s*(\d+)", line, re.IGNORECASE)
             if m:
-                header_tanggal = _parse_date(m.group(1))
-                break
-
-    for line in all_lines:
-        line = line.strip()
-        if not line:
-            continue
-
-        skip_keywords = ["SPPG WISMA HAJI", "Faktur Belum Lunas", "ACCURATE", "Tercetak", "Halaman",
-                         "Indonesian", "Nomor #", "Cabang :", "Per Tgl", "Total Utang", "Rupiah"]
-        if any(kw.lower() in line.lower() for kw in skip_keywords):
-            continue
-
-        # Supplier lines appear immediately before PI. lines (company / pemasok name)
-        if not line.startswith("PI."):
-            if len(line) > 2 and not re.match(r'^\d', line):
-                low = line.lower()
-                if not any(kw in low for kw in ["pembelian", "total", "peb", "report", "0 0", "rupiah"]):
-                    # Skip keterangan continuation lines (short, commas, mixed numbers/abbr)
-                    if re.search(r'\d', line) and len(line) < 28:
-                        pass  # do not treat as supplier e.g. "THINWALL 120 ML, DLL"
-                    elif ',' in line and len(line) < 30:
-                        pass
-                    else:
-                        current_supplier = line
-            continue
-
-        # Match PI. line (we still parse per-line date only as fallback)
-        # Example: PI.2026.06.00005 02 Jun 2026 02 Jun 2026 PEMBELIAN ... 4.464.000 ...
-        m = re.match(r'^(PI\.\d{4}\.\d{2}\.\d{5})\s+(\d{1,2}\s+\w+\s+\d{4})\s+(.+)$', line)
-        if not m:
-            m = re.match(r'^(PI\.\d{4}\.\d{2}\.\d{5})\s+(\d{1,2}\s+\w+\s+\d{4})', line)
-            if not m:
-                continue
-            rest = line[len(m.group(0)):].strip()
-        else:
-            rest = m.group(3).strip()
-
-        no = m.group(1)
-        tgl_str = m.group(2)
-        # Prefer the header "Per Tgl." date (from the faktur cover/header image) for the web Tanggal column.
-        # This ensures all items from one "Faktur Belum Lunas" upload share the report date for easy filtering/sorting.
-        tanggal = header_tanggal or _parse_date(tgl_str)
-
-        # Extract JUMLAH: first realistic dotted amount (e.g. 4.464.000), NOT year '2026'
-        amount_match = re.search(r'(\d{1,3}(?:\.\d{3})+(?:\.\d{3})*)', rest)
-        jumlah = 0
-        if amount_match:
-            try:
-                jumlah = int(amount_match.group(1).replace(".", "").replace(",", ""))
-            except:
-                jumlah = 0
-        if jumlah <= 0:
-            # last resort
-            amt2 = re.search(r'([\d\.,]{6,})', rest)
-            if amt2:
+                meta["no_form"] = m.group(1)
+            m2 = re.search(r"Tanggal\s+Pengajuan:?\s*(.+?)(?:\s+Devisi|$)", line, re.IGNORECASE)
+            if not m2:
+                m2 = re.search(r"Tanggal\s+Pengajuan:?\s*(.+)$", line, re.IGNORECASE)
+            if m2:
+                meta["tanggal_pengajuan"] = _parse_date(m2.group(1).strip())
+        if "pemohon" in low:
+            m = re.search(r"Pemohon:?\s*(.+?)(?:\s+Devisi|$)", line, re.IGNORECASE)
+            if m:
+                meta["pemohon"] = m.group(1).strip()
+            m2 = re.search(r"Devisi:?\s*(.+)$", line, re.IGNORECASE)
+            if m2:
+                meta["divisi"] = m2.group(1).strip()
+        if "total pengajuan" in low:
+            m = re.search(r"(\d{1,3}(?:\.\d{3})+)", line)
+            if m:
                 try:
-                    jumlah = int(amt2.group(1).replace(".", "").replace(",", ""))
-                except:
-                    jumlah = 0
+                    total_pengajuan = int(m.group(1).replace(".", ""))
+                except ValueError:
+                    pass
+
+    row_re = re.compile(
+        r"^(\d+)\s+"
+        r"(\d{1,2}\s+\w+\s+\d{4})\s+"
+        r"(.+?)\s+"
+        r"(\d{1,3}(?:\.\d{3})+)\s+"
+        r"(\d{8,})\s+"
+        r"(.+?)\s+"
+        r"(Mandiri|BRI|BCA|BSI|BNI)\b"
+        r"(?:\s+(.*))?$",
+        re.IGNORECASE,
+    )
+
+    items: List[Dict[str, Any]] = []
+    seen_keys = set()
+    for line in lines:
+        if line.lower().startswith("total pengajuan"):
+            break
+        m = row_re.match(line)
+        if not m:
+            continue
+        jumlah = int(m.group(4).replace(".", ""))
         if jumlah <= 0:
             continue
-
-        # Bank + nomor rekening (appears near end)
-        bank = ""
-        rek = ""
-        bank_match = re.search(r'\b(MANDIRI|BRI|BCA|BSI|VA|BNI)\s+(\d{5,})', rest + " " + line, re.IGNORECASE)
-        if bank_match:
-            bank = bank_match.group(1).upper()
-            rek = bank_match.group(2)
-
-        # Keterangan = description between the due-date and the amount
-        keterangan = rest
-        if amount_match:
-            keterangan = rest[:amount_match.start()].strip()
-        keterangan = re.sub(r'\s+', ' ', keterangan).strip()
-        # Trim any leftover leading date in the slice
-        keterangan = re.sub(r'^\d{1,2}\s+\w+\s+\d{4}\s*', '', keterangan).strip()
-
-        # Supplier priority:
-        # 1. The line immediately preceding this PI. (pemasok header)
-        # 2. Trailing name after the rekening number on THIS line itself (helps across page breaks)
-        supplier = current_supplier or ""
-        # Prefer or fallback to trailing name on the PI line (handles page-breaks / missing header lines)
-        trail_m = re.search(r'(\d{5,})\s+([A-Za-z][A-Za-z\'\s]{2,})$', line)
-        trailing = trail_m.group(2).strip() if trail_m else ""
-        if (not supplier) or len(supplier) < 3 or re.search(r'\d', supplier) or ',' in supplier:
-            if trailing:
-                supplier = trailing
-
-        pengajuan = (keterangan + " - " + supplier).strip(" -") if supplier else keterangan
-        if not pengajuan:
-            pengajuan = f"Tagihan {no}"
-
+        deskripsi = m.group(3).strip()
+        key = (m.group(1), deskripsi, jumlah)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
         items.append({
-            "no": no,
-            "pengajuan": pengajuan,
+            "no": m.group(1),
+            "tanggal": _parse_date(m.group(2)),
+            "pengajuan": deskripsi,
             "jumlah": jumlah,
-            "tanggal": tanggal,
-            "bank": bank,
-            "nomor_rekening": rek,
-            "atas_nama": supplier or None,
-            "status": "DIAJUKAN"
+            "nomor_rekening": m.group(5),
+            "atas_nama": m.group(6).strip(),
+            "bank": m.group(7).upper(),
+            "rekening": "PENGAJUAN DANA MITRA",
+            "status": "DIAJUKAN",
+            "ket": (m.group(8) or "").strip() or None,
         })
-        current_supplier = None  # prevent stale carry-over from continuation lines / page breaks for next PI
 
-    return items
+    if meta.get("no_form") and meta.get("tanggal_pengajuan"):
+        tgl_label = meta["tanggal_pengajuan"]
+        if meta.get("pemohon"):
+            meta["periode"] = f"Form #{meta['no_form']} — {meta['pemohon']} ({tgl_label})"
+        else:
+            meta["periode"] = f"Form #{meta['no_form']} — {tgl_label}"
+    elif meta.get("pemohon"):
+        meta["periode"] = f"Pengajuan {meta['pemohon']}"
+    else:
+        meta["periode"] = filename or "Pengajuan Dana Mitra"
+
+    if total_pengajuan:
+        meta["total_pengajuan"] = total_pengajuan
+
+    return {"meta": meta, "items": items}
+
 
 def parse_upload_file(file_path: str, filename: str, kategori: str = "tagihan", upload_id: int = 0):
     """Parse Excel, CSV or PDF. Use special parser per kategori."""
     rows = []
     ext = filename.lower().rsplit('.', 1)[-1] if '.' in filename else ''
 
-    if ext == 'csv' and kategori == "gaji_relawan":
+    if kategori == "gaji_relawan" and ext == "csv":
         try:
             return parse_gaji_relawan_csv(file_path, filename)
         except Exception as e:
             print("Gaji relawan CSV parse error:", e)
             return {"meta": {}, "items": []}
 
-    if ext == 'csv' and kategori == "insentif_pic":
+    if kategori == "gaji_relawan" and ext in ("xlsx", "xls"):
+        try:
+            return parse_gaji_relawan_xlsx(file_path, filename)
+        except Exception as e:
+            print("Gaji relawan XLSX parse error:", e)
+            return {"meta": {}, "items": []}
+
+    if kategori == "insentif_pic" and ext == "csv":
         try:
             return parse_insentif_pic_csv(file_path, filename)
         except Exception as e:
             print("Insentif PIC CSV parse error:", e)
-    if ext == 'csv' and kategori == "insentif_mitra":
+            return {"meta": {}, "items": []}
+
+    if kategori == "insentif_pic" and ext in ("xlsx", "xls"):
+        try:
+            return parse_insentif_pic_xlsx(file_path, filename)
+        except Exception as e:
+            print("Insentif PIC XLSX parse error:", e)
+            return {"meta": {}, "items": []}
+    if kategori == "insentif_mitra" and ext == "csv":
         try:
             return parse_insentif_mitra_csv(file_path, filename)
         except Exception as e:
             print("Insentif Mitra CSV parse error:", e)
+            return {"meta": {}, "items": []}
+
+    if kategori == "insentif_mitra" and ext in ("xlsx", "xls"):
+        try:
+            return parse_insentif_mitra_xlsx(file_path, filename)
+        except Exception as e:
+            print("Insentif Mitra XLSX parse error:", e)
             return {"meta": {}, "items": []}
 
     if ext == 'pdf' and kategori == "petty_cash":
@@ -4545,6 +5440,13 @@ def parse_upload_file(file_path: str, filename: str, kategori: str = "tagihan", 
             return result
         except Exception as e:
             print("Petty cash PDF parse error:", e)
+            return {"meta": {}, "items": []}
+
+    if ext == 'pdf' and kategori == "pengajuan_dana_mitra":
+        try:
+            return parse_pengajuan_dana_mitra_pdf(file_path, filename)
+        except Exception as e:
+            print("Pengajuan dana mitra PDF parse error:", e)
             return {"meta": {}, "items": []}
 
     if ext == 'pdf':
@@ -4635,10 +5537,25 @@ async def upload_laporan(
     periode: str = Form(""),
     kategori: str = Form("tagihan")
 ):
+    if is_viewer(user):
+        return redirect_with_flash(
+            request,
+            "/dashboard",
+            "Akses ditolak. Akun Anda hanya dapat melihat data.",
+        )
+
+    if not is_admin(user) and (kategori or "tagihan") not in ("tagihan", "", "tagihan_bulanan"):
+        return redirect_with_flash(
+            request,
+            "/tagihan",
+            "Akses ditolak. Member hanya dapat upload PDF Tagihan.",
+        )
+
     if kategori == "petty_cash":
-        return RedirectResponse(
-            "/petty-cash?message=Upload Petty Cash hanya melalui halaman Petty Cash",
-            status_code=303,
+        return redirect_with_flash(
+            request,
+            "/petty-cash",
+            "Upload Petty Cash hanya melalui halaman Petty Cash",
         )
 
     final_pos = (pos_other.strip() if pos_other.strip() else pos.strip()) or None
@@ -4665,16 +5582,16 @@ async def upload_laporan(
     except Exception as e:
         conn.close()
         if kategori == "gaji_relawan":
-            return RedirectResponse(f"/gaji-relawan?message=Error parsing file: {str(e)}", status_code=303)
-        return RedirectResponse(f"/tagihan?kategori={kategori or 'tagihan'}&message=Error parsing file: {str(e)}", status_code=303)
+            return redirect_with_flash(request, "/gaji-relawan", f"Error parsing file: {str(e)}")
+        return redirect_with_flash(request, f"/tagihan?kategori={kategori or 'tagihan'}", f"Error parsing file: {str(e)}")
 
     item_list = parsed if parsed else []
 
     if not item_list:
         conn.close()
         if kategori == "gaji_relawan":
-            return RedirectResponse("/gaji-relawan?message=Tidak ada data yang bisa dibaca dari file", status_code=303)
-        return RedirectResponse(f"/tagihan?kategori={kategori or 'tagihan'}&message=Tidak ada data yang bisa dibaca dari file", status_code=303)
+            return redirect_with_flash(request, "/gaji-relawan", "Tidak ada data yang bisa dibaca dari file")
+        return redirect_with_flash(request, f"/tagihan?kategori={kategori or 'tagihan'}", "Tidak ada data yang bisa dibaca dari file")
 
     inserted = 0
     for item in item_list:
@@ -4695,7 +5612,12 @@ async def upload_laporan(
 
         no = str(item.get('no') or '').strip() or None
         status = str(item.get('status') or 'DIAJUKAN').strip() or 'DIAJUKAN'
-        rekening = str(item.get('rekening') or 'PETTY CASH').strip() or 'PETTY CASH'
+        kategori_val = kategori or "tagihan"
+        if kategori_val in ("tagihan", "tagihan_bulanan", ""):
+            rekening = str(item.get('rekening') or '').strip() or None
+        else:
+            rekening = str(item.get('rekening') or 'PETTY CASH').strip() or 'PETTY CASH'
+        pos_val = str(item.get('pos') or item.get('pemasok') or final_pos or '').strip() or None
         tanggal = str(item.get('tanggal') or '').strip() or None
         atas_nama = str(item.get('atas nama rek') or item.get('atas_nama') or item.get('atas nama') or '').strip() or None
         nomor_rek = str(item.get('nomor rekening') or item.get('nomor_rekening') or item.get('no rekening') or '').strip() or None
@@ -4719,11 +5641,11 @@ async def upload_laporan(
 
         conn.execute("""
             INSERT INTO tagihan 
-            (no, pengajuan, jumlah, status, rekening, tanggal, atas_nama, nomor_rekening, bank, kategori, upload_id, nota_path, debit, kredit, saldo_akhir, tipe_transaksi, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (no, pengajuan, jumlah, status, rekening, tanggal, atas_nama, nomor_rekening, bank, pos, kategori, upload_id, nota_path, debit, kredit, saldo_akhir, tipe_transaksi, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             no, pengajuan, jumlah, status, rekening, tanggal,
-            atas_nama, nomor_rek, bank,
+            atas_nama, nomor_rek, bank, pos_val,
             kategori or "tagihan", upload_id, nota_path,
             debit_val, kredit_val, saldo_akhir, tipe_transaksi,
             user["id"]
@@ -4739,11 +5661,11 @@ async def upload_laporan(
         msg += f" untuk Pos: {final_pos}"
 
     if kategori == "gaji_relawan":
-        return RedirectResponse(f"/gaji-relawan?message={msg}&success=true", status_code=303)
+        return redirect_with_flash(request, "/gaji-relawan", msg, success=True)
     if kategori == "insentif_mitra":
-        return RedirectResponse(f"/insentif-mitra?message={msg}&success=true", status_code=303)
+        return redirect_with_flash(request, "/insentif-mitra", msg, success=True)
 
-    return RedirectResponse(f"/tagihan?kategori={kategori or 'tagihan'}&message={msg}&success=true", status_code=303)
+    return redirect_with_flash(request, f"/tagihan?kategori={kategori or 'tagihan'}", msg, success=True)
 
 
 # Need to import Response

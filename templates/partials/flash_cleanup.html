@@ -1,0 +1,12 @@
+{% if strip_message_params %}
+<script>
+(function () {
+    var url = new URL(window.location.href);
+    if (!url.searchParams.has('message') && !url.searchParams.has('success')) return;
+    url.searchParams.delete('message');
+    url.searchParams.delete('success');
+    var qs = url.searchParams.toString();
+    history.replaceState({}, '', url.pathname + (qs ? '?' + qs : '') + url.hash);
+})();
+</script>
+{% endif %}

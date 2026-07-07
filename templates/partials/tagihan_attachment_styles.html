@@ -1,0 +1,38 @@
+        .attach-cell { min-width: 96px; }
+        .attach-actions {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .attach-thumb {
+            width: 56px; height: 72px; object-fit: cover;
+            border-radius: 8px; border: 1px solid #e2e8f0;
+            cursor: pointer; transition: transform .15s;
+        }
+        .attach-thumb:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(7,30,73,0.12);
+        }
+        .attach-pdf-link {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            width: 56px; height: 72px; border-radius: 8px;
+            border: 1px solid #e2e8f0; background: #f8fafc;
+            color: #dc2626; font-size: 1.25rem; cursor: pointer;
+            text-decoration: none;
+        }
+        .attach-pdf-link:hover { background: #f1f5f9; }
+        .attach-empty {
+            width: 56px; height: 72px; border-radius: 8px;
+            border: 1px dashed #e2e8f0; background: #f8fafc;
+            display: flex; align-items: center; justify-content: center;
+            color: #cbd5e1; font-size: 0.58rem; text-transform: uppercase;
+        }
+        .btn-attach {
+            font-size: 0.58rem; font-weight: 600; padding: 2px 6px;
+            border-radius: 6px; border: 1px solid #e2e8f0;
+            background: #fff; color: #071e49; cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-attach:hover { background: #f8fafc; }
+        .btn-attach-add { color: #059669; border-color: #a7f3d0; background: #ecfdf5; }
+        .btn-attach-del { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
+        #attach-modal { display: none; }
+        #attach-modal.open { display: flex; }

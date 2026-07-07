@@ -46,58 +46,53 @@
         }
         
         .report-hero {
-            background: linear-gradient(135deg, #071e49 0%, #0c3d6e 45%, #1a5f8a 100%);
-            border-radius: 1.5rem;
+            background: linear-gradient(135deg, #071e49 0%, #0c3d6e 50%, #134a72 100%);
+            border-radius: 1rem;
             color: #fff;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 4px 20px -6px rgba(7, 30, 73, 0.35);
         }
         .report-hero::after {
             content: '';
             position: absolute;
-            top: -40%;
-            right: -10%;
-            width: 320px;
-            height: 320px;
-            background: radial-gradient(circle, rgba(201,165,88,0.25) 0%, transparent 70%);
+            top: -60%;
+            right: -5%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(201,165,88,0.18) 0%, transparent 70%);
             border-radius: 50%;
+            pointer-events: none;
         }
         .hero-kpi {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.18);
-            border-radius: 1.25rem;
-            padding: 1.25rem 1.35rem;
-            transition: transform .2s, background .2s, border-color .2s;
-            position: relative;
-            overflow: hidden;
-        }
-        .hero-kpi::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--accent, #c9a558), transparent);
-            opacity: 0.7;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 0.75rem;
+            padding: 0.65rem 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            transition: background .2s, border-color .2s;
         }
         .hero-kpi:hover {
-            transform: translateY(-3px);
-            background: rgba(255,255,255,0.14);
-            border-color: rgba(255,255,255,0.28);
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(255,255,255,0.2);
         }
         .hero-kpi-icon {
-            width: 42px; height: 42px;
-            border-radius: 12px;
+            width: 32px; height: 32px;
+            border-radius: 8px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem;
-            margin-bottom: 0.75rem;
+            font-size: 0.8rem;
+            flex-shrink: 0;
         }
+        .hero-kpi-body { min-width: 0; }
         .hero-kpi-grand {
-            background: linear-gradient(135deg, rgba(201,165,88,0.25) 0%, rgba(255,255,255,0.12) 100%);
-            border-color: rgba(201,165,88,0.35);
+            background: linear-gradient(135deg, rgba(201,165,88,0.2) 0%, rgba(255,255,255,0.08) 100%);
+            border-color: rgba(201,165,88,0.28);
         }
         .hero-kpi-grand .hero-kpi-icon {
-            background: rgba(201,165,88,0.3);
+            background: rgba(201,165,88,0.25);
             color: #f5d78e;
         }
         .money { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
@@ -132,89 +127,86 @@
             </div>
             {% endif %}
 
-            <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <h1 class="text-2xl font-bold text-[#071e49] font-display">Laporan Tagihan</h1>
-                </div>
-                <div class="flex items-center gap-2">
-                    <a href="/export/pdf" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2 shadow-sm">
-                        <i class="fa-solid fa-file-pdf text-red-600"></i>
-                        <span>Download</span>
-                    </a>
-                    <button onclick="showAddModal()"
-                            class="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 text-sm font-semibold rounded-2xl">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>Tambah Baru</span>
-                    </button>
-                </div>
-            </div>
-
             <!-- Header Ringkasan -->
-            <div class="report-hero px-6 md:px-8 py-7 mb-6 relative">
+            <div class="report-hero px-4 md:px-5 py-4 mb-5 relative">
                 <div class="relative z-10">
-                    <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
-                        <div>
-                            <div class="text-[10px] uppercase tracking-[0.35em] text-[#c9a558] font-semibold mb-2">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                        <div class="min-w-0">
+                            <div class="text-[9px] uppercase tracking-[0.28em] text-[#c9a558]/90 font-semibold mb-0.5">
                                 Ringkasan Tagihan
                             </div>
-                            <h2 class="font-display text-2xl md:text-3xl font-bold tracking-tight">Laporan Tagihan</h2>
-                            <p class="text-white/60 text-sm mt-1.5">
-                                {{ tagihan|length }} entri • Jumlah {{ format_rupiah(total_filtered) }} + Charges {{ format_rupiah(total_charges) }}
+                            <h1 class="font-display text-lg md:text-xl font-bold tracking-tight leading-tight">Laporan Tagihan</h1>
+                            <p class="text-white/50 text-[11px] mt-0.5 truncate">
+                                {{ tagihan|length }} entri · Jumlah {{ format_rupiah(total_filtered) }} + Charges {{ format_rupiah(total_charges) }}
                             </p>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <a href="/export/pdf" class="inline-flex items-center text-xs px-3 py-1.5 rounded-lg border border-white/20 bg-white/10 hover:bg-white/15 text-white/90 gap-1.5">
+                                <i class="fa-solid fa-file-pdf text-[10px]"></i>
+                                <span>Download</span>
+                            </a>
+                            {% if can_edit %}
+                            <button onclick="showAddModal()"
+                                    class="inline-flex items-center gap-1.5 bg-emerald-600/90 hover:bg-emerald-600 text-white px-3 py-1.5 text-xs font-semibold rounded-lg">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                <span>Tambah</span>
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                        <div class="hero-kpi hero-kpi-grand" style="--accent: #c9a558;">
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                        <div class="hero-kpi hero-kpi-grand">
                             <div class="hero-kpi-icon">
                                 <i class="fa-solid fa-sack-dollar"></i>
                             </div>
-                            <div class="text-[10px] uppercase tracking-wider text-[#f5d78e]/90 font-semibold">Total Bayar</div>
-                            <div class="mt-1 text-xl md:text-2xl font-bold money text-[#f5d78e] leading-tight">{{ format_rupiah(total_grand) }}</div>
-                            <div class="text-[10px] text-white/50 mt-1">jumlah + charges</div>
+                            <div class="hero-kpi-body">
+                                <div class="text-[9px] uppercase tracking-wider text-[#f5d78e]/80 font-semibold leading-none">Total Bayar</div>
+                                <div class="text-sm md:text-base font-bold money text-[#f5d78e] leading-tight mt-0.5">{{ format_rupiah(total_grand) }}</div>
+                            </div>
                         </div>
 
-                        <div class="hero-kpi" style="--accent: #55a7d4;">
+                        <div class="hero-kpi">
                             <div class="hero-kpi-icon bg-[#55a7d4]/25 text-[#7ec8eb]">
                                 <i class="fa-solid fa-list-ol"></i>
                             </div>
-                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Jumlah Data</div>
-                            <div class="mt-1 text-2xl md:text-3xl font-bold money">{{ tagihan|length }}</div>
-                            <div class="text-[10px] text-white/45 mt-1">baris tagihan</div>
+                            <div class="hero-kpi-body">
+                                <div class="text-[9px] uppercase tracking-wider text-white/50 font-semibold leading-none">Jumlah Data</div>
+                                <div class="text-sm md:text-base font-bold money mt-0.5">{{ tagihan|length }}</div>
+                            </div>
                         </div>
 
-                        <div class="hero-kpi" style="--accent: #60a5fa;">
+                        <div class="hero-kpi">
                             <div class="hero-kpi-icon bg-blue-400/20 text-blue-200">
                                 <i class="fa-solid fa-circle-check"></i>
                             </div>
-                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Status Utama</div>
-                            {% if main_status == "Sukses" %}
-                            <div class="mt-1 flex items-center gap-2 text-xl md:text-2xl font-bold text-emerald-300">
-                                <span>SUKSES</span>
+                            <div class="hero-kpi-body">
+                                <div class="text-[9px] uppercase tracking-wider text-white/50 font-semibold leading-none">Status Utama</div>
+                                {% if main_status == "Sukses" %}
+                                <div class="text-sm font-bold text-emerald-300 mt-0.5">SUKSES</div>
+                                {% elif main_status == "Tertagih" %}
+                                <div class="text-sm font-bold text-amber-300 mt-0.5 cursor-pointer hover:underline"
+                                     onclick="filterToPending()" title="Klik untuk filter data DIAJUKAN">TERTAGIH</div>
+                                {% else %}
+                                <div class="text-sm font-bold text-white/60 mt-0.5">—</div>
+                                {% endif %}
                             </div>
-                            {% elif main_status == "Tertagih" %}
-                            <div class="mt-1 flex items-center gap-2 text-xl md:text-2xl font-bold text-amber-300 cursor-pointer hover:underline"
-                                 onclick="filterToPending()" title="Klik untuk filter data DIAJUKAN">
-                                <span>TERTAGIH</span>
-                            </div>
-                            {% else %}
-                            <div class="mt-1 text-2xl font-bold text-white/70">—</div>
-                            {% endif %}
-                            <div class="text-[10px] text-white/45 mt-1">berdasarkan data ditampilkan</div>
                         </div>
 
-                        <div class="hero-kpi" style="--accent: #a78bfa;">
+                        <div class="hero-kpi">
                             <div class="hero-kpi-icon bg-violet-400/20 text-violet-200">
                                 <i class="fa-solid fa-building"></i>
                             </div>
-                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Unit Kerja</div>
-                            <div class="mt-1 text-lg md:text-xl font-bold leading-tight">SPPG Wisma Haji</div>
-                            <div class="text-[10px] text-white/45 mt-1">pelaporan keuangan</div>
+                            <div class="hero-kpi-body">
+                                <div class="text-[9px] uppercase tracking-wider text-white/50 font-semibold leading-none">Unit Kerja</div>
+                                <div class="text-xs md:text-sm font-semibold leading-tight mt-0.5 truncate">SPPG Wisma Haji</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            {% if can_edit %}
             <!-- Bulk selection toolbar -->
             <div id="bulk-toolbar" style="display:none;" class="mb-4 p-3 bg-white border border-slate-200 rounded-3xl glass-card items-center gap-4 shadow-sm">
                 <span class="text-sm font-medium text-bgn-navy" id="selected-info">0 dipilih</span>
@@ -236,7 +228,9 @@
                     Batal Pilih
                 </button>
             </div>
+            {% endif %}
 
+            {% if can_upload %}
             <!-- Upload Laporan PDF -->
             <div class="mb-6 border-2 border-dashed border-slate-300 bg-[#f8fafc] rounded-3xl p-6">
                 <div class="flex items-start justify-between gap-4 flex-wrap">
@@ -257,6 +251,7 @@
                     </form>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Filters - Elegant Blue -->
             <div class="bg-white border border-slate-200 rounded-3xl p-4 mb-6 shadow-sm">
@@ -312,26 +307,30 @@
                     <table class="ledger-table w-full">
                         <thead>
                             <tr>
-                                <th class="w-8"><input type="checkbox" id="select-all" class="rounded"></th>
-                                <th class="text-left w-12">No</th>
-                                <th class="text-left min-w-[260px]">Keterangan</th>
+                                {% if can_edit %}<th class="w-8"><input type="checkbox" id="select-all" class="rounded"></th>{% endif %}
+                                <th class="text-left min-w-[120px]">No. Faktur</th>
+                                <th class="text-left min-w-[140px]">Pemasok</th>
+                                <th class="text-left hidden lg:table-cell">Tanggal</th>
+                                <th class="text-left min-w-[220px]">Keterangan</th>
                                 <th class="text-right">Jumlah</th>
                                 <th class="text-right">Charges</th>
                                 <th class="text-right">Total</th>
                                 <th class="text-center">Status</th>
-                                <th class="text-left">Rekening</th>
-                                <th class="text-left hidden xl:table-cell">Tanggal</th>
+                                <th class="text-left">Bank</th>
+                                <th class="text-left hidden md:table-cell">No. Rekening</th>
                                 <th class="text-left hidden lg:table-cell">Atas Nama</th>
-                                <th class="w-20">Aksi</th>
+                                {% if can_edit %}<th class="w-20">Aksi</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             {% for item in tagihan %}
                             <tr class="table-row" data-id="{{ item.id }}">
-                                <td class="px-1"><input type="checkbox" class="row-checkbox" value="{{ item.id }}"></td>
-                                <td class="px-6 py-3 text-bgn-navy/60 font-mono text-xs">{{ item.no or '—' }}</td>
+                                {% if can_edit %}<td class="px-1"><input type="checkbox" class="row-checkbox" value="{{ item.id }}"></td>{% endif %}
+                                <td class="px-4 py-3 text-bgn-navy/70 font-mono text-xs">{{ item.no or '—' }}</td>
+                                <td class="px-4 py-3 text-sm font-medium text-bgn-navy">{{ item.pos or '—' }}</td>
+                                <td class="px-4 py-3 text-xs text-bgn-navy/70 hidden lg:table-cell">{{ format_tanggal(item.tanggal) if item.tanggal else '—' }}</td>
                                 <td class="px-4 py-3">
-                                    <div class="font-medium text-bgn-navy">{{ item.pengajuan }}</div>
+                                    <div class="text-sm text-bgn-navy">{{ item.pengajuan }}</div>
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <div class="font-semibold money text-bgn-navy">{{ format_rupiah(item.jumlah) }}</div>
@@ -356,24 +355,16 @@
                                         <span class="status-pill bg-bgn-light text-bgn-navy">—</span>
                                     {% endif %}
                                 </td>
-                                <td class="px-4 py-3 text-xs text-bgn-navy/70">
-                                    {% if item.rekening %}
-                                    {{ item.rekening }}
-                                    {% endif %}
-                                    {% if item.bank or item.nomor_rekening %}
-                                    <div class="text-[10px] text-bgn-navy/60">{{ item.bank or '' }} {{ item.nomor_rekening or '' }}</div>
-                                    {% endif %}
-                                </td>
-                                <td class="px-4 py-3 text-xs text-bgn-navy/70 hidden xl:table-cell">{{ item.tanggal or '—' }}</td>
+                                <td class="px-4 py-3 text-xs font-medium text-bgn-navy/80">{{ item.bank or '—' }}</td>
+                                <td class="px-4 py-3 text-xs font-mono text-bgn-navy/70 hidden md:table-cell">{{ item.nomor_rekening or '—' }}</td>
                                 <td class="px-4 py-3 text-xs text-bgn-navy/70 hidden lg:table-cell">{{ item.atas_nama or '—' }}</td>
+                                {% if can_edit %}
                                 <td class="px-4 py-2">
                                     <div class="flex items-center gap-1">
-                                        <!-- Edit -->
                                         <button onclick='editItem({{ item | tojson }})' 
                                                 class="p-2 text-bgn-navy/60 hover:text-bgn-blue hover:bg-bgn-light rounded-xl transition">
                                             <i class="fa-solid fa-edit fa-sm"></i>
                                         </button>
-                                        <!-- Delete -->
                                         <form method="POST" action="/tagihan/{{ item.id }}/delete" onsubmit="return confirm('Hapus data ini?')">
                                             <button type="submit" class="p-2 text-bgn-navy/60 hover:text-red-600 hover:bg-red-50 rounded-xl transition">
                                                 <i class="fa-solid fa-trash fa-sm"></i>
@@ -381,13 +372,18 @@
                                         </form>
                                     </div>
                                 </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                             
                             {% if not tagihan %}
                             <tr>
-                                <td colspan="11" class="px-6 py-10 text-center text-sm text-slate-400">
-                                    Belum ada data tagihan. Klik tombol <span class="font-medium">"Tambah Baru"</span> untuk memulai.
+                                <td colspan="{% if can_edit %}13{% else %}12{% endif %}" class="px-6 py-10 text-center text-sm text-slate-400">
+                                    {% if can_edit %}
+                                    Belum ada data tagihan. Klik tombol <span class="font-medium">"Tambah Baru"</span> atau upload PDF.
+                                    {% else %}
+                                    Belum ada data tagihan. Upload PDF Faktur Belum Lunas di bawah.
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endif %}
@@ -403,6 +399,7 @@
         </main>
     </div>
 
+    {% if can_edit %}
     <!-- Add / Edit Modal -->
     <div id="form-modal" class="hidden fixed inset-0 bg-black/70 z-[90] items-center justify-center p-4" onclick="if (event.target.id === 'form-modal') hideModal()">
         <div onclick="event.stopImmediatePropagation()" class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200">
@@ -512,6 +509,7 @@
             </form>
         </div>
     </div>
+    {% endif %}
 
     <script>
         function showAddModal() {
@@ -573,15 +571,15 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === "Escape") {
                 const modal = document.getElementById('form-modal');
-                if (!modal.classList.contains('hidden')) hideModal();
+                if (modal && !modal.classList.contains('hidden')) hideModal();
             }
         });
 
-        // Optional: allow direct access via hash
-        if (window.location.hash === '#form') {
+        const formModal = document.getElementById('form-modal');
+        if (formModal && window.location.hash === '#form') {
             setTimeout(() => {
-                document.getElementById('form-modal').classList.remove('hidden');
-                document.getElementById('form-modal').classList.add('flex');
+                formModal.classList.remove('hidden');
+                formModal.classList.add('flex');
             }, 300);
         }
 

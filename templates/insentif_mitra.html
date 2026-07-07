@@ -142,6 +142,7 @@
             background: rgba(201,165,88,0.3);
             color: #f5d78e;
         }
+        {% include 'partials/tagihan_attachment_styles.html' %}
         @media print {
             aside, nav, .no-print { display: none !important; }
             body { background: #fff; }
@@ -169,14 +170,43 @@
                     <h1 class="text-2xl font-bold text-[#071e49] font-display">Laporan Insentif Mitra</h1>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="/export/insentif-mitra/xlsx" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2">
-                        <i class="fa-solid fa-file-excel text-emerald-600"></i> Excel
+                    {% if can_download %}
+                    {% set export_qs = '?upload_id=' ~ selected_upload_id if selected_upload_id else (laporans and '?upload_id=' ~ laporans[0].upload_id or '') %}
+                    <a href="/export/insentif-mitra/xlsx{{ export_qs }}" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2" title="Download Excel format transfer massal Mandiri (sama seperti file upload)">
+                        <i class="fa-solid fa-file-excel text-emerald-600"></i> Download Excel
                     </a>
+                    <a href="/export/insentif-mitra/csv{{ export_qs }}" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2" title="Ekstrak ke CSV format transfer massal Mandiri">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i> Download CSV
+                    </a>
+                    {% endif %}
+                    {% if can_edit %}
                     <button onclick="showAddModal()" class="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 text-sm font-semibold rounded-2xl">
                         <i class="fa-solid fa-plus"></i> Tambah Manual
                     </button>
+                    {% endif %}
                 </div>
             </div>
+
+            {% if can_upload %}
+            <!-- Upload Excel -->
+            <div class="mb-6 border-2 border-dashed border-slate-300 bg-white rounded-3xl p-6 no-print">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <div class="font-semibold text-[#071e49] flex items-center gap-2">
+                            <i class="fa-solid fa-file-excel text-emerald-600"></i> Upload Excel
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">Upload file Excel transfer massal Mandiri — data diekstrak otomatis. Download CSV menghasilkan file siap upload bank.</p>
+                    </div>
+                    <form action="/insentif-mitra/upload" method="POST" enctype="multipart/form-data" class="flex items-center gap-3 flex-wrap">
+                        <input type="file" name="file" accept=".xlsx,.xls" required
+                               class="text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-semibold">
+                        <button type="submit" class="bg-[#55a7d4] hover:bg-blue-600 text-white px-6 py-2 rounded-2xl text-sm font-semibold flex items-center gap-2">
+                            <i class="fa-solid fa-upload"></i> Upload &amp; Ekstrak
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
 
             {% if items %}
             <!-- Header Ringkasan -->
@@ -231,10 +261,17 @@
             {% elif not laporans %}
             <div class="mb-6 p-8 bg-white border border-dashed border-slate-300 rounded-3xl text-center text-slate-400 no-print">
                 <i class="fa-solid fa-handshake text-4xl mb-3 text-slate-200"></i>
-                <p class="text-sm">Belum ada data. Klik <strong>Tambah Manual</strong> untuk menambahkan rincian insentif mitra.</p>
+                <p class="text-sm">
+                    {% if can_upload %}
+                    Upload file Excel transfer massal Mandiri untuk menampilkan ringkasan dan rincian transaksi insentif mitra.
+                    {% else %}
+                    Belum ada data insentif mitra yang ditampilkan.
+                    {% endif %}
+                </p>
             </div>
             {% endif %}
 
+            {% if can_edit %}
             <!-- Bulk toolbar -->
             <div id="bulk-toolbar" style="display:none;" class="mb-4 p-3 bg-white border border-slate-200 rounded-2xl items-center gap-4 shadow-sm no-print">
                 <span class="text-sm font-medium text-[#071e49]" id="selected-info">0 dipilih</span>
@@ -249,6 +286,7 @@
                 </button>
                 <button onclick="clearSelection()" class="px-3 py-1.5 text-sm border rounded-xl text-slate-600">Batal</button>
             </div>
+            {% endif %}
 
             <!-- Filter -->
             <div class="bg-white border border-slate-200 rounded-2xl p-4 mb-4 no-print">
@@ -272,6 +310,19 @@
                             {% endfor %}
                         </select>
                     </div>
+                    {% if periode_options %}
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Periode</label>
+                        <select name="upload_id" class="text-sm px-3 py-2 border rounded-xl form-input min-w-[180px]">
+                            <option value="">Semua</option>
+                            {% for lap in periode_options %}
+                            <option value="{{ lap.upload_id }}" {% if selected_upload_id == lap.upload_id %}selected{% endif %}>
+                                {{ lap.periode or lap.filename }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
                     <button type="submit" class="px-4 py-2 text-sm font-semibold bg-[#071e49] text-white rounded-xl">Filter</button>
                     <a href="/insentif-mitra" class="px-4 py-2 text-sm border rounded-xl text-slate-600">Reset</a>
                 </form>
@@ -294,7 +345,7 @@
                     <table class="ledger-table w-full">
                         <thead>
                             <tr>
-                                <th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>
+                                {% if can_edit %}<th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>{% endif %}
                                 <th class="text-left w-12">No</th>
                                 <th class="text-left">Tanggal</th>
                                 <th class="text-left min-w-[200px]">Keterangan</th>
@@ -302,14 +353,17 @@
                                 <th class="text-left">Nomor Rekening</th>
                                 <th class="text-left">Bank</th>
                                 <th class="text-right">Jumlah</th>
+                                <th class="text-center">PICT</th>
+                                <th class="text-center">NOTA</th>
+                                <th class="text-center">BUKTI</th>
                                 <th class="text-center">Status</th>
-                                <th class="w-16 no-print">Aksi</th>
+                                {% if can_edit %}<th class="w-16 no-print">Aksi</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in items %}
                             <tr data-id="{{ item.id }}">
-                                <td class="no-print"><input type="checkbox" class="row-checkbox" value="{{ item.id }}"></td>
+                                {% if can_edit %}<td class="no-print"><input type="checkbox" class="row-checkbox" value="{{ item.id }}"></td>{% endif %}
                                 <td class="text-slate-400 font-mono text-xs">{{ item.no or loop.index }}</td>
                                 <td class="whitespace-nowrap text-slate-600">
                                     {% if item.tanggal %}{{ format_tanggal(item.tanggal) }}{% else %}—{% endif %}
@@ -333,6 +387,15 @@
                                 <td class="text-right">
                                     <span class="font-bold text-[#071e49] money text-base">{{ format_rupiah(item.jumlah) }}</span>
                                 </td>
+                                {% with item_id=item.id, field='pict', file_path=item.pict_path, label='PICT', title=item.pengajuan or 'Transaksi', can_upload=can_upload %}
+                                {% include 'partials/tagihan_attachment_cell.html' %}
+                                {% endwith %}
+                                {% with item_id=item.id, field='nota', file_path=item.nota_path, label='NOTA', title=item.pengajuan or 'Transaksi', can_upload=can_upload %}
+                                {% include 'partials/tagihan_attachment_cell.html' %}
+                                {% endwith %}
+                                {% with item_id=item.id, field='bukti', file_path=item.bukti_path, label='BUKTI', title=item.pengajuan or 'Transaksi', can_upload=can_upload %}
+                                {% include 'partials/tagihan_attachment_cell.html' %}
+                                {% endwith %}
                                 <td class="text-center status-cell">
                                     {% if item.status == 'TERBAYAR' %}
                                     <span class="status-pill bg-emerald-100 text-emerald-700">TERBAYAR</span>
@@ -342,6 +405,7 @@
                                     <span class="status-pill bg-slate-100 text-slate-500">—</span>
                                     {% endif %}
                                 </td>
+                                {% if can_edit %}
                                 <td class="no-print">
                                     <div class="flex gap-1">
                                         <button onclick='editItem({{ item | tojson }})' class="p-1.5 text-slate-400 hover:text-[#55a7d4] rounded-lg">
@@ -354,14 +418,21 @@
                                         </form>
                                     </div>
                                 </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
 
                             {% if not items %}
                             <tr>
-                                <td colspan="10" class="py-16 text-center text-slate-400">
+                                <td colspan="{% if can_edit %}13{% else %}12{% endif %}" class="py-16 text-center text-slate-400">
                                     <i class="fa-solid fa-users text-4xl mb-3 text-slate-200"></i>
-                                    <p class="text-sm">Belum ada data. Klik <strong>Tambah Manual</strong> untuk menambahkan rincian insentif mitra.</p>
+                                    <p class="text-sm">
+                                        {% if can_upload %}
+                                        Belum ada data. Upload file <strong>Excel</strong> transfer massal Mandiri — unduh <strong>CSV</strong> untuk file siap upload bank.
+                                        {% else %}
+                                        Belum ada data insentif mitra.
+                                        {% endif %}
+                                    </p>
                                 </td>
                             </tr>
                             {% endif %}
@@ -369,11 +440,13 @@
                         {% if items %}
                         <tfoot>
                             <tr class="bg-[#f8fafc] border-t-2 border-[#071e49]/10">
-                                <td colspan="7" class="px-4 py-3 text-right font-bold text-[#071e49] uppercase text-xs tracking-wider">Total</td>
+                                <td colspan="{% if can_edit %}7{% else %}7{% endif %}" class="px-4 py-3 text-right font-bold text-[#071e49] uppercase text-xs tracking-wider">Total</td>
+                                <td colspan="3" class="no-print"></td>
                                 <td class="px-4 py-3 text-right">
                                     <div class="text-xl font-bold text-emerald-700 money">{{ format_rupiah(total_filtered) }}</div>
                                 </td>
-                                <td colspan="2" class="no-print"></td>
+                                <td class="no-print"></td>
+                                {% if can_edit %}<td class="no-print"></td>{% endif %}
                             </tr>
                         </tfoot>
                         {% endif %}
@@ -383,6 +456,7 @@
         </main>
     </div>
 
+    {% if can_edit %}
     <!-- Modal -->
     <div id="form-modal" class="hidden fixed inset-0 bg-black/70 z-[90] items-center justify-center p-4 no-print" onclick="if(event.target.id==='form-modal') hideModal()">
         <div onclick="event.stopImmediatePropagation()" class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl">
@@ -446,6 +520,9 @@
             </form>
         </div>
     </div>
+    {% endif %}
+
+    {% include 'partials/tagihan_attachment_scripts.html' %}
 
     <script>
         const ADD_DEFAULTS = {

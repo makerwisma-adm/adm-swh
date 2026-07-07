@@ -230,6 +230,7 @@
                 <p class="text-sm text-slate-500">Upload PDF Buku Besar Accurate atau Form Petty Cash / Reimbursement</p>
             </div>
 
+            {% if can_upload %}
             <!-- Upload -->
             <div class="mb-6 border-2 border-dashed border-slate-300 bg-white rounded-3xl p-6 no-print">
                 <div class="flex flex-wrap items-center justify-between gap-4">
@@ -247,6 +248,7 @@
                     </form>
                 </div>
             </div>
+            {% endif %}
 
             {% if laporan %}
             {% set is_buku_besar = (laporan.report_type or '') == 'buku_besar' %}
@@ -310,8 +312,8 @@
                 </div>
                 <div class="kpi-card border-l-4 border-l-[#55a7d4]">
                     <div class="text-[10px] uppercase tracking-wider text-[#55a7d4] font-semibold">Total Digantikan</div>
-                    <div class="mt-1 text-xl font-bold money text-[#071e49]">{{ format_rupiah(laporan.total_digantikan or total_pengeluaran or 0) }}</div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">Reimbursement</div>
+                    <div class="mt-1 text-xl font-bold money text-[#071e49]">{{ format_rupiah(total_pengeluaran or 0) }}</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">Jumlah semua pengeluaran</div>
                 </div>
                 <div class="kpi-card border-l-4 border-l-[#c9a558]">
                     <div class="text-[10px] uppercase tracking-wider text-[#071e49] font-semibold">Sisa Dana</div>
@@ -436,6 +438,7 @@
                 {% endif %}
             </div>
 
+            {% if can_edit %}
             <!-- Bulk delete toolbar -->
             <div id="bulk-toolbar" style="display:none;" class="mb-4 p-3 bg-white border border-slate-200 rounded-2xl flex flex-wrap items-center gap-4 shadow-sm no-print">
                 <span class="text-sm font-medium text-[#071e49]" id="selected-info">0 dipilih</span>
@@ -447,6 +450,7 @@
                     Batal Pilih
                 </button>
             </div>
+            {% endif %}
 
             <!-- Report Table -->
             <div class="report-sheet overflow-hidden">
@@ -462,7 +466,7 @@
                     <table class="w-full ledger-table">
                         <thead>
                             <tr>
-                                <th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>
+                                {% if can_edit %}<th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>{% endif %}
                                 <th class="text-left w-10">No</th>
                                 <th class="text-left w-28">Tanggal</th>
                                 {% if is_buku_besar %}
@@ -483,7 +487,7 @@
                         <tbody>
                             {% if is_buku_besar and laporan.saldo_awal is not none and not has_filters %}
                             <tr class="bg-slate-50 font-medium">
-                                <td class="no-print"></td>
+                                {% if can_edit %}<td class="no-print"></td>{% endif %}
                                 <td></td>
                                 <td></td>
                                 <td><span class="badge-tipe bg-slate-200 text-slate-600">SALDO</span></td>
@@ -494,7 +498,7 @@
                             </tr>
                             {% elif not is_buku_besar and not has_filters %}
                             <tr class="bg-emerald-50/60 font-medium row-income">
-                                <td class="no-print"></td><td></td><td></td>
+                                {% if can_edit %}<td class="no-print"></td>{% endif %}<td></td><td></td>
                                 <td class="text-[#071e49]">Saldo Awal</td>
                                 <td class="text-right money text-emerald-700 font-semibold">{{ format_rupiah(laporan.saldo_awal or 0) }}</td>
                                 <td class="text-right money text-slate-300">—</td>
@@ -509,9 +513,11 @@
                             {% set row_type = 'income' if debit > 0 and kredit == 0 else 'expense' %}
                             <tr class="ledger-row {% if row_type == 'income' %}row-income{% else %}row-expense{% endif %}"
                                 data-type="{{ row_type }}" data-id="{{ item.id }}">
+                                {% if can_edit %}
                                 <td class="no-print px-2">
                                     <input type="checkbox" class="row-checkbox rounded" value="{{ item.id }}">
                                 </td>
+                                {% endif %}
                                 <td class="text-slate-400 font-mono text-xs">{{ item.no or loop.index }}</td>
                                 <td class="text-slate-600 whitespace-nowrap text-xs">{{ format_tanggal(item.tanggal) }}</td>
                                 {% if is_buku_besar %}
@@ -545,20 +551,25 @@
                                              class="nota-thumb-lg"
                                              title="Klik untuk perbesar"
                                              onclick="openNota('/uploads/{{ item.nota_path }}', '{{ item.pengajuan | e }}')">
+                                        {% if can_upload %}
                                         <button type="button" class="btn-nota btn-nota-del no-print" onclick="deleteNota({{ item.id }})">
                                             <i class="fa-solid fa-trash-can"></i> Hapus
                                         </button>
+                                        {% endif %}
                                         {% else %}
                                         <div class="w-[72px] h-[48px] rounded-lg border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-300 text-[10px] no-print">
                                             Kosong
                                         </div>
                                         {% endif %}
+                                        {% if can_upload %}
                                         <button type="button" class="btn-nota btn-nota-add no-print" onclick="triggerNotaUpload({{ item.id }})">
                                             <i class="fa-solid fa-plus"></i> Tambah File
                                         </button>
+                                        {% endif %}
                                     </div>
                                 </td>
                                 <td class="ket-cell">
+                                    {% if can_upload %}
                                     <div class="no-print">
                                         <button type="button"
                                                 class="ket-menu-btn {% if item.ket %}has-ket{% endif %}"
@@ -575,6 +586,9 @@
                                             </div>
                                         </div>
                                     </div>
+                                    {% else %}
+                                    <span class="text-xs text-slate-600">{{ item.ket or '—' }}</span>
+                                    {% endif %}
                                     <span class="hidden print:inline text-xs text-slate-600">{{ item.ket or '—' }}</span>
                                 </td>
                                 {% endif %}
@@ -611,6 +625,12 @@
                                 <td></td><td></td>
                             </tr>
                             <tr>
+                                <td colspan="4" class="px-4 py-3 text-right text-slate-600">Total Pengeluaran</td>
+                                <td class="px-4 py-3 text-right money text-slate-300">—</td>
+                                <td class="px-4 py-3 text-right money text-amber-700">{{ format_rupiah(total_pengeluaran or 0) }}</td>
+                                <td></td><td></td>
+                            </tr>
+                            <tr>
                                 <td colspan="4" class="px-4 py-3 text-right text-slate-600">Sisa Dana</td>
                                 <td colspan="2" class="px-4 py-3 text-right money {% if (laporan.sisa_dana or 0) < 0 %}saldo-negatif{% else %}text-emerald-700{% endif %}">
                                     {{ format_rupiah(laporan.sisa_dana or 0) }}
@@ -620,7 +640,7 @@
                             <tr class="bg-[#071e49]/5">
                                 <td colspan="4" class="px-4 py-4 text-right text-[#071e49] font-bold">Total yang Digantikan</td>
                                 <td class="px-4 py-4 text-right money text-slate-300">—</td>
-                                <td class="px-4 py-4 text-right money text-[#071e49] font-bold">{{ format_rupiah(laporan.total_digantikan or 0) }}</td>
+                                <td class="px-4 py-4 text-right money text-[#071e49] font-bold">{{ format_rupiah(total_pengeluaran or 0) }}</td>
                                 <td></td><td></td>
                             </tr>
                         </tfoot>
@@ -684,7 +704,11 @@
                 </div>
                 <h3 class="font-display font-bold text-[#071e49] text-lg mb-2">Belum Ada Laporan Petty Cash</h3>
                 <p class="text-sm text-slate-500 max-w-md mx-auto">
+                    {% if can_upload %}
                     Upload PDF <strong>Buku Besar Accurate</strong> atau <strong>Form Petty Cash / Reimbursement</strong> — sistem akan mengekstrak transaksi dan memasangkan foto nota secara otomatis.
+                    {% else %}
+                    Belum ada laporan petty cash yang ditampilkan.
+                    {% endif %}
                 </p>
             </div>
             {% endif %}

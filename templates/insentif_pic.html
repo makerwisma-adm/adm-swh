@@ -168,25 +168,35 @@
                     <h1 class="text-2xl font-bold text-[#071e49] font-display">Insentif PIC</h1>
                 </div>
                 <div class="flex items-center gap-2">
-                    <a href="/export/insentif-pic/xlsx" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2">
-                        <i class="fa-solid fa-file-excel text-emerald-600"></i> Excel
+                    {% if can_download %}
+                    {% set export_qs = '?upload_id=' ~ selected_upload_id if selected_upload_id else (laporans and '?upload_id=' ~ laporans[0].upload_id or '') %}
+                    <a href="/export/insentif-pic/xlsx{{ export_qs }}" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2" title="Download Excel format transfer massal Mandiri (sama seperti file upload)">
+                        <i class="fa-solid fa-file-excel text-emerald-600"></i> Download Excel
                     </a>
+                    <a href="/export/insentif-pic/csv{{ export_qs }}" class="inline-flex items-center text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700 gap-2" title="Ekstrak ke CSV format transfer massal Mandiri">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i> Download CSV
+                    </a>
+                    {% endif %}
+                    {% if can_edit %}
                     <button onclick="showAddModal()" class="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 text-sm font-semibold rounded-2xl">
                         <i class="fa-solid fa-plus"></i> Tambah Manual
                     </button>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Upload CSV PIC -->
+            {% if can_upload %}
+            <!-- Upload Excel PIC -->
             <div class="mb-6 border-2 border-dashed border-slate-300 bg-white rounded-3xl p-6 no-print">
                 <div class="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <div class="font-semibold text-[#071e49] flex items-center gap-2">
-                            <i class="fa-solid fa-file-csv text-emerald-600"></i> UPLOAD CSV.Excel
+                            <i class="fa-solid fa-file-excel text-emerald-600"></i> Upload Excel
                         </div>
+                        <p class="text-xs text-slate-500 mt-1">Upload file Excel transfer massal Mandiri — data diekstrak otomatis. Download CSV menghasilkan file siap upload bank.</p>
                     </div>
                     <form action="/insentif-pic/upload" method="POST" enctype="multipart/form-data" class="flex items-center gap-3 flex-wrap">
-                        <input type="file" name="file" accept=".csv,.xlsx,.xls" required
+                        <input type="file" name="file" accept=".xlsx,.xls" required
                                class="text-sm file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-semibold">
                         <button type="submit" class="bg-[#55a7d4] hover:bg-blue-600 text-white px-6 py-2 rounded-2xl text-sm font-semibold flex items-center gap-2">
                             <i class="fa-solid fa-upload"></i> Upload &amp; Ekstrak
@@ -194,6 +204,7 @@
                     </form>
                 </div>
             </div>
+            {% endif %}
 
             {% if items %}
             <!-- Header Ringkasan -->
@@ -261,10 +272,17 @@
             {% elif not laporans %}
             <div class="mb-6 p-8 bg-white border border-dashed border-slate-300 rounded-3xl text-center text-slate-400 no-print">
                 <i class="fa-solid fa-file-csv text-4xl mb-3 text-slate-200"></i>
-                <p class="text-sm">Upload file CSV PIC untuk menampilkan ringkasan dan rincian transaksi</p>
+                <p class="text-sm">
+                    {% if can_upload %}
+                    Upload file Excel transfer massal Mandiri untuk menampilkan ringkasan dan rincian transaksi insentif PIC.
+                    {% else %}
+                    Belum ada data insentif PIC yang ditampilkan.
+                    {% endif %}
+                </p>
             </div>
             {% endif %}
 
+            {% if can_edit %}
             <!-- Bulk toolbar -->
             <div id="bulk-toolbar" style="display:none;" class="mb-4 p-3 bg-white border border-slate-200 rounded-2xl items-center gap-4 shadow-sm no-print">
                 <span class="text-sm font-medium text-[#071e49]" id="selected-info">0 dipilih</span>
@@ -279,6 +297,7 @@
                 </button>
                 <button onclick="clearSelection()" class="px-3 py-1.5 text-sm border rounded-xl text-slate-600">Batal</button>
             </div>
+            {% endif %}
 
             <!-- Filter -->
             {% if laporans or items %}
@@ -335,7 +354,7 @@
                     <table class="ledger-table w-full">
                         <thead>
                             <tr>
-                                <th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>
+                                {% if can_edit %}<th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>{% endif %}
                                 <th class="text-left w-12">No</th>
                                 <th class="text-left min-w-[220px]">Nama PIC</th>
                                 <th class="text-left">Periode</th>
@@ -345,7 +364,7 @@
                                 <th class="text-right">Fee Payrol</th>
                                 <th class="text-right">Total</th>
                                 <th class="text-center">Status</th>
-                                <th class="w-16 no-print">Aksi</th>
+                                {% if can_edit %}<th class="w-16 no-print">Aksi</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -354,7 +373,7 @@
                             {% set parts = (nama or '?').split() %}
                             {% set initials = ((parts[0][:1] if parts else '') ~ (parts[1][:1] if parts|length > 1 else ''))|upper %}
                             <tr data-id="{{ item.id }}">
-                                <td class="no-print"><input type="checkbox" class="row-checkbox" value="{{ item.id }}"></td>
+                                {% if can_edit %}<td class="no-print"><input type="checkbox" class="row-checkbox" value="{{ item.id }}"></td>{% endif %}
                                 <td class="text-slate-400 font-mono text-xs">{{ item.no or loop.index }}</td>
                                 <td>
                                     <div class="flex items-center gap-3">
@@ -400,6 +419,7 @@
                                     <span class="status-pill bg-slate-100 text-slate-500">—</span>
                                     {% endif %}
                                 </td>
+                                {% if can_edit %}
                                 <td class="no-print">
                                     <div class="flex gap-1">
                                         <button onclick='editItem({{ item | tojson }})' class="p-1.5 text-slate-400 hover:text-[#55a7d4] rounded-lg">
@@ -412,14 +432,21 @@
                                         </form>
                                     </div>
                                 </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
 
                             {% if not items %}
                             <tr>
-                                <td colspan="11" class="py-16 text-center text-slate-400">
+                                <td colspan="{% if can_edit %}11{% else %}9{% endif %}" class="py-16 text-center text-slate-400">
                                     <i class="fa-solid fa-users text-4xl mb-3 text-slate-200"></i>
-                                    <p class="text-sm">Belum ada data. Upload file <strong>CSV PIC</strong> untuk mengekstrak rincian insentif PIC.</p>
+                                    <p class="text-sm">
+                                        {% if can_edit %}
+                                        Belum ada data. Upload file <strong>Excel</strong> transfer massal Mandiri — unduh <strong>CSV</strong> untuk file siap upload bank.
+                                        {% else %}
+                                        Belum ada data insentif PIC.
+                                        {% endif %}
+                                    </p>
                                 </td>
                             </tr>
                             {% endif %}
@@ -427,7 +454,7 @@
                         {% if items %}
                         <tfoot>
                             <tr class="bg-[#f8fafc] border-t-2 border-[#071e49]/10">
-                                <td colspan="6" class="px-4 py-3 text-right font-bold text-[#071e49] uppercase text-xs tracking-wider no-print">Total</td>
+                                <td colspan="{% if can_edit %}6{% else %}5{% endif %}" class="px-4 py-3 text-right font-bold text-[#071e49] uppercase text-xs tracking-wider no-print">Total</td>
                                 <td class="px-4 py-3 text-right">
                                     <div class="text-[10px] uppercase tracking-wider text-slate-400">Gaji</div>
                                     <div class="text-lg font-bold text-[#071e49] money">{{ format_rupiah(total_filtered) }}</div>
@@ -441,7 +468,8 @@
                                     <div class="text-[10px] uppercase tracking-wider text-slate-400">Total</div>
                                     <div class="text-xl font-bold text-emerald-700 money">{{ format_rupiah(total_grand) }}</div>
                                 </td>
-                                <td colspan="2" class="no-print"></td>
+                                <td class="no-print"></td>
+                                {% if can_edit %}<td class="no-print"></td>{% endif %}
                             </tr>
                         </tfoot>
                         {% endif %}
@@ -451,6 +479,7 @@
         </main>
     </div>
 
+    {% if can_edit %}
     <!-- Modal -->
     <div id="form-modal" class="hidden fixed inset-0 bg-black/70 z-[90] items-center justify-center p-4 no-print" onclick="if(event.target.id==='form-modal') hideModal()">
         <div onclick="event.stopImmediatePropagation()" class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl">
@@ -512,6 +541,7 @@
             </form>
         </div>
     </div>
+    {% endif %}
 
     <script>
         function showAddModal() {

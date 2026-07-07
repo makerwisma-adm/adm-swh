@@ -1,0 +1,34 @@
+{# expects: item_id, field, file_path, label, can_upload, title #}
+<td class="text-center attach-cell">
+    <div class="attach-actions" id="attach-cell-{{ item_id }}-{{ field }}">
+        {% if file_path %}
+            {% if (file_path|lower).endswith('.pdf') %}
+            <a href="/uploads/{{ file_path }}" target="_blank" rel="noopener"
+               class="attach-pdf-link no-print" title="Buka {{ label }}">
+                <i class="fa-solid fa-file-pdf"></i>
+            </a>
+            {% else %}
+            <img src="/uploads/{{ file_path }}" alt="{{ label }}"
+                 class="attach-thumb no-print"
+                 title="Klik untuk perbesar"
+                 onclick="openAttachPreview('/uploads/{{ file_path }}', '{{ title | e }} — {{ label }}')">
+            {% endif %}
+            {% if can_upload %}
+            <button type="button" class="btn-attach btn-attach-del no-print"
+                    onclick="deleteTagihanAttachment({{ item_id }}, '{{ field }}', '{{ label }}')">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+            {% endif %}
+        {% else %}
+            <div class="attach-empty no-print">—</div>
+            {% if can_upload %}
+            <button type="button" class="btn-attach btn-attach-add no-print"
+                    onclick="triggerTagihanAttachment({{ item_id }}, '{{ field }}')">
+                <i class="fa-solid fa-plus"></i> {{ label }}
+            </button>
+            {% else %}
+            <span class="text-slate-300 text-xs">—</span>
+            {% endif %}
+        {% endif %}
+    </div>
+</td>

@@ -1,0 +1,70 @@
+    <input type="file" id="tagihan-attach-input" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf" class="hidden">
+
+    <div id="attach-modal" class="fixed inset-0 bg-black/80 z-[100] items-center justify-center p-4 no-print" onclick="closeAttachPreview()">
+        <div class="max-w-2xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+            <div class="px-4 py-3 border-b flex justify-between items-center">
+                <span id="attach-modal-title" class="font-semibold text-sm text-[#071e49] truncate"></span>
+                <button onclick="closeAttachPreview()" class="text-slate-400 hover:text-slate-700 text-xl">&times;</button>
+            </div>
+            <img id="attach-modal-img" src="" alt="Lampiran" class="w-full max-h-[70vh] object-contain bg-slate-100">
+        </div>
+    </div>
+
+    <script>
+        let activeAttachItemId = null;
+        let activeAttachField = null;
+
+        function openAttachPreview(src, title) {
+            document.getElementById('attach-modal-img').src = src;
+            document.getElementById('attach-modal-title').textContent = title;
+            document.getElementById('attach-modal').classList.add('open');
+        }
+        function closeAttachPreview() {
+            document.getElementById('attach-modal').classList.remove('open');
+        }
+
+        function triggerTagihanAttachment(itemId, field) {
+            activeAttachItemId = itemId;
+            activeAttachField = field;
+            const input = document.getElementById('tagihan-attach-input');
+            input.value = '';
+            input.click();
+        }
+
+        document.getElementById('tagihan-attach-input')?.addEventListener('change', async function() {
+            if (!this.files?.length || !activeAttachItemId || !activeAttachField) return;
+            const formData = new FormData();
+            formData.append('file', this.files[0]);
+            try {
+                const resp = await fetch(`/api/tagihan/${activeAttachItemId}/${activeAttachField}`, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: formData,
+                });
+                const result = await resp.json().catch(() => ({}));
+                if (resp.ok && result.success) location.reload();
+                else alert('Gagal upload: ' + (result.error || resp.status));
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        });
+
+        async function deleteTagihanAttachment(itemId, field, label) {
+            if (!confirm(`Hapus file ${label}?`)) return;
+            try {
+                const resp = await fetch(`/api/tagihan/${itemId}/${field}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin',
+                });
+                const result = await resp.json().catch(() => ({}));
+                if (resp.ok && result.success) location.reload();
+                else alert('Gagal hapus: ' + (result.error || resp.status));
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeAttachPreview();
+        });
+    </script>
