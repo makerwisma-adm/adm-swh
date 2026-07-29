@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Laporan Keuangan • SPPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        {% include 'partials/layout_styles.html' %}
+        {% include 'partials/table_page_styles.html' %}
+        .report-hero {
+            background: linear-gradient(135deg, #041229 0%, #071e49 50%, #0c3d6e 100%);
+            border-radius: 1.35rem; color: #fff; position: relative; overflow: hidden;
+        }
+        .hero-kpi {
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.18); border-radius: 1.1rem; padding: 1rem 1.15rem;
+        }
+        .report-sheet {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem;
+            box-shadow: 0 12px 48px -16px rgba(7, 30, 73, 0.14);
+        }
+        .ledger-table thead th {
+            background: var(--bgn-navy); color: #fff; font-size: 0.68rem;
+            letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+            padding: 0.85rem 1rem;
+        }
+        .ledger-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+        .ledger-table tbody tr:hover { background: #f8fafc; }
+        .ledger-table td { padding: 0.75rem 1rem; font-size: 0.82rem; vertical-align: middle; }
+        .money { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+        .mod-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+        }
+        .mod-icon.tagihan { background: #ecfdf5; color: #059669; }
+        .mod-icon.petty { background: #eff6ff; color: #2563eb; }
+        .mod-icon.gaji { background: #f5f3ff; color: #7c3aed; }
+        .mod-icon.insentif { background: #fff7ed; color: #ea580c; }
+        .mod-icon.refund { background: #fef2f2; color: #dc2626; }
+        .mod-icon.mitra { background: #fffbeb; color: #b45309; }
+        .mod-icon.sewa { background: #f0f9ff; color: #0369a1; }
+        .mod-icon.staff { background: #eef2ff; color: #4338ca; }
+    </style>
+</head>
+<body class="app-body">
+    {% set active_menu = 'laporan' %}
+    {% include 'partials/navbar.html' %}
+
+    <div class="max-w-screen-2xl mx-auto flex">
+        {% include 'partials/sidebar.html' %}
+
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
+            {% set period_label = dari_display ~ ' — ' ~ sampai_display %}
+            {% include 'partials/beranda_flow_guide.html' %}
+
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-3 no-print">
+                <div>
+                    <h1 class="text-2xl font-bold text-[#071e49] font-display">Laporan Keuangan</h1>
+                    <p class="text-sm text-slate-500 mt-1">Ringkasan gabungan seluruh modul — angka sama dengan tiap menu jika periode filter identik</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a href="/laporan/status?dari={{ dari }}&sampai={{ sampai }}" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-[#071e49] font-semibold">
+                        <i class="fa-solid fa-list-check text-indigo-500"></i> Laporan Status
+                    </a>
+                    <a href="/export/laporan/csv?dari={{ dari }}&sampai={{ sampai }}" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i> Export CSV
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filter -->
+            <div class="report-sheet p-4 mb-5 no-print">
+                <form method="GET" class="flex flex-wrap gap-3 items-end">
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Dari tanggal</label>
+                        <input type="date" name="dari" value="{{ dari }}" class="text-sm px-3 py-2 border rounded-xl form-input min-w-[140px]">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Sampai tanggal</label>
+                        <input type="date" name="sampai" value="{{ sampai }}" class="text-sm px-3 py-2 border rounded-xl form-input min-w-[140px]">
+                    </div>
+                    <button type="submit" class="px-4 py-2 text-sm font-semibold bg-[#071e49] text-white rounded-xl">Terapkan</button>
+                    <a href="/laporan" class="px-4 py-2 text-sm border rounded-xl text-slate-600">Semua periode</a>
+                    <div class="flex gap-1 ml-1">
+                        <button type="button" class="lap-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border" data-months="3">3 bln</button>
+                        <button type="button" class="lap-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border" data-months="6">6 bln</button>
+                        <button type="button" class="lap-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border" data-months="12">12 bln</button>
+                    </div>
+                </form>
+                <p class="text-xs text-slate-400 mt-2">
+                    Periode aktif: <strong class="text-slate-600">{{ dari_display }} — {{ sampai_display }}</strong>
+                    {% if not period_filtered %} (tanpa filter tanggal — semua data){% endif %}
+                </p>
+            </div>
+
+            <!-- KPI -->
+            <div class="report-hero px-6 py-6 mb-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="hero-kpi">
+                        <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Pengeluaran Dibayarkan</div>
+                        <div class="mt-1 text-xl font-bold money">{{ format_rupiah(grand_total) }}</div>
+                        <div class="text-[10px] text-white/45 mt-1">{{ grand_count }} transaksi DIBAYARKAN</div>
+                    </div>
+                    <div class="hero-kpi">
+                        <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Transfer BGN Masuk</div>
+                        <div class="mt-1 text-xl font-bold money text-emerald-300">{{ format_rupiah(bgn_masuk) }}</div>
+                        <div class="text-[10px] text-white/45 mt-1">
+                            <a href="{{ transfer_bgn_href }}" class="underline hover:text-white">{{ bgn_count }} transfer → kelola</a>
+                        </div>
+                    </div>
+                    <div class="hero-kpi">
+                        <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Saldo</div>
+                        <div class="mt-1 text-xl font-bold money {% if saldo >= 0 %}text-emerald-300{% else %}text-red-300{% endif %}">{{ format_rupiah(saldo) }}</div>
+                        <div class="text-[10px] text-white/45 mt-1">BGN − dibayarkan</div>
+                        {% if pending_expense_total %}
+                        <div class="text-[10px] text-amber-200/90 mt-1">Menunggu {{ format_rupiah(pending_expense_total) }} (belum kurangi saldo)</div>
+                        {% endif %}
+                    </div>
+                    <div class="hero-kpi">
+                        <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Modul Aktif</div>
+                        <div class="mt-1 text-xl font-bold">{{ modules | rejectattr('total', 'equalto', 0) | list | length }}</div>
+                        <div class="text-[10px] text-white/45 mt-1">dengan transaksi</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-5">
+                <!-- Tabel modul -->
+                <div class="xl:col-span-7 report-sheet overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100">
+                        <h2 class="font-semibold text-[#071e49]">Ringkasan per Modul</h2>
+                    </div>
+                    <div class="table-scroll-wrap overflow-x-auto">
+                        <table class="ledger-table w-full">
+                            <thead>
+                                <tr>
+                                    <th>Modul Laporan</th>
+                                    <th class="text-center">Transaksi</th>
+                                    <th class="text-right">Total</th>
+                                    <th class="w-12"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="bg-emerald-50/60">
+                                    <td>
+                                        <div class="flex items-center gap-3">
+                                            <div class="mod-icon tagihan"><i class="fa-solid {{ bgn_module.icon }}"></i></div>
+                                            <span class="font-medium text-emerald-800">{{ bgn_module.label }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="text-center text-slate-500">{{ bgn_module.count }}</td>
+                                    <td class="text-right font-bold money text-emerald-700">+ {{ format_rupiah(bgn_module.total) }}</td>
+                                    <td>
+                                        <a href="{{ bgn_module.href }}" class="text-[#55a7d4] hover:text-[#071e49]" title="Buka Transfer BGN"><i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
+                                    </td>
+                                </tr>
+                                {% for mod in modules %}
+                                <tr>
+                                    <td>
+                                        <div class="flex items-center gap-3">
+                                            <div class="mod-icon {{ mod.accent }}"><i class="fa-solid {{ mod.icon }}"></i></div>
+                                            <span class="font-medium text-[#071e49]">{{ mod.label }}</span>
+                                            {% if mod.is_derived %}
+                                            <span class="text-[10px] text-slate-400 font-normal">(dari Insentif Mitra)</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="text-center text-slate-500">{{ mod.count }}</td>
+                                    <td class="text-right font-bold money text-[#071e49]">{{ format_rupiah(mod.total) }}</td>
+                                    <td>
+                                        <a href="{{ mod.href }}" class="text-[#55a7d4] hover:text-[#071e49]" title="Buka modul"><i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="bg-slate-50 font-bold">
+                                    <td class="uppercase text-xs tracking-wider text-[#071e49]">Total Pengeluaran</td>
+                                    <td class="text-center">{{ grand_count }}</td>
+                                    <td class="text-right money text-amber-700">− {{ format_rupiah(grand_total) }}</td>
+                                    <td></td>
+                                </tr>
+                                <tr class="bg-[#071e49]/5 font-bold">
+                                    <td class="uppercase text-xs tracking-wider text-[#071e49]">Saldo (BGN − Pengeluaran)</td>
+                                    <td class="text-center">—</td>
+                                    <td class="text-right money {% if saldo >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{{ format_rupiah(saldo) }}</td>
+                                    <td>
+                                        <a href="{{ transfer_bgn_href }}" class="text-[#55a7d4] text-xs hover:underline">Transfer BGN</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Grafik per bulan -->
+                <div class="xl:col-span-5 report-sheet overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100">
+                        <h2 class="font-semibold text-[#071e49]">Pengeluaran per Bulan</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Semua modul dalam periode terpilih</p>
+                    </div>
+                    <div class="p-4">
+                        <div class="h-64">
+                            <canvas id="laporanChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const labels = {{ monthly | map(attribute='label') | list | tojson }};
+        const values = {{ monthly | map(attribute='total') | list | tojson }};
+        const hasData = values.some(v => v > 0);
+        const ctx = document.getElementById('laporanChart');
+        if (ctx) {
+            const g = ctx.getContext('2d').createLinearGradient(0, 0, 0, 240);
+            g.addColorStop(0, '#55a7d4');
+            g.addColorStop(1, '#071e49');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hasData ? labels : ['Belum ada data'],
+                    datasets: [{
+                        data: hasData ? values : [0],
+                        backgroundColor: hasData ? g : '#e2e8f0',
+                        borderRadius: 6,
+                        barThickness: 28,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: {
+                        callbacks: { label: c => ' Rp ' + Number(c.raw).toLocaleString('id-ID') }
+                    }},
+                    scales: {
+                        y: { beginAtZero: true, ticks: {
+                            callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+' jt' : (v/1e3).toFixed(0)+' rb',
+                            font: { size: 10 }
+                        }, grid: { color: '#f1f5f9' }},
+                        x: { ticks: { font: { size: 10 }, maxRotation: 45 } }
+                    }
+                }
+            });
+        }
+
+        function formatIso(d) {
+            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        }
+        document.querySelectorAll('.lap-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const months = parseInt(btn.dataset.months, 10) || 6;
+                const end = new Date();
+                const start = new Date(end.getFullYear(), end.getMonth() - (months - 1), 1);
+                const form = btn.closest('form');
+                form.querySelector('[name=dari]').value = formatIso(start);
+                form.querySelector('[name=sampai]').value = formatIso(end);
+                form.submit();
+            });
+        });
+    </script>
+</body>
+</html>

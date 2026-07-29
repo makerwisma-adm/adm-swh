@@ -10,5 +10,6 @@ xlsxwriter
 pdfplumber
 pypdf
 Pillow
-libsql
 fpdf2
+slowapi
+libsql

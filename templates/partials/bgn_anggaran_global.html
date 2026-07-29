@@ -1,0 +1,160 @@
+{# Laporan penggunaan anggaran BGN — butuh: anggaran_global, format_rupiah, laporan_bgn_href #}
+{% set ag = anggaran_global %}
+{% set g = ag.global %}
+{% set p = ag.period %}
+<style>
+    .anggaran-global .util-ring {
+        height: 8px; border-radius: 999px; background: #e2e8f0; overflow: hidden;
+    }
+    .anggaran-global .util-ring-fill {
+        height: 100%; border-radius: 999px;
+        background: linear-gradient(90deg, #10b981, #071e49);
+    }
+    .anggaran-global .util-ring-fill.warn {
+        background: linear-gradient(90deg, #f59e0b, #dc2626);
+    }
+    .anggaran-global .stat-card {
+        border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1rem 1.1rem; background: #fff;
+    }
+    .anggaran-global .stat-card.highlight {
+        border-color: rgba(201, 165, 88, 0.45);
+        background: linear-gradient(135deg, #f8fafc 0%, #fffbeb 100%);
+    }
+</style>
+<div id="anggaran-global" class="anggaran-global mb-6">
+    <div class="report-sheet overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap justify-between items-start gap-3">
+            <div>
+                <div class="text-[10px] uppercase tracking-[0.2em] text-[#c9a558] font-bold">Laporan Anggaran</div>
+                <h2 class="font-semibold text-[#071e49] text-lg mt-1">Penggunaan Anggaran BGN — Global</h2>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Total dana masuk vs pemakaian LUNAS{% if ag.period_filtered %} · Periode: <strong>{{ ag.period_label }}</strong>{% else %} · <strong>Semua periode</strong>{% endif %}
+                </p>
+            </div>
+            <a href="{{ laporan_bgn_href }}#anggaran-global" class="text-xs px-3 py-1.5 rounded-xl border text-[#071e49] font-semibold hover:bg-slate-50 no-print">
+                <i class="fa-solid fa-expand mr-1"></i> Laporan Lengkap
+            </a>
+        </div>
+
+        <div class="p-5 grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div>
+                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                    <i class="fa-solid fa-globe text-[#55a7d4] mr-1"></i> Kumulatif Global
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="stat-card highlight">
+                        <div class="text-[10px] uppercase text-slate-500 font-semibold">Total Dana Masuk BGN</div>
+                        <div class="text-xl font-bold money text-emerald-700 mt-1">{{ format_rupiah(g.total_masuk) }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="text-[10px] uppercase text-slate-500 font-semibold">Sudah Terpakai (LUNAS)</div>
+                        <div class="text-xl font-bold money text-amber-700 mt-1">{{ format_rupiah(g.total_keluar) }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="text-[10px] uppercase text-slate-500 font-semibold">Sisa Anggaran</div>
+                        <div class="text-xl font-bold money mt-1 {% if g.saldo >= 0 %}text-[#071e49]{% else %}text-red-600{% endif %}">{{ format_rupiah(g.saldo) }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="text-[10px] uppercase text-slate-500 font-semibold">Menunggu (belum keluar)</div>
+                        <div class="text-xl font-bold money text-sky-700 mt-1">{{ format_rupiah(g.pending_total) }}</div>
+                        <div class="text-[10px] text-slate-400">{{ g.pending_count }} transaksi</div>
+                    </div>
+                </div>
+                <div class="stat-card mb-3">
+                    <div class="flex justify-between text-xs mb-1.5">
+                        <span class="font-semibold text-slate-600">Tingkat Pemakaian Anggaran</span>
+                        <span class="font-bold text-[#071e49]">{{ g.utilization_pct }}%</span>
+                    </div>
+                    <div class="util-ring"><div class="util-ring-fill {% if g.utilization_pct > 85 %}warn{% endif %}" style="width: {{ g.utilization_pct if g.utilization_pct < 100 else 100 }}%"></div></div>
+                    <div class="text-[10px] text-slate-400 mt-2">
+                        Proyeksi jika semua menunggu dibayar: <strong class="text-amber-700">{{ g.projected_utilization_pct }}%</strong>
+                        · Sisa setelah komitmen: <strong>{{ format_rupiah(g.sisa_setelah_komitmen) }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                    <i class="fa-solid fa-calendar-days text-[#55a7d4] mr-1"></i>
+                    {% if ag.period_filtered %}Periode Aktif{% else %}Pipeline Pengajuan{% endif %}
+                </div>
+                {% if ag.period_filtered %}
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="stat-card">
+                        <div class="text-[10px] uppercase text-slate-500 font-semibold">Masuk (periode)</div>
+                        <div class="text-lg font-bold money text-emerald-700 mt-1">{{ format_rupiah(p.total_masuk) }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="text-[10px] uppercase text-slate-500 font-semibold">Keluar LUNAS (periode)</div>
+                        <div class="text-lg font-bold money text-amber-700 mt-1">{{ format_rupiah(p.total_keluar) }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="text-[10px] uppercase text-slate-500 font-semibold">Saldo periode</div>
+                        <div class="text-lg font-bold money mt-1">{{ format_rupiah(p.saldo) }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="text-[10px] uppercase text-slate-500 font-semibold">Pemakaian periode</div>
+                        <div class="text-lg font-bold text-[#071e49] mt-1">{{ p.utilization_pct }}%</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="text-[10px] uppercase text-slate-500 font-semibold mb-2">Status Pengajuan (Global)</div>
+                <div class="space-y-2">
+                    {% for st in ag.status_global %}
+                    {% if st.count > 0 %}
+                    <div class="flex items-center gap-3 text-sm">
+                        <span class="w-36 shrink-0 text-xs font-medium text-slate-700">{{ st.label }}</span>
+                        <span class="money font-semibold text-[#071e49] w-28 text-right text-xs">{{ format_rupiah(st.total) }}</span>
+                        <span class="text-[10px] text-slate-400">{{ st.count }} trx</span>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="border-t border-slate-100 px-5 py-4">
+            <h3 class="font-semibold text-[#071e49] text-sm mb-3">Pemakaian Anggaran per Modul</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-[10px] uppercase text-slate-500 border-b">
+                            <th class="pb-2 pr-3">Modul</th>
+                            <th class="pb-2 pr-3 text-center">Trx</th>
+                            <th class="pb-2 pr-3 text-right">Total LUNAS</th>
+                            <th class="pb-2 pr-3 text-right">% Anggaran</th>
+                            <th class="pb-2 text-right">% Keluar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mod in ag.modules %}
+                        <tr class="border-b border-slate-50">
+                            <td class="py-2.5 pr-3">
+                                <a href="{{ mod.href }}" class="font-medium text-[#071e49] hover:text-[#55a7d4]">
+                                    <i class="fa-solid {{ mod.icon }} text-[#55a7d4] mr-1 text-xs"></i>{{ mod.label }}
+                                </a>
+                            </td>
+                            <td class="py-2.5 pr-3 text-center text-slate-500">{{ mod.count }}</td>
+                            <td class="py-2.5 pr-3 text-right money font-semibold text-amber-800">{{ format_rupiah(mod.total) }}</td>
+                            <td class="py-2.5 pr-3 text-right font-semibold text-[#071e49]">{{ mod.pct_budget }}%</td>
+                            <td class="py-2.5 text-right text-slate-500">{{ mod.pct_spent }}%</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="py-6 text-center text-slate-400 text-sm">Belum ada pengeluaran LUNAS.</td></tr>
+                        {% endfor %}
+                        {% if ag.modules %}
+                        <tr class="bg-slate-50 font-bold">
+                            <td class="py-2.5 pr-3 uppercase text-xs text-slate-600">Total Keluar</td>
+                            <td class="py-2.5 pr-3"></td>
+                            <td class="py-2.5 pr-3 text-right money text-amber-900">{{ format_rupiah(g.total_keluar) }}</td>
+                            <td class="py-2.5 pr-3 text-right">{{ g.utilization_pct }}%</td>
+                            <td class="py-2.5 text-right">100%</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

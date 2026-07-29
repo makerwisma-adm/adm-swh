@@ -2,12 +2,13 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Gaji Relawan • Pelaporan Keuangan SPPG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         {% include 'partials/layout_styles.html' %}
+        {% include 'partials/table_page_styles.html' %}
 
         .report-hero {
             background: linear-gradient(135deg, #071e49 0%, #0c3d6e 45%, #1a5f8a 100%);
@@ -39,7 +40,7 @@
             padding: 1.1rem 1.25rem;
             transition: transform .15s, box-shadow .15s;
         }
-        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -8px rgba(7,30,73,0.12); }
+        .kpi-card:hover { box-shadow: 0 4px 16px -6px rgba(7,30,73,0.1); }
         .ledger-table thead th {
             background: var(--bgn-navy);
             color: #fff;
@@ -144,15 +145,14 @@
         }
     </style>
 </head>
-<body class="bg-[#f8fafc]">
+<body class="app-body">
+    {% set active_menu = 'gaji_relawan' %}
     {% include 'partials/navbar.html' %}
 
     <div class="max-w-screen-2xl mx-auto flex">
-        {% set active_menu = 'gaji_relawan' %}
-        {% set active_submenu = 'gaji_relawan' %}
         {% include 'partials/sidebar.html' %}
 
-        <main class="flex-1 p-6 md:p-8">
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
             <div class="flex gap-2 mb-4 no-print max-w-md">
                 <a href="/gaji-relawan" class="flex-1 text-center text-sm font-semibold px-3 py-2.5 rounded-xl bg-[#071e49] text-white">Gaji Relawan</a>
                 <a href="/insentif-pic" class="flex-1 text-center text-sm font-semibold px-3 py-2.5 rounded-xl border border-slate-200 text-slate-600 bg-white">Insentif PIC</a>
@@ -162,6 +162,11 @@
                 <i class="fa-solid {% if success %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-1"></i>{{ message }}
             </div>
             {% endif %}
+
+            {% include 'partials/keuangan_flow_guide.html' %}
+            {% set form_action = '/gaji-relawan' %}
+            {% set hidden_fields = [{'name': 'upload_id', 'value': selected_upload_id}] if selected_upload_id else [] %}
+            {% include 'partials/report_period_filter.html' %}
 
             <div class="mb-6 no-print flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -292,12 +297,16 @@
                 <button onclick="bulkDelete()" class="px-4 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium">
                     <i class="fa-solid fa-trash mr-1"></i> Hapus
                 </button>
-                <button onclick="bulkSetStatus('TERBAYAR')" class="px-4 py-1.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium">
-                    <i class="fa-solid fa-check mr-1"></i> Tandai Terbayar
+                {% if can_mark_paid %}
+                <button onclick="bulkSetStatus('DIBAYARKAN')" class="px-4 py-1.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium">
+                    <i class="fa-solid fa-check mr-1"></i> Tandai Dibayarkan
                 </button>
+                {% endif %}
+                {% if can_submit %}
                 <button onclick="bulkSetStatus('DIAJUKAN')" class="px-4 py-1.5 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium">
                     Diajukan
                 </button>
+                {% endif %}
                 <button onclick="clearSelection()" class="px-3 py-1.5 text-sm border rounded-xl text-slate-600">Batal</button>
             </div>
             {% endif %}
@@ -353,7 +362,7 @@
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
+                <div class="table-scroll-wrap overflow-x-auto">
                     <table class="ledger-table w-full">
                         <thead>
                             <tr>
@@ -414,13 +423,7 @@
                                     <span class="font-bold text-emerald-700 money text-base">{{ format_rupiah(item.total_bayar) }}</span>
                                 </td>
                                 <td class="text-center status-cell">
-                                    {% if item.status == 'TERBAYAR' %}
-                                    <span class="status-pill bg-emerald-100 text-emerald-700">TERBAYAR</span>
-                                    {% elif item.status == 'DIAJUKAN' %}
-                                    <span class="status-pill bg-amber-100 text-amber-700">DIAJUKAN</span>
-                                    {% else %}
-                                    <span class="status-pill bg-slate-100 text-slate-500">—</span>
-                                    {% endif %}
+                                    {% set status = item.status %}{% set rejection_note = item.rejection_note %}{% include 'partials/status_pill.html' %}
                                 </td>
                                 {% if can_edit %}
                                 <td class="no-print">
@@ -489,6 +492,7 @@
             </div>
             <form id="gaji-form" method="POST" action="/gaji-relawan" class="px-6 py-5">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% include 'partials/personnel_picker.html' %}
                     <div>
                         <label class="text-xs font-semibold text-slate-600">NO</label>
                         <input id="no" name="no" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
@@ -509,7 +513,9 @@
                         <label class="text-xs font-semibold text-slate-600">Status</label>
                         <select id="status" name="status" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
                             <option value="DIAJUKAN">DIAJUKAN</option>
-                            <option value="TERBAYAR">TERBAYAR</option>
+                            <option value="DISETUJUI">DISETUJUI</option>
+                            <option value="DITOLAK">DITOLAK</option>
+                            <option value="DIBAYARKAN">DIBAYARKAN</option>
                         </select>
                     </div>
                     <div>
@@ -546,6 +552,7 @@
             document.getElementById('gaji-form').action = '/gaji-relawan';
             document.getElementById('modal-title').innerText = 'Tambah Gaji Relawan';
             document.getElementById('rekening').value = 'TRANSFER MASSAL';
+            const ps = document.getElementById('personnel-select'); if (ps) ps.value = '';
             const m = document.getElementById('form-modal');
             m.classList.remove('hidden'); m.classList.add('flex');
         }

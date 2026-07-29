@@ -17,6 +17,7 @@ dependencies = [
     "Pillow>=10.0.0",
     "libsql>=0.1.4",
     "fpdf2>=2.8.0",
+    "slowapi>=0.1.9",
 ]
 
 [tool.vercel]

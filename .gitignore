@@ -1,14 +1,9 @@
-.vercel
-bin/
 uploads/
-public/uploads/
 *.db
-tunnel.log
-PUBLIC_URL.txt
-start-internet.sh
 __pycache__/
 .venv/
 *.pyc
 .grok/
 .DS_Store
 .env*
+.secret_key

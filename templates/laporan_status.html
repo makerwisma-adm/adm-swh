@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Laporan Status Pengajuan • SPPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        {% include 'partials/layout_styles.html' %}
+        {% include 'partials/table_page_styles.html' %}
+        .report-hero {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%);
+            border-radius: 1.35rem; color: #fff;
+        }
+        .hero-kpi {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 1rem; padding: 1rem 1.1rem;
+        }
+        .report-sheet {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem;
+            box-shadow: 0 12px 48px -16px rgba(7, 30, 73, 0.14);
+        }
+        .ledger-table thead th {
+            background: var(--bgn-navy); color: #fff; font-size: 0.68rem;
+            letter-spacing: 0.06em; text-transform: uppercase; padding: 0.85rem 1rem;
+        }
+        .ledger-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+        .ledger-table td { padding: 0.75rem 1rem; font-size: 0.82rem; }
+        .money { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+        .status-kpi-amber { border-color: rgba(251,191,36,0.35); }
+        .status-kpi-sky { border-color: rgba(56,189,248,0.35); }
+        .status-kpi-emerald { border-color: rgba(52,211,153,0.35); }
+        .status-kpi-red { border-color: rgba(248,113,113,0.35); }
+        .matrix-total { background: #f8fafc; font-weight: 600; }
+        @media print {
+            aside, nav, .no-print { display: none !important; }
+            body { background: #fff; }
+        }
+    </style>
+</head>
+<body class="app-body">
+    {% set active_menu = 'laporan' %}
+    {% include 'partials/navbar.html' %}
+    <div class="max-w-screen-2xl mx-auto flex">
+        {% include 'partials/sidebar.html' %}
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
+            {% include 'partials/beranda_flow_guide.html' %}
+
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-3 no-print">
+                <div>
+                    <h1 class="text-2xl font-bold text-[#071e49] font-display">{{ report_title }}</h1>
+                    <p class="text-sm text-slate-500 mt-1">{{ report_subtitle }}</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="window.print()" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50">
+                        <i class="fa-solid fa-print"></i> Cetak
+                    </button>
+                    <a href="{{ export_csv_href }}" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i> Export CSV
+                    </a>
+                    <a href="{{ laporan_href }}" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50">
+                        <i class="fa-solid fa-clipboard-list"></i> Laporan Keuangan
+                    </a>
+                    <a href="{{ dashboard_ka_href }}" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl bg-[#071e49] text-white">
+                        <i class="fa-solid fa-user-check"></i> Dashboard KA
+                    </a>
+                    <a href="{{ dashboard_bayar_href }}" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl bg-emerald-700 text-white">
+                        <i class="fa-solid fa-money-bill-wave"></i> Dashboard Pembayaran
+                    </a>
+                </div>
+            </div>
+
+            <!-- Alur -->
+            <div class="mb-4 p-4 bg-indigo-50 border border-indigo-100 rounded-2xl text-sm text-indigo-900 no-print">
+                <div class="flex flex-wrap items-center gap-2 font-medium">
+                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs">DIAJUKAN</span>
+                    <i class="fa-solid fa-arrow-right text-indigo-300 text-xs"></i>
+                    <span class="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 text-xs">DISETUJUI</span>
+                    <i class="fa-solid fa-arrow-right text-indigo-300 text-xs"></i>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs">DIBAYARKAN</span>
+                    <span class="text-indigo-400 mx-1">/</span>
+                    <span class="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs">DITOLAK</span>
+                </div>
+                <p class="text-xs text-indigo-700/80 mt-2">Hanya <strong>DIBAYARKAN</strong> yang mengurangi saldo kas BGN. DIAJUKAN & DISETUJUI = menunggu. DITOLAK = tidak mempengaruhi saldo.</p>
+            </div>
+
+            <!-- Filter -->
+            <div class="report-sheet p-4 mb-5 no-print">
+                <form method="GET" action="/laporan/status" class="flex flex-wrap gap-3 items-end">
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Dari</label>
+                        <input type="date" name="dari" value="{{ filters.dari }}" class="text-sm px-3 py-2 border rounded-xl form-input">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Sampai</label>
+                        <input type="date" name="sampai" value="{{ filters.sampai }}" class="text-sm px-3 py-2 border rounded-xl form-input">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Status</label>
+                        <select name="status" class="text-sm px-3 py-2 border rounded-xl form-input min-w-[130px]">
+                            <option value="">Semua</option>
+                            {% for st in status_order %}
+                            <option value="{{ st }}" {% if filters.status == st %}selected{% endif %}>{{ st }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Modul</label>
+                        <select name="kategori" class="text-sm px-3 py-2 border rounded-xl form-input min-w-[160px]">
+                            <option value="">Semua modul</option>
+                            {% for opt in kategori_options %}
+                            <option value="{{ opt.key }}" {% if filters.kategori == opt.key %}selected{% endif %}>{{ opt.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[140px]">
+                        <label class="block text-xs text-slate-500 mb-1">Cari</label>
+                        <input type="search" name="search" value="{{ filters.search }}" placeholder="Nama / keterangan..." class="w-full text-sm px-3 py-2 border rounded-xl form-input">
+                    </div>
+                    <button type="submit" class="px-4 py-2 text-sm font-semibold bg-[#071e49] text-white rounded-xl">Terapkan</button>
+                    <a href="/laporan/status" class="px-4 py-2 text-sm border rounded-xl text-slate-600">Reset</a>
+                </form>
+                <p class="text-xs text-slate-400 mt-2">Periode: <strong>{{ dari_display }} — {{ sampai_display }}</strong>{% if not period_filtered %} (semua data){% endif %}</p>
+            </div>
+
+            <!-- KPI Status -->
+            <div class="report-hero px-6 py-6 mb-5">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                    {% for row in status_summary %}
+                    <div class="hero-kpi status-kpi-{{ row.color }}">
+                        <div class="flex items-center gap-2 text-[10px] uppercase tracking-wider text-white/60 font-semibold">
+                            <i class="fa-solid {{ row.icon }}"></i> {{ row.key }}
+                        </div>
+                        <div class="mt-1 text-xl font-bold money">{{ format_rupiah(row.total) }}</div>
+                        <div class="text-[10px] text-white/45">{{ row.count }} transaksi · {{ row.pct }}%</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-white/10 pt-4">
+                    <div>
+                        <div class="text-[10px] uppercase text-white/50">BGN Masuk</div>
+                        <div class="text-lg font-bold money text-emerald-300">{{ format_rupiah(bgn_masuk) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] uppercase text-white/50">Sudah Dibayarkan (kurangi saldo)</div>
+                        <div class="text-lg font-bold money text-amber-200">{{ format_rupiah(dibayarkan_total) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] uppercase text-white/50">Saldo Kas</div>
+                        <div class="text-lg font-bold money {% if saldo_kas >= 0 %}text-emerald-300{% else %}text-red-300{% endif %}">{{ format_rupiah(saldo_kas) }}</div>
+                        <div class="text-[10px] text-white/40">Menunggu {{ format_rupiah(pending_total) }} · Ditolak {{ format_rupiah(ditolak_total) }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-5">
+                <!-- Chart -->
+                <div class="xl:col-span-4 report-sheet p-5">
+                    <h2 class="font-semibold text-[#071e49] mb-3 text-sm">Distribusi Nilai per Status</h2>
+                    <div class="h-56"><canvas id="statusChart"></canvas></div>
+                </div>
+
+                <!-- Matriks -->
+                <div class="xl:col-span-8 report-sheet overflow-hidden">
+                    <div class="px-5 py-4 border-b">
+                        <h2 class="font-semibold text-[#071e49]">Modul × Status (Rp)</h2>
+                        <p class="text-xs text-slate-500">Nilai per modul dan status pengajuan</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="ledger-table w-full text-sm">
+                            <thead>
+                                <tr>
+                                    <th class="text-left">Modul</th>
+                                    {% for st in status_order %}
+                                    <th class="text-right">{{ st }}</th>
+                                    {% endfor %}
+                                    <th class="text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mod in module_matrix %}
+                                <tr>
+                                    <td><a href="{{ mod.href }}" class="font-medium text-[#071e49] hover:underline">{{ mod.label }}</a></td>
+                                    {% for st in status_order %}
+                                    <td class="text-right money text-slate-600">
+                                        {% set cell = mod.cells.get(st, {}) %}
+                                        {% if cell.total %}{{ format_rupiah(cell.total) }}{% else %}—{% endif %}
+                                    </td>
+                                    {% endfor %}
+                                    <td class="text-right money font-semibold matrix-total">{{ format_rupiah(mod.row_total) }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="{{ status_order|length + 2 }}" class="py-8 text-center text-slate-400">Tidak ada data</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rincian -->
+            <div class="report-sheet overflow-hidden">
+                <div class="px-5 py-4 border-b flex justify-between items-center">
+                    <div>
+                        <h2 class="font-semibold text-[#071e49]">Rincian Transaksi</h2>
+                        <p class="text-xs text-slate-500">Maks. 500 baris · {{ detail_count }} ditampilkan</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="ledger-table w-full">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Modul</th>
+                                <th>No</th>
+                                <th>Tanggal</th>
+                                <th>Keterangan</th>
+                                <th>Penerima</th>
+                                <th class="text-right">Jumlah</th>
+                                <th>Catatan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in detail_items %}
+                            <tr>
+                                <td>{% set status = item.status_key %}{% set rejection_note = item.rejection_note %}{% include 'partials/status_pill.html' %}</td>
+                                <td><a href="{{ item.module_href }}" class="text-[#55a7d4] hover:underline text-xs">{{ item.kategori_label }}</a></td>
+                                <td class="text-slate-400 text-xs">{{ item.no or '—' }}</td>
+                                <td class="whitespace-nowrap">{% if item.tanggal %}{{ format_tanggal(item.tanggal) }}{% else %}—{% endif %}</td>
+                                <td class="font-medium text-[#071e49] max-w-[200px] truncate" title="{{ item.pengajuan }}">{{ item.pengajuan }}</td>
+                                <td class="text-slate-600">{{ item.atas_nama or '—' }}</td>
+                                <td class="text-right money font-semibold">{{ format_rupiah(item.jumlah) }}</td>
+                                <td class="text-xs text-slate-500 max-w-[160px]">
+                                    {% if item.rejection_note %}<span class="text-red-600">{{ item.rejection_note }}</span>
+                                    {% elif item.approved_at %}<span class="text-sky-600">Disetujui {{ item.approved_at[:10] }}</span>
+                                    {% else %}—{% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="8" class="py-12 text-center text-slate-400">Tidak ada transaksi sesuai filter</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const summary = {{ status_summary | tojson }};
+        const colors = { amber: '#f59e0b', sky: '#0ea5e9', emerald: '#10b981', red: '#ef4444', slate: '#94a3b8' };
+        if (summary.length && document.getElementById('statusChart')) {
+            new Chart(document.getElementById('statusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: summary.map(s => s.key),
+                    datasets: [{
+                        data: summary.map(s => s.total),
+                        backgroundColor: summary.map(s => colors[s.color] || '#94a3b8'),
+                        borderWidth: 0,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+                },
+            });
+        }
+    </script>
+</body>
+</html>

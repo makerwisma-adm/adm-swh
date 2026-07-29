@@ -1,0 +1,19 @@
+{# Tombol hamburger — drawer dipasang di luar </nav> lewat mobile_nav_drawer.html #}
+<style>
+    .mobile-nav-toggle {
+        display: flex; align-items: center; justify-content: center;
+        width: 2.75rem; height: 2.75rem;
+        flex-shrink: 0;
+        border-radius: 0.65rem;
+        border: 1px solid #e2e8f0;
+        color: var(--theme-primary);
+        background: #fff;
+        transition: background .15s ease;
+    }
+    .mobile-nav-toggle:hover { background: #f8fafc; }
+    @media (min-width: 1024px) { .mobile-nav-toggle { display: none; } }
+</style>
+
+<button type="button" class="mobile-nav-toggle lg:hidden no-print" id="mobile-nav-open" aria-label="Buka menu" aria-expanded="false" aria-controls="mobile-drawer">
+    <i class="fa-solid fa-bars"></i>
+</button>

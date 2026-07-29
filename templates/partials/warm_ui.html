@@ -1,0 +1,135 @@
+{# Palet warm + aksen sejuk untuk seluruh halaman #}
+:root {
+    --warm-bg: #f3efe8;
+    --warm-bg-soft: #ebe6dd;
+    --warm-surface: #fffdf9;
+    --warm-surface-2: #faf6f0;
+    --warm-border: #e3dbd0;
+    --warm-border-light: #efe9e0;
+    --warm-text: #3a3530;
+    --warm-muted: #7a7268;
+    --cool-mist: #e5f3f6;
+    --cool-accent: #5ba4b8;
+    --cool-accent-deep: #3d8fa3;
+    --warm-shadow: rgba(58, 53, 48, 0.07);
+    --warm-shadow-lg: rgba(58, 53, 48, 0.1);
+}
+
+body.app-body,
+body.min-h-screen {
+    background:
+        radial-gradient(ellipse 120% 80% at 100% 0%, var(--cool-mist) 0%, transparent 50%),
+        radial-gradient(ellipse 80% 60% at 0% 100%, color-mix(in srgb, var(--theme-accent) 12%, var(--warm-bg)) 0%, transparent 45%),
+        linear-gradient(165deg, var(--warm-bg) 0%, #f7f3ec 55%, var(--warm-bg-soft) 100%) !important;
+    background-attachment: fixed;
+    color: var(--warm-text);
+    min-height: 100vh;
+}
+
+.app-sidebar {
+    background: var(--warm-surface) !important;
+    border-color: var(--warm-border-light) !important;
+}
+
+.app-navbar {
+    background: color-mix(in srgb, var(--warm-surface) 92%, var(--cool-mist)) !important;
+    border-color: var(--warm-border-light) !important;
+    backdrop-filter: blur(8px);
+}
+
+.panel-card,
+.stat-chip,
+.report-sheet,
+.glass-card,
+.elegant-card,
+.kpi-card,
+.setup .panel-card {
+    background: var(--warm-surface) !important;
+    border-color: var(--warm-border-light) !important;
+    box-shadow: 0 8px 28px -10px var(--warm-shadow-lg) !important;
+}
+
+.dash-hero,
+.report-hero,
+.setup-hero {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--theme-primary) 82%, #2d6475) 0%,
+        color-mix(in srgb, var(--theme-primary) 55%, var(--cool-accent-deep)) 48%,
+        color-mix(in srgb, var(--cool-accent-deep) 75%, var(--theme-secondary)) 100%
+    ) !important;
+}
+
+.portal-hub {
+    background: rgba(255, 253, 249, 0.55) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-color: rgba(255, 255, 255, 0.55) !important;
+    box-shadow:
+        0 16px 48px -20px var(--warm-shadow-lg),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75) !important;
+}
+
+.portal-feature,
+.portal-link {
+    background: rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-color: rgba(255, 255, 255, 0.58) !important;
+    box-shadow:
+        0 6px 22px -10px var(--warm-shadow-lg),
+        inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+}
+
+.portal-feature:hover,
+.portal-link:hover {
+    background: rgba(255, 255, 255, 0.72) !important;
+    border-color: rgba(91, 164, 184, 0.45) !important;
+}
+
+.portal-hub-banner {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--theme-primary) 85%, #2d6475) 0%,
+        color-mix(in srgb, var(--theme-primary) 50%, var(--cool-accent-deep)) 100%
+    ) !important;
+}
+
+.side-nav-link {
+    color: var(--warm-muted);
+}
+.side-nav-link:hover {
+    background: var(--warm-surface-2) !important;
+    color: var(--warm-text) !important;
+}
+.side-nav-link .side-icon-wrap {
+    background: var(--warm-surface-2) !important;
+    color: var(--warm-muted) !important;
+}
+.side-nav-link:hover .side-icon-wrap {
+    background: var(--cool-mist) !important;
+    color: var(--cool-accent-deep) !important;
+}
+.side-nav-link.nav-active {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--theme-accent) 16%, var(--warm-surface-2)), transparent) !important;
+}
+.side-nav-link.nav-active .side-icon-wrap {
+    background: color-mix(in srgb, var(--cool-mist) 70%, white) !important;
+    color: var(--cool-accent-deep) !important;
+}
+
+.ledger-table tbody tr:hover,
+.table-row:hover {
+    background: var(--cool-mist) !important;
+}
+
+.mobile-drawer {
+    background: var(--warm-surface) !important;
+}
+.mobile-nav-link:hover {
+    background: var(--warm-surface-2) !important;
+}
+.mobile-nav-link.active {
+    background: color-mix(in srgb, var(--cool-mist) 80%, white) !important;
+    color: var(--cool-accent-deep) !important;
+}

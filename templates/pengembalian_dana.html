@@ -2,12 +2,13 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Pengembalian Dana / Refund • Pelaporan Keuangan SPPG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         {% include 'partials/layout_styles.html' %}
+        {% include 'partials/table_page_styles.html' %}
 
         .report-hero {
             background: linear-gradient(135deg, #071e49 0%, #0c3d6e 45%, #1a5f8a 100%);
@@ -150,19 +151,24 @@
         }
     </style>
 </head>
-<body class="bg-[#f8fafc]">
+<body class="app-body">
+    {% set active_menu = 'pengembalian_dana' %}
     {% include 'partials/navbar.html' %}
 
     <div class="max-w-screen-2xl mx-auto flex">
-        {% set active_menu = 'pengembalian_dana' %}
         {% include 'partials/sidebar.html' %}
 
-        <main class="flex-1 p-6 md:p-8">
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
             {% if message %}
             <div class="mb-4 p-3 rounded-2xl no-print {% if success %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
                 <i class="fa-solid {% if success %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-1"></i>{{ message }}
             </div>
             {% endif %}
+
+            {% include 'partials/keuangan_flow_guide.html' %}
+            {% set form_action = '/pengembalian-dana' %}
+            {% set hidden_fields = [{'name': 'upload_id', 'value': selected_upload_id}] if selected_upload_id else [] %}
+            {% include 'partials/report_period_filter.html' %}
 
             <div class="mb-6 no-print flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -241,12 +247,16 @@
                 <button onclick="bulkDelete()" class="px-4 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium">
                     <i class="fa-solid fa-trash mr-1"></i> Hapus
                 </button>
-                <button onclick="bulkSetStatus('TERBAYAR')" class="px-4 py-1.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium">
-                    <i class="fa-solid fa-check mr-1"></i> Tandai Terbayar
+                {% if can_mark_paid %}
+                <button onclick="bulkSetStatus('DIBAYARKAN')" class="px-4 py-1.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium">
+                    <i class="fa-solid fa-check mr-1"></i> Tandai Dibayarkan
                 </button>
+                {% endif %}
+                {% if can_submit %}
                 <button onclick="bulkSetStatus('DIAJUKAN')" class="px-4 py-1.5 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium">
                     Diajukan
                 </button>
+                {% endif %}
                 <button onclick="clearSelection()" class="px-3 py-1.5 text-sm border rounded-xl text-slate-600">Batal</button>
             </div>
 
@@ -290,7 +300,7 @@
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
+                <div class="table-scroll-wrap overflow-x-auto">
                     <table class="ledger-table w-full">
                         <thead>
                             <tr>
@@ -334,13 +344,7 @@
                                     <span class="font-bold text-[#071e49] money text-base">{{ format_rupiah(item.jumlah) }}</span>
                                 </td>
                                 <td class="text-center status-cell">
-                                    {% if item.status == 'TERBAYAR' %}
-                                    <span class="status-pill bg-emerald-100 text-emerald-700">TERBAYAR</span>
-                                    {% elif item.status == 'DIAJUKAN' %}
-                                    <span class="status-pill bg-amber-100 text-amber-700">DIAJUKAN</span>
-                                    {% else %}
-                                    <span class="status-pill bg-slate-100 text-slate-500">—</span>
-                                    {% endif %}
+                                    {% set status = item.status %}{% set rejection_note = item.rejection_note %}{% include 'partials/status_pill.html' %}
                                 </td>
                                 <td class="no-print">
                                     <div class="flex gap-1">
@@ -413,7 +417,7 @@
                         <label class="text-xs font-semibold text-slate-600">Status</label>
                         <select id="status" name="status" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
                             <option value="DIAJUKAN">DIAJUKAN</option>
-                            <option value="TERBAYAR">TERBAYAR</option>
+                            <option value="DIBAYARKAN">DIBAYARKAN</option>
                         </select>
                     </div>
                     <div>

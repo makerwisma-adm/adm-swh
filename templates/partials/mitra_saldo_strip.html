@@ -1,0 +1,18 @@
+{# Ringkasan saldo mitra — butuh saldo_bersih, total_insentif, total_pengeluaran dari portal context #}
+{% if is_mitra and saldo_bersih is defined %}
+<div class="no-print mb-5 flex flex-wrap items-center gap-3 p-3.5 rounded-xl border
+    {% if saldo_bersih >= 0 %}bg-emerald-50 border-emerald-200{% else %}bg-amber-50 border-amber-200{% endif %}">
+    <div class="flex-1 min-w-[200px]">
+        <div class="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Posisi Keuangan {{ mitra_nama }}</div>
+        <div class="text-lg font-bold money {% if saldo_bersih >= 0 %}text-emerald-700{% else %}text-amber-700{% endif %}">
+            Saldo {{ format_rupiah(saldo_bersih) }}
+        </div>
+        <div class="text-[11px] text-slate-500 mt-0.5">
+            Pendapatan {{ format_rupiah(total_insentif) }} − Pengeluaran {{ format_rupiah(total_pengeluaran) }}
+        </div>
+    </div>
+    <a href="/portal-mitra" class="text-xs font-semibold px-3 py-2 rounded-lg bg-white border border-slate-200 text-[#071e49] hover:bg-slate-50 whitespace-nowrap">
+        <i class="fa-solid fa-house-chimney mr-1"></i> Lihat Beranda
+    </a>
+</div>
+{% endif %}

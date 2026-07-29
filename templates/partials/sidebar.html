@@ -1,131 +1,211 @@
-{# Variabel: active_menu ('dashboard'|'tagihan'|'petty_cash'|'gaji_relawan'|'insentif_mitra'|'pengembalian_dana'|'pengajuan_dana_mitra'), active_submenu ('gaji_relawan'|'insentif_pic'), active_kategori (opsional) #}
-<aside class="w-64 border-r border-slate-200 bg-white hidden lg:block min-h-[calc(100vh-64px)] p-4 no-print">
-    {% if active_menu == 'dashboard' %}
-    <div class="px-3 pt-2 pb-3">
-        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Beranda</div>
-    </div>
-    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
-        <i class="fa-solid fa-chart-line w-4"></i>
-        <span>Dashboard Keuangan</span>
-    </a>
+{# active_menu: dashboard_ka|dashboard_bayar|dashboard|transfer_bgn|laporan|tagihan|petty_cash|gaji_relawan|gaji_staff|insentif_pic|insentif_mitra|pengembalian_dana|sewa_kendaraan|pengajuan_dana_mitra|pendapatan_mitra|pengeluaran_mitra|portal_mitra|setup #}
+<style>
+    .side-group-label {
+        display: flex; align-items: center; gap: 0.5rem;
+        font-size: 0.62rem; font-weight: 700;
+        letter-spacing: 0.12em; text-transform: uppercase;
+        padding: 0.55rem 0.75rem; margin-bottom: 0.35rem;
+        border-radius: 0.75rem;
+    }
+    .side-group-label.beranda { background: linear-gradient(135deg, var(--theme-primary), color-mix(in srgb, var(--theme-primary) 70%, var(--theme-secondary))); color: #fff; }
+    .side-group-label.laporan { background: linear-gradient(135deg, color-mix(in srgb, var(--theme-secondary) 80%, var(--theme-primary)), var(--theme-secondary)); color: #fff; }
+    .side-group-label.mitra { background: linear-gradient(135deg, color-mix(in srgb, var(--theme-accent) 60%, #92400e), var(--theme-accent)); color: #fff; }
+    .side-group-label.setup { background: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary)); color: #fff; }
 
-    <div class="px-3 pt-5 pb-2">
-        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Laporan</div>
-    </div>
-    <a href="/tagihan" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-file-invoice-dollar w-4"></i>
+    .side-nav-link {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.65rem 0.85rem; margin-bottom: 0.15rem;
+        border-radius: 0.9rem; font-size: 0.82rem;
+        color: #475569;
+        transition: background .15s ease, color .15s ease;
+        position: relative;
+    }
+    .side-nav-link::before {
+        content: '';
+        position: absolute; left: 0; top: 0;
+        width: 3px; height: 0;
+        background: linear-gradient(180deg, var(--theme-accent), var(--theme-primary));
+        border-radius: 0 2px 2px 0;
+        transition: height 0.15s ease;
+    }
+    .side-nav-link:hover {
+        background: var(--warm-surface-2, #faf6f0);
+        color: var(--warm-text, #3a3530);
+    }
+    .side-nav-link:hover::before { height: 100%; }
+    .side-nav-link .side-icon-wrap {
+        width: 30px; height: 30px;
+        border-radius: var(--icon-radius, 8px);
+        display: flex; align-items: center; justify-content: center;
+        background: var(--warm-surface-2, #faf6f0); color: var(--warm-muted, #7a7268); flex-shrink: 0;
+        font-size: 0.72rem;
+        transition: background .15s ease, color .15s ease;
+    }
+    .side-nav-link:hover .side-icon-wrap {
+        background: color-mix(in srgb, var(--bgn-icon) 12%, white);
+        color: var(--bgn-icon);
+    }
+    .side-nav-link.nav-active .side-icon-wrap {
+        background: color-mix(in srgb, var(--theme-accent) 35%, white);
+        color: var(--theme-primary);
+    }
+    .side-nav-link.nav-active {
+        background: linear-gradient(90deg, color-mix(in srgb, var(--theme-accent) 14%, transparent), transparent);
+        color: var(--theme-primary);
+        font-weight: 600;
+    }
+    .side-nav-link.nav-active::before { height: 100%; }
+
+    .side-nav-link.side-nav-dashboard,
+    .side-nav-link.side-nav-dashboard.nav-active,
+    .side-nav-link.side-nav-dashboard:hover {
+        color: #0f172a;
+    }
+
+    .sidebar-animated .side-group-label,
+    .sidebar-animated .side-nav-link {
+        opacity: 0;
+        animation: fadeInLeft 0.35s ease forwards;
+    }
+    .sidebar-animated .side-nav-link:nth-child(2) { animation-delay: 40ms; }
+    .sidebar-animated .side-nav-link:nth-child(3) { animation-delay: 80ms; }
+    .sidebar-animated .side-nav-link:nth-child(4) { animation-delay: 120ms; }
+    .sidebar-animated .side-nav-link:nth-child(5) { animation-delay: 160ms; }
+</style>
+<aside class="app-sidebar w-64 border-r hidden lg:block min-h-[calc(100vh-52px)] p-3 no-print {% if active_menu == 'dashboard' %}sidebar-animated{% endif %}">
+    {% if 'dashboard_ka' in user_menu_keys or 'dashboard_bayar' in user_menu_keys %}
+    <div class="side-group-label setup"><i class="fa-solid fa-user-check"></i> Persetujuan</div>
+    {% if 'dashboard_ka' in user_menu_keys %}
+    <a href="/dashboard-ka" class="side-nav-link {{ 'nav-active' if active_menu == 'dashboard_ka' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-user-check"></i></span>
+        <span>Dashboard KA SPPG</span>
+    </a>
+    {% endif %}
+    {% if 'dashboard_bayar' in user_menu_keys %}
+    <a href="/dashboard-bayar" class="side-nav-link {{ 'nav-active' if active_menu == 'dashboard_bayar' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-money-bill-wave"></i></span>
+        <span>Dashboard Pembayaran VA</span>
+    </a>
+    {% endif %}
+    {% endif %}
+
+    {% if 'dashboard' in user_menu_keys or 'transfer_bgn' in user_menu_keys or 'laporan' in user_menu_keys %}
+    <div class="side-group-label beranda"><i class="fa-solid fa-house-chimney"></i> Modul Beranda</div>
+    {% if 'dashboard' in user_menu_keys %}
+    <a href="/dashboard" class="side-nav-link side-nav-dashboard {{ 'nav-active' if active_menu == 'dashboard' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-chart-line"></i></span>
+        <span>Dashboard</span>
+    </a>
+    {% endif %}
+    {% if 'transfer_bgn' in user_menu_keys %}
+    <a href="/transfer-bgn" class="side-nav-link {{ 'nav-active' if active_menu == 'transfer_bgn' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-building-columns"></i></span>
+        <span>Transfer BGN</span>
+    </a>
+    {% endif %}
+    {% if 'laporan' in user_menu_keys %}
+    <a href="/laporan" class="side-nav-link {{ 'nav-active' if active_menu == 'laporan' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-clipboard-list"></i></span>
+        <span>Laporan</span>
+    </a>
+    {% endif %}
+    {% endif %}
+
+    {% if 'tagihan' in user_menu_keys or 'petty_cash' in user_menu_keys or 'gaji_relawan' in user_menu_keys or 'gaji_staff' in user_menu_keys or 'insentif_pic' in user_menu_keys or 'insentif_mitra' in user_menu_keys or 'pengembalian_dana' in user_menu_keys or 'sewa_kendaraan' in user_menu_keys %}
+    <div class="side-group-label laporan mt-4"><i class="fa-solid fa-folder-open"></i> Modul Laporan</div>
+    {% if 'tagihan' in user_menu_keys %}
+    <a href="/tagihan" class="side-nav-link {{ 'nav-active' if active_menu == 'tagihan' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-file-invoice-dollar"></i></span>
         <span>Laporan Tagihan</span>
     </a>
-    <a href="/petty-cash" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-wallet w-4"></i>
-        <span>Laporan Petty Cash</span>
+    {% endif %}
+    {% if 'petty_cash' in user_menu_keys %}
+    <a href="/petty-cash" class="side-nav-link {{ 'nav-active' if active_menu == 'petty_cash' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-wallet"></i></span>
+        <span>Petty Cash</span>
     </a>
-    <a href="/gaji-relawan" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition mt-4">
-        <i class="fa-solid fa-users w-4"></i>
-        <span>Laporan Gaji</span>
+    {% endif %}
+    {% if 'gaji_relawan' in user_menu_keys %}
+    <a href="/gaji-relawan" class="side-nav-link {{ 'nav-active' if active_menu == 'gaji_relawan' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-users"></i></span>
+        <span>Gaji Relawan</span>
     </a>
-    <a href="/insentif-mitra" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-handshake w-4"></i>
-        <span>Laporan Insentif Mitra</span>
+    {% endif %}
+    {% if 'gaji_staff' in user_menu_keys %}
+    <a href="/gaji-staff" class="side-nav-link {{ 'nav-active' if active_menu == 'gaji_staff' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-id-badge"></i></span>
+        <span>Gaji Staff</span>
     </a>
-    <a href="/pengembalian-dana" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-rotate-left w-4"></i>
-        <span>Pengembalian Dana / Refund</span>
+    {% endif %}
+    {% if 'insentif_pic' in user_menu_keys %}
+    <a href="/insentif-pic" class="side-nav-link {{ 'nav-active' if active_menu == 'insentif_pic' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-user-tie"></i></span>
+        <span>Insentif PIC</span>
     </a>
+    {% endif %}
+    {% if 'insentif_mitra' in user_menu_keys %}
+    <a href="/insentif-mitra" class="side-nav-link {{ 'nav-active' if active_menu == 'insentif_mitra' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-handshake"></i></span>
+        <span>{% if is_mitra %}Insentif Masuk{% else %}Insentif Mitra{% endif %}</span>
+    </a>
+    {% endif %}
+    {% if 'pengembalian_dana' in user_menu_keys %}
+    <a href="/pengembalian-dana" class="side-nav-link {{ 'nav-active' if active_menu == 'pengembalian_dana' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-rotate-left"></i></span>
+        <span>Pengembalian Dana</span>
+    </a>
+    {% endif %}
+    {% if 'sewa_kendaraan' in user_menu_keys %}
+    <a href="/sewa-kendaraan" class="side-nav-link {{ 'nav-active' if active_menu == 'sewa_kendaraan' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-car"></i></span>
+        <span>Sewa Kendaraan</span>
+    </a>
+    {% endif %}
+    {% endif %}
 
-    <div class="px-3 pt-5 pb-2">
-        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Mitra</div>
-    </div>
-    <a href="/pengajuan-dana-mitra" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-file-invoice w-4"></i>
+    {% if 'portal_mitra' in user_menu_keys or 'pendapatan_mitra' in user_menu_keys or 'pengajuan_dana_mitra' in user_menu_keys or 'pengeluaran_mitra' in user_menu_keys %}
+    <div class="side-group-label mitra mt-4"><i class="fa-solid fa-building"></i> {% if is_mitra %}Portal Mitra{% else %}Modul Mitra{% endif %}</div>
+    {% if 'portal_mitra' in user_menu_keys %}
+    <a href="/portal-mitra" class="side-nav-link {{ 'nav-active' if active_menu == 'portal_mitra' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-house-chimney"></i></span>
+        <span>Beranda</span>
+    </a>
+    {% endif %}
+    {% if 'pendapatan_mitra' in user_menu_keys %}
+    <a href="/pendapatan-mitra" class="side-nav-link {{ 'nav-active' if active_menu == 'pendapatan_mitra' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-sack-dollar"></i></span>
+        <span>{% if is_mitra %}Pendapatan{% else %}Pendapatan Mitra{% endif %}</span>
+    </a>
+    {% endif %}
+    {% if 'pengajuan_dana_mitra' in user_menu_keys %}
+    <a href="/pengajuan-dana-mitra" class="side-nav-link {{ 'nav-active' if active_menu == 'pengajuan_dana_mitra' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-file-invoice"></i></span>
         <span>Pengajuan Dana Mitra</span>
     </a>
+    {% endif %}
+    {% if 'pengeluaran_mitra' in user_menu_keys %}
+    <a href="/pengeluaran-mitra" class="side-nav-link {{ 'nav-active' if active_menu == 'pengeluaran_mitra' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-money-bill-transfer"></i></span>
+        <span>{% if is_mitra %}Pengeluaran{% else %}Pengeluaran Mitra{% endif %}</span>
+    </a>
+    {% endif %}
+    {% endif %}
 
-    {% elif active_menu == 'tagihan' %}
-    <div class="px-3 pt-2 pb-3">
-        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Tagihan</div>
-    </div>
-    <a href="/tagihan" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
-        <i class="fa-solid fa-file-invoice-dollar w-4"></i>
-        <span>Data Tagihan</span>
+    {% if is_admin %}
+    <div class="side-group-label setup mt-4"><i class="fa-solid fa-gear"></i> Pengaturan</div>
+    <a href="/setup" class="side-nav-link {{ 'nav-active' if active_menu == 'setup' else '' }}">
+        <span class="side-icon-wrap"><i class="fa-solid fa-sliders"></i></span>
+        <span>Setup</span>
     </a>
-
-    <div class="px-3 pt-5">
-        <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
-            <i class="fa-solid fa-arrow-left w-4"></i>
-            <span>Kembali ke Beranda</span>
-        </a>
-    </div>
-
-    {% elif active_menu == 'petty_cash' %}
-    <div class="px-3 pt-2 pb-3">
-        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Petty Cash</div>
-    </div>
-    <a href="/petty-cash" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
-        <i class="fa-solid fa-wallet w-4"></i>
-        <span>Laporan Petty Cash</span>
+    {% if active_menu == 'setup' %}
+    <a href="/setup#pengguna" class="side-nav-link pl-8 text-[0.78rem]">
+        <span class="side-icon-wrap" style="width:26px;height:26px"><i class="fa-solid fa-users-gear"></i></span>
+        <span>Pengguna</span>
     </a>
-    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-arrow-left w-4"></i>
-        <span>Kembali ke Beranda</span>
+    <a href="/setup#tema" class="side-nav-link pl-8 text-[0.78rem]">
+        <span class="side-icon-wrap" style="width:26px;height:26px"><i class="fa-solid fa-palette"></i></span>
+        <span>Tema</span>
     </a>
-
-    {% elif active_menu == 'gaji_relawan' %}
-    <a href="/gaji-relawan" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm nav-active">
-        <i class="fa-solid fa-users w-4"></i>
-        <span>Laporan Gaji</span>
-    </a>
-    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-arrow-left w-4"></i>
-        <span>Kembali ke Beranda</span>
-    </a>
-
-    {% elif active_menu == 'insentif_mitra' %}
-    <div class="px-3 pt-2 pb-3">
-        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Laporan</div>
-    </div>
-    <a href="/insentif-mitra" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
-        <i class="fa-solid fa-handshake w-4"></i>
-        <span>Laporan Insentif Mitra</span>
-    </a>
-    <a href="/pengembalian-dana" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-rotate-left w-4"></i>
-        <span>Pengembalian Dana / Refund</span>
-    </a>
-    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-arrow-left w-4"></i>
-        <span>Kembali ke Beranda</span>
-    </a>
-
-    {% elif active_menu == 'pengembalian_dana' %}
-    <div class="px-3 pt-2 pb-3">
-        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Laporan</div>
-    </div>
-    <a href="/pengembalian-dana" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
-        <i class="fa-solid fa-rotate-left w-4"></i>
-        <span>Pengembalian Dana / Refund</span>
-    </a>
-    <a href="/insentif-mitra" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-600 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-handshake w-4"></i>
-        <span>Laporan Insentif Mitra</span>
-    </a>
-    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-arrow-left w-4"></i>
-        <span>Kembali ke Beranda</span>
-    </a>
-
-    {% elif active_menu == 'pengajuan_dana_mitra' %}
-    <div class="px-3 pt-2 pb-3">
-        <div class="text-[10px] uppercase font-semibold text-slate-400 tracking-wider px-1 mb-2">Modul Mitra</div>
-    </div>
-    <a href="/pengajuan-dana-mitra" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl nav-active text-sm">
-        <i class="fa-solid fa-file-invoice w-4"></i>
-        <span>Pengajuan Dana Mitra</span>
-    </a>
-    <a href="/dashboard" class="flex items-center gap-3 px-3 py-3 mb-1 rounded-2xl text-sm text-slate-500 hover:bg-slate-50 transition">
-        <i class="fa-solid fa-arrow-left w-4"></i>
-        <span>Kembali ke Beranda</span>
-    </a>
-
+    {% endif %}
     {% endif %}
 </aside>

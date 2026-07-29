@@ -1,0 +1,33 @@
+{% if can_edit %}
+<!-- Bulk delete + status toolbar -->
+<div id="bulk-toolbar" style="display:none;" class="mb-4 p-3 bg-white border border-slate-200 rounded-2xl flex flex-wrap items-center gap-3 shadow-sm no-print">
+    <span class="text-sm font-medium text-[#071e49]" id="selected-info">0 dipilih</span>
+
+    <div class="h-5 w-px bg-slate-200 mx-1"></div>
+
+    <div class="flex items-center gap-2">
+        <label class="text-xs font-semibold text-slate-500">Status:</label>
+        <select id="bulk-status-select" class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-[#071e49] font-medium">
+            <option value="">— pilih status —</option>
+            <option value="DIAJUKAN">Diajukan</option>
+            <option value="DISETUJUI">Disetujui</option>
+            <option value="DIBAYAR">Dibayar</option>
+            <option value="DIBATALKAN">Dibatalkan</option>
+        </select>
+        <button onclick="bulkUpdateStatus()" id="bulk-update-status-btn" disabled
+                class="px-3 py-1.5 text-xs font-semibold bg-[#071e49] text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5">
+            <i class="fa-solid fa-check"></i> Update Status
+        </button>
+    </div>
+
+    <div class="h-5 w-px bg-slate-200 mx-1"></div>
+
+    <button onclick="bulkDelete()" class="px-4 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl flex items-center gap-2 font-medium">
+        <i class="fa-solid fa-trash"></i>
+        <span>Hapus</span>
+    </button>
+    <button onclick="clearSelection()" class="px-3 py-1.5 text-sm border border-slate-200 hover:bg-slate-50 rounded-xl text-[#071e49]">
+        Batal
+    </button>
+</div>
+{% endif %}

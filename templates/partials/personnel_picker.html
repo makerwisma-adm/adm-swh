@@ -1,0 +1,37 @@
+{# Dropdown pilih personel dari Setup — butuh personnel_options #}
+<div class="md:col-span-2 p-3 rounded-2xl bg-sky-50/80 border border-sky-100">
+    <label class="text-xs font-semibold text-sky-900 flex items-center gap-1.5">
+        <i class="fa-solid fa-address-book text-sky-600"></i>
+        Pilih dari data Setup
+    </label>
+    <select id="personnel-select" class="form-input mt-1.5 w-full px-4 py-2.5 border rounded-2xl text-sm bg-white"
+            onchange="window.fillPersonnelForm && window.fillPersonnelForm(this)">
+        <option value="">— Input manual / ketik sendiri —</option>
+        {% for p in personnel_options %}
+        <option value="{{ p.id }}"
+                data-nama="{{ p.nama }}"
+                data-no="{{ p.no or '' }}"
+                data-atas-nama="{{ p.atas_nama or '' }}"
+                data-nomor-rekening="{{ p.nomor_rekening or '' }}"
+                data-bank="{{ p.bank or '' }}"
+                data-pos="{{ p.pos or '' }}">
+            {{ p.nama }}{% if p.pos %} — {{ p.pos }}{% endif %}{% if p.bank %} ({{ p.bank }}){% endif %}
+        </option>
+        {% endfor %}
+    </select>
+    <p class="text-[10px] text-sky-700/70 mt-1.5">Kelola nama di <a href="/setup#personel" class="font-semibold hover:underline">Setup → Personel</a></p>
+</div>
+<script>
+window.fillPersonnelForm = function (sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    set('no', opt.dataset.no);
+    set('pengajuan', opt.dataset.nama);
+    set('atas_nama', opt.dataset.atasNama);
+    set('nomor_rekening', opt.dataset.nomorRekening);
+    set('bank', opt.dataset.bank);
+    const posEl = document.getElementById('pos');
+    if (posEl) set('pos', opt.dataset.pos);
+};
+</script>

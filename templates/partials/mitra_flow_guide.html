@@ -1,0 +1,153 @@
+{# Panduan alur modul mitra — set active_menu sebelum include #}
+<style>
+    .mitra-flow {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        padding: 1rem 1.1rem;
+    }
+    .mitra-flow-title {
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .mitra-flow-steps {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem 0.25rem;
+    }
+    .mitra-flow-step {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0.75rem;
+        border-radius: 0.75rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #475569;
+        text-decoration: none;
+        transition: border-color .15s, box-shadow .15s;
+        white-space: nowrap;
+    }
+    .mitra-flow-step:hover:not(.is-current) {
+        border-color: #55a7d4;
+        color: #071e49;
+    }
+    .mitra-flow-step.is-current {
+        background: #071e49;
+        border-color: #071e49;
+        color: #fff;
+        box-shadow: 0 4px 14px -4px rgba(7, 30, 73, 0.45);
+    }
+    .mitra-flow-step.is-current .mitra-flow-step-icon {
+        background: rgba(255,255,255,0.15);
+        color: #c9a558;
+    }
+    .mitra-flow-step-icon {
+        width: 1.35rem;
+        height: 1.35rem;
+        border-radius: 0.45rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.62rem;
+        background: #f1f5f9;
+        color: #64748b;
+        flex-shrink: 0;
+    }
+    .mitra-flow-arrow {
+        color: #94a3b8;
+        font-size: 0.55rem;
+        padding: 0 0.15rem;
+        flex-shrink: 0;
+    }
+    .mitra-flow-note {
+        margin-top: 0.65rem;
+        font-size: 0.7rem;
+        color: #64748b;
+        line-height: 1.45;
+    }
+    .mitra-flow-note strong { color: #334155; }
+    @media (max-width: 640px) {
+        .mitra-flow-arrow { display: none; }
+        .mitra-flow-steps { flex-direction: column; align-items: stretch; }
+        .mitra-flow-step { justify-content: flex-start; }
+    }
+</style>
+
+<div class="mitra-flow no-print mb-5">
+    <div class="mitra-flow-title">
+        <i class="fa-solid fa-diagram-project"></i>
+        Alur Modul Mitra
+    </div>
+    <div class="mitra-flow-steps">
+        {% if is_mitra %}
+        <a href="/portal-mitra" class="mitra-flow-step {% if active_menu == 'portal_mitra' %}is-current{% endif %}">
+            <span class="mitra-flow-step-icon"><i class="fa-solid fa-house-chimney"></i></span>
+            <span>1. Beranda</span>
+        </a>
+        <span class="mitra-flow-arrow"><i class="fa-solid fa-chevron-right"></i></span>
+        <a href="/pendapatan-mitra" class="mitra-flow-step {% if active_menu == 'pendapatan_mitra' %}is-current{% endif %}">
+            <span class="mitra-flow-step-icon"><i class="fa-solid fa-sack-dollar"></i></span>
+            <span>2. Pendapatan</span>
+        </a>
+        <span class="mitra-flow-arrow"><i class="fa-solid fa-chevron-right"></i></span>
+        <a href="/pengeluaran-mitra" class="mitra-flow-step {% if active_menu == 'pengeluaran_mitra' %}is-current{% endif %}">
+            <span class="mitra-flow-step-icon"><i class="fa-solid fa-money-bill-transfer"></i></span>
+            <span>3. Pengeluaran</span>
+        </a>
+        {% if 'insentif_mitra' in user_menu_keys %}
+        <span class="mitra-flow-arrow"><i class="fa-solid fa-chevron-right"></i></span>
+        <a href="/insentif-mitra" class="mitra-flow-step {% if active_menu == 'insentif_mitra' %}is-current{% endif %}">
+            <span class="mitra-flow-step-icon"><i class="fa-solid fa-handshake"></i></span>
+            <span>Detail Insentif</span>
+        </a>
+        {% endif %}
+        {% else %}
+        <a href="/insentif-mitra" class="mitra-flow-step {% if active_menu == 'insentif_mitra' %}is-current{% endif %}">
+            <span class="mitra-flow-step-icon"><i class="fa-solid fa-pen-to-square"></i></span>
+            <span>1. Input Insentif</span>
+        </a>
+        <span class="mitra-flow-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+        <a href="/pendapatan-mitra" class="mitra-flow-step {% if active_menu == 'pendapatan_mitra' %}is-current{% endif %}">
+            <span class="mitra-flow-step-icon"><i class="fa-solid fa-sack-dollar"></i></span>
+            <span>2. Laporan Pendapatan</span>
+        </a>
+        <span class="mitra-flow-arrow"><i class="fa-solid fa-plus text-[8px]"></i></span>
+        <a href="/pengeluaran-mitra" class="mitra-flow-step {% if active_menu == 'pengeluaran_mitra' %}is-current{% endif %}">
+            <span class="mitra-flow-step-icon"><i class="fa-solid fa-money-bill-transfer"></i></span>
+            <span>3. Pengeluaran</span>
+        </a>
+        <span class="mitra-flow-arrow"><i class="fa-solid fa-equals text-[8px]"></i></span>
+        <a href="/portal-mitra" class="mitra-flow-step {% if active_menu == 'portal_mitra' %}is-current{% endif %}">
+            <span class="mitra-flow-step-icon"><i class="fa-solid fa-house-chimney"></i></span>
+            <span>Portal Mitra</span>
+        </a>
+        {% endif %}
+    </div>
+    <p class="mitra-flow-note">
+        {% if is_mitra %}
+        <strong>Beranda</strong> menampilkan ringkasan.
+        <strong>Pendapatan</strong> = insentif yang masuk ke {{ mitra_nama }}.
+        <strong>Pengeluaran</strong> = biaya yang tercatat atas nama Anda.
+        {% elif active_menu == 'insentif_mitra' %}
+        Data yang Anda input/upload di sini otomatis muncul di <a href="/pendapatan-mitra" class="text-[#071e49] font-semibold hover:underline">Laporan Pendapatan Mitra</a>.
+        {% elif active_menu == 'pendapatan_mitra' %}
+        Laporan ini membaca data dari <a href="/insentif-mitra" class="text-[#071e49] font-semibold hover:underline">Insentif Mitra</a> — tidak perlu input ulang.
+        {% elif active_menu == 'pengeluaran_mitra' %}
+        Pengeluaran dicatat terpisah. Bandingkan dengan <a href="/pendapatan-mitra" class="text-[#071e49] font-semibold hover:underline">Pendapatan Mitra</a> untuk melihat posisi keuangan mitra.
+        {% else %}
+        <strong>Input Insentif</strong> → otomatis jadi <strong>Pendapatan</strong>.
+        Kurangi <strong>Pengeluaran</strong> untuk melihat saldo di portal mitra.
+        {% endif %}
+    </p>
+</div>

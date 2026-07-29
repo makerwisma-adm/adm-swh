@@ -1,0 +1,837 @@
+/**
+ * SPPG Wisma Haji - Modern Animations & Effects
+ * Professional, clean animations for financial dashboard
+ */
+
+/* ============================================
+   CSS VARIABLES
+   ============================================ */
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --bg-dark: #0f172a;
+  --bg-card: #1e293b;
+  --bg-card-hover: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+  --shadow: rgba(0, 0, 0, 0.3);
+  --glow: rgba(37, 99, 235, 0.3);
+
+  /* Animation timing */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  --transition-spring: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================
+   BASE ANIMATIONS (Keyframes)
+   ============================================ */
+
+/* Fade In Up */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade In Down */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade In Left */
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Fade In Right */
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Scale In */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Slide In */
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Pulse Glow */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--glow);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--glow), 0 0 30px var(--glow);
+  }
+}
+
+/* Shimmer (loading effect) */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Float */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Bounce */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Spin */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Ripple */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Progress Fill */
+@keyframes progressFill {
+  from {
+    width: 0;
+  }
+}
+
+/* Counter (for number animations) */
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card Hover Lift */
+@keyframes cardHover {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* ============================================
+   ANIMATION UTILITY CLASSES
+   ============================================ */
+
+/* Fade animations */
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease forwards;
+}
+.animate-fade-in-down {
+  animation: fadeInDown 0.6s ease forwards;
+}
+.animate-fade-in-left {
+  animation: fadeInLeft 0.6s ease forwards;
+}
+.animate-fade-in-right {
+  animation: fadeInRight 0.6s ease forwards;
+}
+.animate-scale-in {
+  animation: scaleIn 0.5s var(--transition-spring) forwards;
+}
+.animate-slide-in {
+  animation: slideIn 0.5s ease forwards;
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+.animate-bounce {
+  animation: bounce 1s ease-in-out infinite;
+}
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* Delays for staggered animations */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+.delay-700 { animation-delay: 700ms; }
+.delay-800 { animation-delay: 800ms; }
+
+/* Initially hidden for animation */
+.anim-hidden {
+  opacity: 0;
+}
+
+/* ============================================
+   CARD EFFECTS
+   ============================================ */
+
+.card-animated {
+  transition: transform var(--transition-base),
+              box-shadow var(--transition-base),
+              border-color var(--transition-base);
+}
+
+.card-animated:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px var(--shadow),
+              0 0 20px var(--glow);
+  border-color: var(--primary);
+}
+
+/* Card shine effect on hover */
+.card-animated::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
+  pointer-events: none;
+}
+
+.card-animated:hover::before {
+  left: 100%;
+}
+
+/* ============================================
+   BUTTON EFFECTS
+   ============================================ */
+
+.btn-animated {
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-base);
+}
+
+.btn-animated::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.btn-animated:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-animated:active {
+  transform: scale(0.95);
+}
+
+/* Ripple button effect */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-ripple .ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  animation: ripple 0.6s linear;
+  pointer-events: none;
+}
+
+/* ============================================
+   NAVIGATION & SIDEBAR
+   ============================================ */
+
+.nav-item-animated {
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.nav-item-animated::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  background: var(--primary);
+  border-radius: 0 2px 2px 0;
+  transition: height var(--transition-base);
+}
+
+.nav-item-animated:hover::before,
+.nav-item-animated.active::before {
+  height: 100%;
+}
+
+.nav-item-animated:hover {
+  background: rgba(37, 99, 235, 0.1);
+  padding-left: calc(var(--sidebar-width, 240px) * 0.05);
+}
+
+.nav-item-animated.active {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+/* Sidebar transition */
+.sidebar-animated {
+  transition: width var(--transition-slow), transform var(--transition-slow);
+}
+
+/* ============================================
+   TABLE EFFECTS
+   ============================================ */
+
+.table-animated tbody tr {
+  transition: all var(--transition-fast);
+}
+
+.table-animated tbody tr:hover {
+  background: rgba(37, 99, 235, 0.1);
+  transform: scale(1.01);
+}
+
+.table-animated tbody tr {
+  animation: fadeInUp 0.4s ease forwards;
+  opacity: 0;
+}
+
+.table-animated tbody tr:nth-child(1) { animation-delay: 50ms; }
+.table-animated tbody tr:nth-child(2) { animation-delay: 100ms; }
+.table-animated tbody tr:nth-child(3) { animation-delay: 150ms; }
+.table-animated tbody tr:nth-child(4) { animation-delay: 200ms; }
+.table-animated tbody tr:nth-child(5) { animation-delay: 250ms; }
+.table-animated tbody tr:nth-child(6) { animation-delay: 300ms; }
+.table-animated tbody tr:nth-child(7) { animation-delay: 350ms; }
+.table-animated tbody tr:nth-child(8) { animation-delay: 400ms; }
+.table-animated tbody tr:nth-child(9) { animation-delay: 450ms; }
+.table-animated tbody tr:nth-child(10) { animation-delay: 500ms; }
+
+/* ============================================
+   FORM INPUT EFFECTS
+   ============================================ */
+
+.input-animated {
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.input-animated:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2),
+              0 0 20px rgba(37, 99, 235, 0.1);
+  transform: scale(1.01);
+}
+
+.input-animated:focus + .input-icon {
+  color: var(--primary);
+}
+
+/* Floating label effect */
+.input-group-float label {
+  transition: all var(--transition-base);
+  pointer-events: none;
+}
+
+.input-group-float input:focus ~ label,
+.input-group-float input:not(:placeholder-shown) ~ label {
+  transform: translateY(-25px) scale(0.85);
+  color: var(--primary);
+}
+
+/* ============================================
+   BADGE & STATUS EFFECTS
+   ============================================ */
+
+.badge-animated {
+  transition: all var(--transition-base);
+}
+
+.badge-animated:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px currentColor;
+}
+
+/* Status indicator pulse */
+.status-online {
+  position: relative;
+}
+
+.status-online::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* ============================================
+   MODAL & OVERLAY EFFECTS
+   ============================================ */
+
+.modal-animated {
+  animation: scaleIn 0.3s var(--transition-spring) forwards;
+  backdrop-filter: blur(5px);
+}
+
+.modal-overlay-animated {
+  animation: fadeIn 0.3s ease forwards;
+  backdrop-filter: blur(8px);
+}
+
+/* Modal content slide */
+.modal-content-animated {
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+/* ============================================
+   TOAST & NOTIFICATION
+   ============================================ */
+
+.toast-animated {
+  animation: slideIn 0.5s ease forwards;
+}
+
+.toast-animated.success {
+  border-left: 4px solid var(--success);
+}
+
+.toast-animated.error {
+  border-left: 4px solid var(--danger);
+}
+
+.toast-animated.warning {
+  border-left: 4px solid var(--warning);
+}
+
+/* ============================================
+   CHART & GRAPH EFFECTS
+   ============================================ */
+
+.chart-animated {
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+.chart-bar-animated {
+  transition: height 1s ease-out;
+}
+
+/* ============================================
+   KPI CARDS & COUNTER
+   ============================================ */
+
+.kpi-card-animated {
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card-animated::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  animation: progressFill 1s ease forwards;
+}
+
+.kpi-number-animated {
+  animation: countUp 0.8s ease forwards;
+}
+
+/* ============================================
+   SKELETON LOADING
+   ============================================ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 25%,
+    var(--bg-card-hover) 50%,
+    var(--bg-card) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-title {
+  height: 1.5rem;
+  width: 60%;
+  margin-bottom: 1rem;
+}
+
+.skeleton-card {
+  height: 120px;
+}
+
+/* ============================================
+   PROGRESS BAR ANIMATION
+   ============================================ */
+
+.progress-animated {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-animated::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+/* ============================================
+   HOVER LIFT EFFECT
+   ============================================ */
+
+.hover-lift {
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px var(--shadow);
+}
+
+/* ============================================
+   PAGE TRANSITIONS
+   ============================================ */
+
+.page-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.page-exit {
+  opacity: 1;
+}
+
+.page-exit-active {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* ============================================
+   ICON ANIMATIONS
+   ============================================ */
+
+.icon-animated {
+  transition: transform var(--transition-base);
+}
+
+.icon-animated:hover {
+  transform: scale(1.2) rotate(5deg);
+}
+
+/* Spinning icon */
+.icon-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================
+   SCROLL ANIMATIONS
+   ============================================ */
+
+/* Elements animate on scroll into view */
+.scroll-animate {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.scroll-animate.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================
+   DROPDOWN MENU
+   ============================================ */
+
+.dropdown-animated {
+  transform-origin: top;
+  animation: scaleIn 0.2s ease forwards;
+}
+
+/* ============================================
+   TABS
+   ============================================ */
+
+.tab-animated {
+  position: relative;
+}
+
+.tab-animated::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  transition: width var(--transition-base);
+}
+
+.tab-animated.active::after,
+.tab-animated:hover::after {
+  width: 100%;
+}
+
+/* Tab content transition */
+.tab-content-animated {
+  animation: fadeIn 0.3s ease;
+}
+
+/* ============================================
+   PAGINATION
+   ============================================ */
+
+.pagination-btn-animated {
+  transition: all var(--transition-fast);
+}
+
+.pagination-btn-animated:hover {
+  background: var(--primary);
+  color: white;
+  transform: scale(1.1);
+}
+
+.pagination-btn-animated.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 0 10px var(--glow);
+}
+
+/* ============================================
+   ALERT & MESSAGE BOX
+   ============================================ */
+
+.alert-animated {
+  animation: fadeInDown 0.4s ease forwards;
+  border-left: 4px solid;
+}
+
+.alert-animated.success {
+  border-color: var(--success);
+}
+
+.alert-animated.error {
+  border-color: var(--danger);
+}
+
+.alert-animated.warning {
+  border-color: var(--warning);
+}
+
+/* ============================================
+   SEARCH & FILTER
+   ============================================ */
+
+.filter-btn-animated {
+  transition: all var(--transition-base);
+}
+
+.filter-btn-animated.active {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 0 15px var(--glow);
+}
+
+/* ============================================
+   TOOLTIP
+   ============================================ */
+
+.tooltip-animated {
+  position: relative;
+}
+
+.tooltip-animated::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  padding: 8px 12px;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-base);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.tooltip-animated:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-5px);
+}
+
+/* ============================================
+   LOGIN PAGE SPECIFIC
+   ============================================ */
+
+.login-card-animated {
+  animation: scaleIn 0.6s var(--transition-spring) forwards;
+}
+
+.login-logo-animated {
+  animation: fadeInDown 0.8s ease forwards;
+}
+
+/* ============================================
+   RESPONSIVE ANIMATIONS
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.transition-all {
+  transition: all var(--transition-base);
+}
+
+.transition-transform {
+  transition: transform var(--transition-base);
+}
+
+.transition-colors {
+  transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base);
+}
+
+.transition-shadow {
+  transition: box-shadow var(--transition-base);
+}
+
+/* Duration utilities */
+.duration-fast { transition-duration: var(--transition-fast); }
+.duration-base { transition-duration: var(--transition-base); }
+.duration-slow { transition-duration: var(--transition-slow); }

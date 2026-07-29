@@ -2,17 +2,171 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Dashboard • Pelaporan Keuangan SPPG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         {% include 'partials/layout_styles.html' %}
 
+        /* ============================================
+           ANIMATED ELEMENTS
+           ============================================ */
+
+        /* Scroll-triggered animation base */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Staggered children animation */
+        .stagger-children > * {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .stagger-children.visible > *:nth-child(1) { opacity: 1; transform: translateY(0); transition-delay: 0ms; }
+        .stagger-children.visible > *:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 100ms; }
+        .stagger-children.visible > *:nth-child(3) { opacity: 1; transform: translateY(0); transition-delay: 200ms; }
+        .stagger-children.visible > *:nth-child(4) { opacity: 1; transform: translateY(0); transition-delay: 300ms; }
+        .stagger-children.visible > *:nth-child(5) { opacity: 1; transform: translateY(0); transition-delay: 400ms; }
+        .stagger-children.visible > *:nth-child(6) { opacity: 1; transform: translateY(0); transition-delay: 500ms; }
+        .stagger-children.visible > *:nth-child(7) { opacity: 1; transform: translateY(0); transition-delay: 600ms; }
+        .stagger-children.visible > *:nth-child(8) { opacity: 1; transform: translateY(0); transition-delay: 700ms; }
+
+        /* Hero section animation */
+        .hero-animated {
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        /* Hero stat cards */
+        .hero-stat-animated {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        .hero-stat-animated:nth-child(1) { animation-delay: 200ms; }
+        .hero-stat-animated:nth-child(2) { animation-delay: 300ms; }
+        .hero-stat-animated:nth-child(3) { animation-delay: 400ms; }
+        .hero-stat-animated:nth-child(4) { animation-delay: 500ms; }
+
+        /* Progress bar animation */
+        .progress-animated {
+            animation: progressFill 1.5s ease forwards;
+        }
+
+        /* Stat chip hover */
+        .stat-chip-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .stat-chip-hover:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 35px -10px rgba(7, 30, 73, 0.2);
+        }
+
+        /* Portal link animation */
+        .portal-link-animated {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .portal-link-animated::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 0;
+            background: linear-gradient(180deg, #55a7d4, #071e49);
+            transition: height 0.3s ease;
+        }
+        .portal-link-animated:hover::before {
+            height: 100%;
+        }
+        .portal-link-animated:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.75);
+            border-color: rgba(85, 167, 212, 0.5);
+            box-shadow:
+                0 10px 28px -8px rgba(85, 167, 212, 0.22),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        }
+
+        /* Portal feature animation */
+        .portal-feature-animated {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .portal-feature-animated:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 15px 35px -10px rgba(7, 30, 73, 0.25);
+        }
+
+        /* Panel card animation */
+        .panel-card-animated {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .panel-card-animated:hover {
+            box-shadow: 0 20px 50px -15px rgba(7, 30, 73, 0.18);
+            transform: translateY(-3px);
+        }
+
+        /* Table row animation */
+        .table-row-animated {
+            transition: all 0.2s ease;
+        }
+        .table-row-animated:hover {
+            background: #f0f9ff !important;
+            transform: scale(1.005);
+            box-shadow: 0 4px 15px -5px rgba(85, 167, 212, 0.2);
+        }
+
+        /* Chart container animation */
+        .chart-animated {
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        /* Number counter animation */
+        .counter-animated {
+            transition: all 0.3s ease;
+        }
+
+        /* Glow effect */
+        .glow-hover {
+            transition: all 0.3s ease;
+        }
+        .glow-hover:hover {
+            box-shadow: 0 0 25px rgba(85, 167, 212, 0.3);
+        }
+
+        /* Badge pulse */
+        .badge-pulse {
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        /* Portal hub banner animation */
+        .banner-animated {
+            animation: fadeInDown 0.6s ease forwards;
+        }
+
+        /* Mobile nav animation */
+        .mobile-nav a {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .mobile-nav a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px -5px rgba(7, 30, 73, 0.2);
+        }
+
         .dash-hero {
             background: linear-gradient(135deg, #041229 0%, #071e49 42%, #0c3d6e 72%, #1a5f8a 100%);
-            border-radius: 1.5rem;
+            border-radius: 1.25rem;
             color: #fff;
             position: relative;
             overflow: hidden;
@@ -26,54 +180,13 @@
                 radial-gradient(ellipse 40% 60% at 0% 100%, rgba(85,167,212,0.18) 0%, transparent 50%);
             pointer-events: none;
         }
-        .dash-hero::after {
-            content: '';
-            position: absolute;
-            top: -30%;
-            right: -8%;
-            width: 340px;
-            height: 340px;
-            background: radial-gradient(circle, rgba(201,165,88,0.12) 0%, transparent 70%);
-            border-radius: 50%;
-            pointer-events: none;
-        }
 
         .hero-stat {
             background: rgba(255,255,255,0.08);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255,255,255,0.14);
             border-radius: 1rem;
-            padding: 0.85rem 1rem;
-        }
-
-        .kpi-card {
-            background: #fff;
-            border: 1px solid #e8edf3;
-            border-radius: 1.25rem;
-            padding: 1.35rem 1.4rem;
-            position: relative;
-            overflow: hidden;
-            transition: transform .2s, box-shadow .2s, border-color .2s;
-            box-shadow: 0 4px 24px -8px rgba(7,30,73,0.1);
-        }
-        .kpi-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: var(--accent, var(--bgn-blue));
-            opacity: 0.85;
-        }
-        .kpi-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 40px -12px rgba(7,30,73,0.18);
-            border-color: #d6e4f0;
-        }
-        .kpi-icon {
-            width: 44px; height: 44px;
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.05rem;
+            padding: 0.9rem 1rem;
         }
 
         .panel-card {
@@ -83,12 +196,26 @@
             box-shadow: 0 8px 32px -12px rgba(7,30,73,0.12);
         }
         .panel-head {
-            padding: 1.15rem 1.5rem;
+            padding: 1.1rem 1.35rem;
             border-bottom: 1px solid #f1f5f9;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
+        }
+
+        .stat-chip {
+            background: #fff;
+            border: 1px solid #e8edf3;
+            border-radius: 1rem;
+            padding: 1rem 1.1rem;
+            box-shadow: 0 4px 20px -10px rgba(7,30,73,0.12);
+        }
+        .stat-chip .accent {
+            width: 40px; height: 40px;
+            border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.95rem;
         }
 
         .status-pill {
@@ -124,41 +251,223 @@
         .ledger-table tbody tr:hover { background: #f8fafc; }
         .ledger-table td { padding: 0.75rem 1rem; font-size: 0.82rem; vertical-align: middle; }
 
-        .module-card {
-            background: #fff;
-            border: 1px solid #e8edf3;
-            border-radius: 1.25rem;
-            padding: 1.25rem 1.35rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            transition: transform .2s, box-shadow .2s, border-color .2s;
-            box-shadow: 0 2px 12px -4px rgba(7,30,73,0.08);
+        .portal-hub {
+            background: rgba(255, 253, 249, 0.55);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            border-radius: 1.35rem;
+            box-shadow:
+                0 16px 48px -20px rgba(7, 30, 73, 0.14),
+                inset 0 1px 0 rgba(255, 255, 255, 0.75);
+            overflow: hidden;
         }
-        .module-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 32px -8px rgba(7,30,73,0.16);
-            border-color: #cbd5e1;
-        }
-        .module-icon {
-            width: 48px; height: 48px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #071e49 0%, #0c3d6e 100%);
-            color: #fff;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem;
-            flex-shrink: 0;
-            box-shadow: 0 4px 12px -2px rgba(7,30,73,0.35);
+        .portal-hub-banner {
+            background: linear-gradient(135deg, #041229 0%, #071e49 50%, #0c3d6e 100%);
+            padding: 1.25rem 1.5rem;
             position: relative;
+            overflow: hidden;
         }
-        .module-icon::after {
+        .portal-hub-banner::after {
             content: '';
             position: absolute;
-            bottom: 0; left: 0;
-            width: 100%; height: 3px;
-            background: var(--bgn-gold);
-            border-radius: 0 0 14px 14px;
-            opacity: 0.9;
+            top: -50%; right: -5%;
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(201,165,88,0.25) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .portal-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+            position: relative;
+            background:
+                radial-gradient(ellipse 75% 55% at 8% 15%, rgba(85, 167, 212, 0.14) 0%, transparent 58%),
+                radial-gradient(ellipse 65% 50% at 92% 85%, rgba(201, 165, 88, 0.12) 0%, transparent 52%),
+                linear-gradient(165deg, rgba(229, 243, 246, 0.45) 0%, rgba(250, 246, 240, 0.35) 50%, rgba(235, 245, 248, 0.4) 100%);
+        }
+        @media (min-width: 1024px) {
+            .portal-grid { grid-template-columns: 1fr 1.4fr 1fr; }
+        }
+        .portal-col {
+            padding: 1.15rem 1.25rem 1.35rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+            background: rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        @media (min-width: 1024px) {
+            .portal-col { border-bottom: none; border-right: 1px solid rgba(255, 255, 255, 0.35); }
+            .portal-col:last-child { border-right: none; }
+        }
+        .portal-col-head {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .portal-col-icon {
+            width: 42px; height: 42px;
+            border-radius: 13px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 6px 16px -4px rgba(0,0,0,0.25);
+        }
+        .portal-col-icon.beranda { background: linear-gradient(135deg, #071e49, #1a5f8a); }
+        .portal-col-icon.laporan { background: linear-gradient(135deg, #0c4a6e, #55a7d4); }
+        .portal-col-icon.mitra { background: linear-gradient(135deg, #92400e, #c9a558); }
+        .portal-col-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #071e49;
+            line-height: 1.2;
+        }
+        .portal-col-sub {
+            font-size: 0.68rem;
+            color: #94a3b8;
+            margin-top: 1px;
+        }
+        .portal-feature {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 1rem 1.1rem;
+            border-radius: 1.1rem;
+            border: 1px solid rgba(255, 255, 255, 0.62);
+            background: rgba(255, 255, 255, 0.48);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow:
+                0 8px 28px -10px rgba(7, 30, 73, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.85);
+            transition: transform .25s ease, box-shadow .25s ease, background .25s ease, border-color .25s ease;
+        }
+        .portal-feature:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.68);
+            border-color: rgba(85, 167, 212, 0.45);
+            box-shadow:
+                0 14px 36px -10px rgba(7, 30, 73, 0.18),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        }
+        .portal-feature-icon {
+            width: 48px; height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #071e49, #0c3d6e);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.15rem;
+            box-shadow: 0 6px 14px -3px rgba(7,30,73,0.4);
+        }
+        .portal-feature-badge {
+            margin-left: auto;
+            font-size: 0.62rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #071e49;
+            color: #c9a558;
+            letter-spacing: 0.04em;
+        }
+        .portal-links { display: flex; flex-direction: column; gap: 0.5rem; }
+        .portal-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0.9rem;
+            border-radius: 0.95rem;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            background: rgba(255, 255, 255, 0.42);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            box-shadow:
+                0 4px 18px -8px rgba(7, 30, 73, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .portal-link:hover {
+            transform: translateX(4px);
+            border-color: rgba(85, 167, 212, 0.5);
+            background: rgba(255, 255, 255, 0.72);
+            box-shadow:
+                0 8px 24px -8px rgba(85, 167, 212, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        }
+        .portal-link-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .portal-link-icon.tagihan { background: #ecfdf5; color: #059669; }
+        .portal-link-icon.petty { background: #eff6ff; color: #2563eb; }
+        .portal-link-icon.gaji { background: #f5f3ff; color: #7c3aed; }
+        .portal-link-icon.insentif { background: #fff7ed; color: #ea580c; }
+        .portal-link-icon.refund { background: #fef2f2; color: #dc2626; }
+        .portal-link-icon.mitra { background: #fffbeb; color: #b45309; }
+        .portal-link-icon.default { background: #f1f5f9; color: #475569; }
+        .portal-link-title {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #071e49;
+            line-height: 1.25;
+        }
+        .portal-link-desc {
+            font-size: 0.65rem;
+            color: #94a3b8;
+            margin-top: 1px;
+        }
+        .portal-link-count {
+            margin-left: auto;
+            font-size: 0.62rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            color: #64748b;
+            flex-shrink: 0;
+        }
+        .portal-link:hover .portal-link-count {
+            background: #071e49;
+            color: #fff;
+        }
+        .portal-link-arrow {
+            color: #cbd5e1;
+            font-size: 0.65rem;
+            margin-left: 0.25rem;
+            flex-shrink: 0;
+        }
+        .portal-link:hover .portal-link-arrow { color: #c9a558; }
+
+        .mobile-nav {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+            scrollbar-width: none;
+        }
+        .mobile-nav::-webkit-scrollbar { display: none; }
+        .mobile-nav a {
+            white-space: nowrap;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #334155;
+        }
+        .mobile-nav a.active {
+            background: var(--bgn-navy);
+            color: #fff;
+            border-color: var(--bgn-navy);
         }
 
         .section-label {
@@ -169,234 +478,366 @@
             color: #94a3b8;
         }
 
-        .progress-ring-label {
-            font-size: 0.62rem;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: #64748b;
+        .chart-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            pointer-events: none;
         }
     </style>
 </head>
-<body class="bg-[#f1f5f9]">
+<body class="app-body">
+    {% set active_menu = 'dashboard' %}
     {% include 'partials/navbar.html' %}
 
     <div class="max-w-screen-2xl mx-auto flex">
-        {% set active_menu = 'dashboard' %}
         {% include 'partials/sidebar.html' %}
 
-        <main class="flex-1 p-6 md:p-8 min-w-0">
-            {% set pct_terbayar = ((summary.terbayar / summary.total * 100) | round(1)) if summary.total else 0 %}
-            {% set pct_diajukan = ((summary.diajukan / summary.total * 100) | round(1)) if summary.total else 0 %}
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
+            {% if 'transfer_bgn' in user_menu_keys or 'laporan' in user_menu_keys %}
+            {% set laporan_qs = '' %}
+            {% include 'partials/beranda_flow_guide.html' %}
+            {% endif %}
+
+            <!-- Mobile quick nav -->
+            <nav class="mobile-nav lg:hidden mb-4" aria-label="Navigasi modul">
+                {% for mod in beranda_modules[:2] %}
+                <a href="{{ mod.href }}" class="{{ 'active' if mod.key == 'dashboard' else '' }}"><i class="fa-solid {{ mod.icon }} mr-1"></i> {{ mod.title.split()[-1] if mod.title.split()|length > 2 else mod.title }}</a>
+                {% endfor %}
+                {% for mod in laporan_modules[:3] %}
+                <a href="{{ mod.href }}"><i class="fa-solid {{ mod.icon }} mr-1"></i> {{ mod.title.split()[-1] if mod.title.split()|length > 2 else mod.title }}</a>
+                {% endfor %}
+            </nav>
 
             <!-- Hero -->
-            <div class="dash-hero px-6 md:px-8 py-7 md:py-8 mb-6 relative">
+            <div class="dash-hero px-5 sm:px-7 py-6 sm:py-7 mb-5 relative hero-animated">
                 <div class="relative z-10">
-                    <div class="flex flex-wrap items-start justify-between gap-5 mb-6">
-                        <div class="flex-1 min-w-[240px]">
-                            <div class="text-[10px] uppercase tracking-[0.35em] text-[#c9a558] font-semibold mb-2">
+                    <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
+                        <div class="flex-1 min-w-[220px]">
+                            <div class="text-[10px] uppercase tracking-[0.35em] text-[#c9a558] font-semibold mb-1.5 animate-fade-in">
                                 Portal Pelaporan Keuangan
                             </div>
-                            <h1 class="font-display text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight leading-tight">
+                            <h1 class="font-display text-2xl sm:text-3xl font-bold tracking-tight leading-tight animate-fade-in">
                                 Dashboard Keuangan
                             </h1>
-                            <p class="text-white/60 text-sm mt-2 max-w-xl">
-                                Ringkasan real-time pengeluaran SPPG Wisma Haji Madiun — tagihan, pembayaran, dan status transaksi.
+                            <p class="text-white/65 text-sm mt-2 max-w-2xl animate-fade-in">
+                                Ringkasan tagihan mitra, status pembayaran, dan akses cepat ke seluruh modul laporan SPPG.
                             </p>
-                            {% if user %}
-                            <div class="mt-4 inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-1.5 text-xs text-white/80">
+                            <div class="mt-3 inline-flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-3.5 py-1.5 text-xs text-white/85 animate-fade-in">
                                 <i class="fa-solid fa-user-check text-[#c9a558]"></i>
-                                <span>
-                                    {% if is_admin %}
-                                    Selamat datang, <strong class="text-white">{{ user.full_name or user.username }}</strong>
-                                    {% else %}
-                                    Selamat datang, <strong class="text-white">Akuntan</strong> — {{ user.full_name or 'Icha Salsabila' }}
-                                    {% endif %}
-                                </span>
+                                <span>{{ role_label }} — <strong class="text-white">{{ user_display_name }}</strong></span>
                             </div>
-                            {% endif %}
                         </div>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <div class="hero-stat text-center sm:text-right min-w-[130px]">
-                                <div class="text-[10px] uppercase tracking-wider text-white/50 font-semibold">Periode</div>
-                                <div class="text-sm font-semibold mt-0.5">Semua Data</div>
-                            </div>
-                            <div class="hero-stat text-center sm:text-right min-w-[130px]">
-                                <div class="text-[10px] uppercase tracking-wider text-white/50 font-semibold">Diperbarui</div>
-                                <div class="text-sm font-semibold mt-0.5">{{ today }}</div>
-                            </div>
+                        <div class="hero-stat text-right min-w-[140px] animate-fade-in">
+                            <div class="text-[10px] uppercase tracking-wider text-white/50 font-semibold">Diperbarui</div>
+                            <div class="text-sm font-semibold mt-0.5">{{ today_display }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">{{ summary.jumlah_item }} entri tagihan</div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                        <div class="hero-stat">
-                            <div class="text-[10px] uppercase tracking-wider text-white/50 font-semibold">Total Pengeluaran</div>
-                            <div class="mt-1 text-lg md:text-xl font-bold money leading-tight">{{ format_rupiah(summary.total) }}</div>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                        <div class="hero-stat hero-stat-animated">
+                            <div class="text-[10px] uppercase tracking-wider text-white/50 font-semibold">Total</div>
+                            <div class="mt-1 text-base sm:text-lg font-bold money leading-tight">{{ format_rupiah(summary.total) }}</div>
                         </div>
-                        <div class="hero-stat">
-                            <div class="text-[10px] uppercase tracking-wider text-emerald-300/80 font-semibold">Terbayar</div>
-                            <div class="mt-1 text-lg md:text-xl font-bold money text-emerald-200 leading-tight">{{ format_rupiah(summary.terbayar) }}</div>
+                        <div class="hero-stat hero-stat-animated">
+                            <div class="text-[10px] uppercase tracking-wider text-emerald-300/85 font-semibold">Terbayar</div>
+                            <div class="mt-1 text-base sm:text-lg font-bold money text-emerald-200 leading-tight">{{ format_rupiah(summary.terbayar) }}</div>
+                            <div class="text-[10px] text-emerald-200/70 mt-0.5">{{ pct_terbayar }}%</div>
                         </div>
-                        <div class="hero-stat">
-                            <div class="text-[10px] uppercase tracking-wider text-amber-300/80 font-semibold">Diajukan</div>
-                            <div class="mt-1 text-lg md:text-xl font-bold money text-amber-200 leading-tight">{{ format_rupiah(summary.diajukan) }}</div>
+                        <div class="hero-stat hero-stat-animated">
+                            <div class="text-[10px] uppercase tracking-wider text-amber-300/85 font-semibold">Diajukan</div>
+                            <div class="mt-1 text-base sm:text-lg font-bold money text-amber-200 leading-tight">{{ format_rupiah(summary.diajukan) }}</div>
+                            <div class="text-[10px] text-amber-200/70 mt-0.5">{{ pct_diajukan }}% menunggu</div>
                         </div>
-                        <div class="hero-stat">
-                            <div class="text-[10px] uppercase tracking-wider text-white/50 font-semibold">Total Entri</div>
-                            <div class="mt-1 text-lg md:text-xl font-bold">{{ summary.jumlah_item }} <span class="text-sm font-medium text-white/60">item</span></div>
+                        <div class="hero-stat hero-stat-animated">
+                            <div class="text-[10px] uppercase tracking-wider text-white/50 font-semibold">Penyelesaian</div>
+                            <div class="mt-1 text-base sm:text-lg font-bold">{{ pct_terbayar }}%</div>
+                            <div class="mt-2 status-track bg-white/10">
+                                <div class="status-fill bg-gradient-to-r from-[#c9a558] to-emerald-400 progress-animated" style="width: {{ pct_terbayar }}%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- KPI Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-                <div class="kpi-card" style="--accent: #55a7d4;">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Total Pengeluaran</div>
-                            <div class="mt-2 text-2xl font-bold text-[#071e49] money leading-tight">{{ format_rupiah(summary.total) }}</div>
-                            <div class="mt-2 text-xs text-slate-400 flex items-center gap-1.5">
-                                <i class="fa-solid fa-database text-[#55a7d4]"></i>
-                                {{ summary.jumlah_item }} entri tercatat
+            <!-- Portal Modul — posisi atas -->
+            <section class="portal-hub mb-5 animate-on-scroll" aria-label="Portal modul">
+                <div class="portal-hub-banner relative z-10 banner-animated">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <div class="text-[10px] uppercase tracking-[0.3em] text-[#c9a558] font-semibold mb-1">Navigasi Cepat</div>
+                            <h2 class="font-display text-lg sm:text-xl font-bold text-white">Portal Modul SPPG</h2>
+                        </div>
+                        <div class="text-xs text-white/55 bg-white/10 border border-white/15 rounded-full px-3.5 py-1.5">
+                            <i class="fa-solid fa-grid-2 text-[#c9a558] mr-1.5"></i>{{ accessible_module_count }} modul untuk Anda
+                        </div>
+                    </div>
+                </div>
+                <div class="portal-grid stagger-children" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+                    {% if beranda_modules %}
+                    <div class="portal-col portal-feature-animated">
+                        <div class="portal-col-head">
+                            <div class="portal-col-icon beranda"><i class="fa-solid fa-house-chimney"></i></div>
+                            <div>
+                                <div class="portal-col-title">Modul Beranda</div>
+                                <div class="portal-col-sub">{{ beranda_modules|length }} modul</div>
                             </div>
                         </div>
-                        <div class="kpi-icon bg-[#55a7d4]/15 text-[#55a7d4]">
-                            <i class="fa-solid fa-wallet"></i>
+                        <div class="portal-links">
+                            {% for mod in beranda_modules %}
+                            <a href="{{ mod.href }}" class="portal-link group">
+                                <div class="portal-link-icon {{ mod.accent }}"><i class="fa-solid {{ mod.icon }}"></i></div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="portal-link-title group-hover:text-[#55a7d4] transition">{{ mod.title }}</div>
+                                    <div class="portal-link-desc truncate">{{ mod.desc }}</div>
+                                </div>
+                                {% if mod.key == 'dashboard' and mod.count %}<span class="portal-link-count">{{ mod.count }}</span>{% endif %}
+                                <i class="fa-solid fa-chevron-right portal-link-arrow"></i>
+                            </a>
+                            {% endfor %}
                         </div>
                     </div>
-                </div>
+                    {% endif %}
 
-                <div class="kpi-card" style="--accent: #10b981;">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="text-[10px] uppercase tracking-wider text-emerald-600 font-semibold">Sudah Terbayar</div>
-                            <div class="mt-2 text-2xl font-bold text-emerald-700 money leading-tight">{{ format_rupiah(summary.terbayar) }}</div>
-                            <div class="mt-2 text-xs text-emerald-600/80 font-medium">{{ pct_terbayar }}% dari total</div>
-                        </div>
-                        <div class="kpi-icon bg-emerald-50 text-emerald-600">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="kpi-card" style="--accent: #f59e0b;">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="text-[10px] uppercase tracking-wider text-amber-600 font-semibold">Diajukan</div>
-                            <div class="mt-2 text-2xl font-bold text-amber-700 money leading-tight">{{ format_rupiah(summary.diajukan) }}</div>
-                            <div class="mt-2 text-xs text-amber-600/80 font-medium">{{ pct_diajukan }}% menunggu bayar</div>
-                        </div>
-                        <div class="kpi-icon bg-amber-50 text-amber-600">
-                            <i class="fa-solid fa-hourglass-half"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="kpi-card" style="--accent: #c9a558;">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="text-[10px] uppercase tracking-wider text-[#071e49] font-semibold">Tingkat Penyelesaian</div>
-                            <div class="mt-2 text-2xl font-bold text-[#071e49] leading-tight">{{ pct_terbayar }}%</div>
-                            <div class="mt-3 status-track">
-                                <div class="status-fill bg-gradient-to-r from-[#c9a558] to-emerald-500" style="width: {{ pct_terbayar }}%"></div>
+                    {% if laporan_modules %}
+                    <div class="portal-col portal-link-animated">
+                        <div class="portal-col-head">
+                            <div class="portal-col-icon laporan"><i class="fa-solid fa-folder-open"></i></div>
+                            <div>
+                                <div class="portal-col-title">Modul Laporan</div>
+                                <div class="portal-col-sub">{{ laporan_modules|length }} laporan keuangan</div>
                             </div>
                         </div>
-                        <div class="kpi-icon bg-[#c9a558]/15 text-[#a8842e]">
-                            <i class="fa-solid fa-chart-pie"></i>
+                        <div class="portal-links">
+                            {% for mod in laporan_modules %}
+                            <a href="{{ mod.href }}" class="portal-link group">
+                                <div class="portal-link-icon {{ mod.accent }}"><i class="fa-solid {{ mod.icon }}"></i></div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="portal-link-title group-hover:text-[#55a7d4] transition">{{ mod.title }}</div>
+                                    <div class="portal-link-desc truncate">{{ mod.desc }}</div>
+                                </div>
+                                {% if mod.count %}<span class="portal-link-count">{{ mod.count }}</span>{% endif %}
+                                <i class="fa-solid fa-chevron-right portal-link-arrow"></i>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if mitra_modules %}
+                    <div class="portal-col portal-link-animated">
+                        <div class="portal-col-head">
+                            <div class="portal-col-icon mitra"><i class="fa-solid fa-handshake"></i></div>
+                            <div>
+                                <div class="portal-col-title">Modul Mitra</div>
+                                <div class="portal-col-sub">Formulir &amp; pengajuan mitra</div>
+                            </div>
+                        </div>
+                        <div class="portal-links">
+                            {% for mod in mitra_modules %}
+                            <a href="{{ mod.href }}" class="portal-link group">
+                                <div class="portal-link-icon {{ mod.accent }}"><i class="fa-solid {{ mod.icon }}"></i></div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="portal-link-title group-hover:text-[#c9a558] transition">{{ mod.title }}</div>
+                                    <div class="portal-link-desc">{{ mod.desc }}</div>
+                                </div>
+                                {% if mod.count %}<span class="portal-link-count">{{ mod.count }}</span>{% endif %}
+                                <i class="fa-solid fa-chevron-right portal-link-arrow"></i>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- Stat chips -->
+            <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-5 stagger-children">
+                <div class="stat-chip stat-chip-hover panel-card-animated cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <div class="accent bg-[#55a7d4]/15 text-[#55a7d4]"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                        <div class="min-w-0">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Tagihan Aktif</div>
+                            <div class="text-lg font-bold text-[#071e49]">{{ summary.jumlah_item }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-chip stat-chip-hover panel-card-animated cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <div class="accent bg-emerald-50 text-emerald-600"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="min-w-0">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Lunas</div>
+                            <div class="text-lg font-bold text-emerald-700">{{ pct_terbayar }}%</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-chip stat-chip-hover panel-card-animated cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <div class="accent bg-amber-50 text-amber-600"><i class="fa-solid fa-hourglass-half"></i></div>
+                        <div class="min-w-0">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Outstanding</div>
+                            <div class="text-lg font-bold text-amber-700 money">{{ format_rupiah(summary.diajukan) }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-chip stat-chip-hover panel-card-animated cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <div class="accent bg-[#c9a558]/15 text-[#a8842e]"><i class="fa-solid fa-layer-group"></i></div>
+                        <div class="min-w-0">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Modul Data</div>
+                            <div class="text-lg font-bold text-[#071e49]">{{ module_stats|length }}</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Charts -->
-            <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 mb-6">
-                <div class="xl:col-span-7 panel-card overflow-hidden">
-                    <div class="panel-head">
-                        <div>
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-5">
+                <div class="xl:col-span-7 panel-card overflow-hidden panel-card-animated animate-on-scroll">
+                    <div class="panel-head flex-wrap items-end gap-3">
+                        <div class="min-w-0 flex-1">
                             <h2 class="font-semibold text-[#071e49] text-base">Pengeluaran per Bulan</h2>
-                            <p class="text-xs text-slate-500 mt-0.5">Tren 6 bulan terakhir berdasarkan tanggal tagihan</p>
+                            <p id="chartRangeSubtitle" class="text-xs text-slate-500 mt-0.5">
+                                {{ chart_dari_display }} — {{ chart_sampai_display }}
+                                · {{ chart_months }} bulan · kategori tagihan mitra
+                            </p>
                         </div>
-                        <div class="hidden sm:flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                            <span class="inline-block w-2.5 h-2.5 rounded-sm bg-[#55a7d4]"></span> Tagihan
-                        </div>
+                        <form id="chartRangeForm" class="flex flex-wrap items-end gap-2 shrink-0" autocomplete="off">
+                            <div>
+                                <label for="chartDari" class="block text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Dari</label>
+                                <input type="date" id="chartDari" name="chart_dari" value="{{ chart_dari }}"
+                                       class="text-xs px-2.5 py-1.5 border border-slate-200 rounded-xl bg-white min-w-[130px]">
+                            </div>
+                            <div>
+                                <label for="chartSampai" class="block text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Sampai</label>
+                                <input type="date" id="chartSampai" name="chart_sampai" value="{{ chart_sampai }}"
+                                       class="text-xs px-2.5 py-1.5 border border-slate-200 rounded-xl bg-white min-w-[130px]">
+                            </div>
+                            <button type="submit" id="chartRangeApply"
+                                    class="text-xs font-semibold px-3.5 py-1.5 rounded-xl bg-[#071e49] text-white hover:bg-[#0c3d6e] transition">
+                                Terapkan
+                            </button>
+                            <div class="flex gap-1">
+                                <button type="button" class="chart-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50" data-months="3">3 bln</button>
+                                <button type="button" class="chart-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50" data-months="6">6 bln</button>
+                                <button type="button" class="chart-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50" data-months="12">12 bln</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="p-5 pt-2">
-                        <div class="h-72">
+                    <div class="p-4 sm:p-5 pt-2 chart-animated">
+                        <div class="h-64 sm:h-72">
                             <canvas id="monthlyChart"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <div class="xl:col-span-5 panel-card overflow-hidden">
+                <div class="xl:col-span-5 panel-card overflow-hidden panel-card-animated animate-on-scroll">
                     <div class="panel-head">
                         <div>
                             <h2 class="font-semibold text-[#071e49] text-base">Distribusi Status</h2>
-                            <p class="text-xs text-slate-500 mt-0.5">Proporsi nilai per status pembayaran</p>
+                            <p class="text-xs text-slate-500 mt-0.5">Proporsi nilai pembayaran tagihan</p>
                         </div>
                     </div>
-                    <div class="p-5">
-                        <div class="flex items-center gap-5 mb-5">
-                            <div class="w-28 h-28 shrink-0">
+                    <div class="p-4 sm:p-5">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="relative w-28 h-28 shrink-0">
                                 <canvas id="statusChart"></canvas>
+                                <div class="chart-center">
+                                    <div class="text-lg font-bold text-[#071e49]">{{ pct_terbayar }}%</div>
+                                    <div class="text-[9px] uppercase tracking-wider text-slate-400 font-semibold">Lunas</div>
+                                </div>
                             </div>
-                            <div class="flex-1 space-y-2 min-w-0">
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="flex items-center gap-2 text-slate-600"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Terbayar</span>
-                                    <span class="font-semibold text-emerald-700 money">{{ format_rupiah(summary.terbayar) }}</span>
-                                </div>
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="flex items-center gap-2 text-slate-600"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Diajukan</span>
-                                    <span class="font-semibold text-amber-700 money">{{ format_rupiah(summary.diajukan) }}</span>
-                                </div>
+                            <div class="flex-1 space-y-2 min-w-0 text-xs">
+                                <div class="flex justify-between"><span class="text-slate-600"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>Dibayarkan</span><span class="font-semibold text-emerald-700 money">{{ format_rupiah(summary.terbayar) }}</span></div>
+                                <div class="flex justify-between"><span class="text-slate-600"><span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1.5"></span>Diajukan</span><span class="font-semibold text-amber-700 money">{{ format_rupiah(summary.diajukan) }}</span></div>
                             </div>
                         </div>
 
-                        <div class="space-y-4">
+                        <div class="space-y-3">
                             {% for item in summary.by_status %}
                             <div>
-                                <div class="flex items-center justify-between mb-1.5 text-sm">
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        {% if item.status == 'TERBAYAR' %}
-                                        <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                                        {% elif item.status == 'DIAJUKAN' %}
-                                        <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
-                                        {% else %}
-                                        <span class="w-2 h-2 rounded-full bg-[#55a7d4] shrink-0"></span>
-                                        {% endif %}
-                                        <span class="font-medium text-[#071e49] truncate">{{ item.status }}</span>
-                                    </div>
-                                    <span class="font-semibold text-[#071e49] money text-sm shrink-0 ml-2">{{ format_rupiah(item.total) }}</span>
+                                <div class="flex items-center justify-between mb-1 text-sm">
+                                    <span class="font-medium text-[#071e49] truncate">{{ item.status }}</span>
+                                    <span class="font-semibold money text-[#071e49] shrink-0 ml-2">{{ format_rupiah(item.total) }}</span>
                                 </div>
                                 <div class="status-track">
-                                    <div class="status-fill {% if item.status == 'TERBAYAR' %}bg-emerald-500{% elif item.status == 'DIAJUKAN' %}bg-amber-500{% else %}bg-[#55a7d4]{% endif %}"
+                                    <div class="status-fill {% if item.status == 'DIBAYARKAN' or item.status == 'TERBAYAR' %}bg-emerald-500{% elif item.status == 'DISETUJUI' %}bg-sky-500{% elif item.status == 'DITOLAK' %}bg-red-500{% elif item.status == 'DIAJUKAN' %}bg-amber-500{% else %}bg-[#55a7d4]{% endif %} progress-animated"
                                          style="width: {{ (item.total / (summary.total or 1) * 100) | round }}%"></div>
                                 </div>
-                                <div class="text-[10px] text-slate-400 mt-1">{{ item.count }} transaksi</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">{{ item.count }} transaksi</div>
                             </div>
+                            {% else %}
+                            <p class="text-sm text-slate-400 text-center py-4">Belum ada data status.</p>
                             {% endfor %}
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Rekening + Module stats -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+                <div class="panel-card overflow-hidden panel-card-animated animate-on-scroll">
+                    <div class="panel-head">
+                        <h2 class="font-semibold text-[#071e49] text-base">Per Rekening</h2>
+                    </div>
+                    <div class="p-4 space-y-3">
+                        {% for item in summary.by_rekening %}
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-[#071e49] font-medium truncate pr-2">{{ item.rekening }}</span>
+                                <span class="money font-semibold shrink-0">{{ format_rupiah(item.total) }}</span>
+                            </div>
+                            <div class="status-track">
+                                <div class="status-fill bg-[#55a7d4] progress-animated" style="width: {{ (item.total / (summary.total or 1) * 100) | round }}%"></div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-sm text-slate-400 text-center py-6">Belum ada pembagian rekening.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="panel-card overflow-hidden panel-card-animated animate-on-scroll">
+                    <div class="panel-head">
+                        <h2 class="font-semibold text-[#071e49] text-base">Ringkasan Modul</h2>
+                    </div>
+                    <div class="p-4 space-y-2.5">
+                        {% for mod in module_stats %}
+                        <div class="flex items-center justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">
+                            <div class="min-w-0 pr-3">
+                                <div class="font-medium text-[#071e49] truncate">{{ mod.label }}</div>
+                                <div class="text-[10px] text-slate-400">{{ mod.count }} entri</div>
+                            </div>
+                            <div class="money font-semibold text-[#071e49] shrink-0">{{ format_rupiah(mod.total) }}</div>
+                        </div>
+                        {% else %}
+                        <p class="text-sm text-slate-400 text-center py-6">Belum ada data modul.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
             <!-- Recent Activity -->
-            <div class="panel-card overflow-hidden mb-6">
+            <div class="panel-card overflow-hidden mb-5 animate-on-scroll">
                 <div class="panel-head bg-[#f8fafc]">
                     <div>
                         <h2 class="font-semibold text-[#071e49] text-base">Aktivitas Terbaru</h2>
                         <p class="text-xs text-slate-500 mt-0.5">{{ recent|length }} transaksi tagihan terakhir</p>
                     </div>
-                    <a href="/tagihan" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#55a7d4] hover:text-[#071e49] transition px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:border-[#55a7d4]/40">
+                    <a href="/tagihan" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#55a7d4] hover:text-[#071e49] transition px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:shadow-md">
                         Lihat Semua <i class="fa-solid fa-arrow-right text-[10px]"></i>
                     </a>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="table-scroll-wrap overflow-x-auto">
                     <table class="ledger-table w-full">
                         <thead>
                             <tr>
                                 <th class="text-left w-12">No</th>
-                                <th class="text-left min-w-[220px]">Keterangan</th>
+                                <th class="text-left min-w-[200px]">Keterangan</th>
                                 <th class="text-right">Jumlah</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-left hidden md:table-cell">Tanggal</th>
@@ -404,26 +845,20 @@
                         </thead>
                         <tbody>
                             {% for item in recent %}
-                            <tr>
+                            <tr class="table-row-animated">
                                 <td class="text-slate-400 font-mono text-xs">{{ item.no or '—' }}</td>
-                                <td class="font-medium text-[#071e49]">{{ item.pengajuan }}</td>
-                                <td class="text-right font-semibold money text-[#071e49]">{{ format_rupiah(item.jumlah) }}</td>
+                                <td class="font-medium text-[#071e49] max-w-[280px] truncate" title="{{ item.pengajuan }}">{{ item.pengajuan }}</td>
+                                <td class="text-right font-semibold money text-[#071e49] whitespace-nowrap">{{ format_rupiah(item.jumlah) }}</td>
                                 <td class="text-center">
-                                    {% if item.status == 'TERBAYAR' %}
-                                    <span class="status-pill bg-emerald-100 text-emerald-700">TERBAYAR</span>
-                                    {% elif item.status == 'DIAJUKAN' %}
-                                    <span class="status-pill bg-amber-100 text-amber-700">DIAJUKAN</span>
-                                    {% else %}
-                                    <span class="status-pill bg-slate-100 text-slate-500">—</span>
-                                    {% endif %}
+                                    {% set status = item.status %}{% set rejection_note = item.rejection_note %}{% include 'partials/status_pill.html' %}
                                 </td>
-                                <td class="text-xs text-slate-500 hidden md:table-cell">{{ item.tanggal or '—' }}</td>
+                                <td class="text-xs text-slate-500 hidden md:table-cell whitespace-nowrap">{{ item.tanggal_display }}</td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="5" class="py-12 text-center text-sm text-slate-400">
-                                    <i class="fa-solid fa-inbox text-3xl mb-2 text-slate-200"></i>
-                                    <p>Belum ada aktivitas tagihan.</p>
+                                <td colspan="5" class="py-10 text-center text-sm text-slate-400">
+                                    <i class="fa-solid fa-inbox text-2xl mb-2 text-slate-200 block"></i>
+                                    Belum ada aktivitas tagihan.
                                 </td>
                             </tr>
                             {% endfor %}
@@ -432,81 +867,6 @@
                 </div>
             </div>
 
-            <!-- Modul Laporan -->
-            <div class="mb-6">
-                <div class="flex items-center gap-3 mb-4 px-1">
-                    <div class="section-label">Modul Laporan</div>
-                    <div class="flex-1 h-px bg-slate-200"></div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <a href="/tagihan" class="module-card group">
-                        <div class="module-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-[#071e49] group-hover:text-[#55a7d4] transition">Laporan Tagihan</div>
-                            <div class="text-xs text-slate-500 mt-0.5">Data tagihan mitra SPPG</div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-[#c9a558] text-xs transition"></i>
-                    </a>
-                    <a href="/petty-cash" class="module-card group">
-                        <div class="module-icon"><i class="fa-solid fa-wallet"></i></div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-[#071e49] group-hover:text-[#55a7d4] transition">Laporan Petty Cash</div>
-                            <div class="text-xs text-slate-500 mt-0.5">Buku besar &amp; reimbursement</div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-[#c9a558] text-xs transition"></i>
-                    </a>
-                    <a href="/gaji-relawan" class="module-card group">
-                        <div class="module-icon"><i class="fa-solid fa-users"></i></div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-[#071e49] group-hover:text-[#55a7d4] transition">Laporan Gaji</div>
-                            <div class="text-xs text-slate-500 mt-0.5">Pembayaran gaji relawan SPPG</div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-[#c9a558] text-xs transition"></i>
-                    </a>
-                    <a href="/insentif-mitra" class="module-card group">
-                        <div class="module-icon"><i class="fa-solid fa-handshake"></i></div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-[#071e49] group-hover:text-[#55a7d4] transition">Laporan Insentif Mitra</div>
-                            <div class="text-xs text-slate-500 mt-0.5">Pembayaran insentif mitra SPPG</div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-[#c9a558] text-xs transition"></i>
-                    </a>
-                    <a href="/pengembalian-dana" class="module-card group">
-                        <div class="module-icon"><i class="fa-solid fa-rotate-left"></i></div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-[#071e49] group-hover:text-[#55a7d4] transition">Pengembalian Dana</div>
-                            <div class="text-xs text-slate-500 mt-0.5">Pencatatan refund SPPG</div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-[#c9a558] text-xs transition"></i>
-                    </a>
-                    <a href="/insentif-pic" class="module-card group">
-                        <div class="module-icon"><i class="fa-solid fa-user-tie"></i></div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-[#071e49] group-hover:text-[#55a7d4] transition">Insentif PIC</div>
-                            <div class="text-xs text-slate-500 mt-0.5">Pembayaran insentif PIC SPPG</div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-[#c9a558] text-xs transition"></i>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Modul Mitra -->
-            <div>
-                <div class="flex items-center gap-3 mb-4 px-1">
-                    <div class="section-label">Modul Mitra</div>
-                    <div class="flex-1 h-px bg-slate-200"></div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <a href="/pengajuan-dana-mitra" class="module-card group">
-                        <div class="module-icon"><i class="fa-solid fa-file-invoice"></i></div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-[#071e49] group-hover:text-[#55a7d4] transition">Pengajuan Dana Mitra</div>
-                            <div class="text-xs text-slate-500 mt-0.5">Pencatatan pengajuan dana mitra SPPG</div>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-slate-300 group-hover:text-[#c9a558] text-xs transition"></i>
-                    </a>
-                </div>
-            </div>
         </main>
     </div>
 
@@ -515,64 +875,177 @@
         const BGN_BLUE = '#55a7d4';
         const BGN_GOLD = '#c9a558';
 
-        function initMonthlyChart() {
-            const ctx = document.getElementById('monthlyChart');
-            if (!ctx) return;
+        let monthlyChartInstance = null;
 
-            const labels = {{ monthly | map(attribute='bulan') | list | tojson }};
-            const values = {{ monthly | map(attribute='total') | list | tojson }};
-
-            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 280);
+        function buildMonthlyGradient(ctx) {
+            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 260);
             gradient.addColorStop(0, '#55a7d4');
             gradient.addColorStop(1, '#071e49');
+            return gradient;
+        }
 
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels.length ? labels : ['Belum ada data'],
-                    datasets: [{
-                        label: 'Total Pengeluaran',
-                        data: values.length ? values : [0],
-                        backgroundColor: gradient,
-                        borderColor: BGN_GOLD,
-                        borderWidth: { top: 2, right: 0, bottom: 0, left: 0 },
-                        borderRadius: { topLeft: 8, topRight: 8 },
-                        barThickness: 36,
-                        maxBarThickness: 48,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: (val) => 'Rp' + (val / 1e6).toFixed(1) + ' jt',
-                                color: '#64748b',
-                                font: { size: 11 }
-                            },
-                            grid: { color: '#f1f5f9', drawBorder: false }
+        function monthlyChartOptions() {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (val) => val >= 1e6 ? 'Rp' + (val / 1e6).toFixed(1) + ' jt' : 'Rp' + (val / 1e3).toFixed(0) + ' rb',
+                            color: '#64748b',
+                            font: { size: 11 }
                         },
-                        x: {
-                            ticks: { color: '#64748b', font: { size: 11 } },
-                            grid: { display: false }
-                        }
+                        grid: { color: '#f1f5f9', drawBorder: false }
                     },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: BGN_NAVY,
-                            titleColor: '#fff',
-                            bodyColor: BGN_GOLD,
-                            padding: 12,
-                            cornerRadius: 10,
-                            callbacks: {
-                                label: (c) => ' Rp ' + c.raw.toLocaleString('id-ID')
-                            }
+                    x: {
+                        ticks: { color: '#64748b', font: { size: 11 }, maxRotation: 0 },
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: BGN_NAVY,
+                        titleColor: '#fff',
+                        bodyColor: BGN_GOLD,
+                        padding: 12,
+                        cornerRadius: 10,
+                        callbacks: {
+                            label: (c) => ' Rp ' + Number(c.raw).toLocaleString('id-ID')
                         }
                     }
                 }
+            };
+        }
+
+        function renderMonthlyChart(labels, values) {
+            const ctx = document.getElementById('monthlyChart');
+            if (!ctx) return;
+
+            const hasData = values.some(v => v > 0);
+            const gradient = buildMonthlyGradient(ctx);
+            const chartLabels = hasData ? labels : ['Belum ada data'];
+            const chartValues = hasData ? values : [0];
+
+            if (monthlyChartInstance) {
+                monthlyChartInstance.data.labels = chartLabels;
+                monthlyChartInstance.data.datasets[0].data = chartValues;
+                monthlyChartInstance.data.datasets[0].backgroundColor = hasData ? gradient : '#e2e8f0';
+                monthlyChartInstance.data.datasets[0].borderColor = hasData ? BGN_GOLD : '#cbd5e1';
+                monthlyChartInstance.update();
+                return;
+            }
+
+            monthlyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Total Pengeluaran',
+                        data: chartValues,
+                        backgroundColor: hasData ? gradient : '#e2e8f0',
+                        borderColor: hasData ? BGN_GOLD : '#cbd5e1',
+                        borderWidth: { top: 2, right: 0, bottom: 0, left: 0 },
+                        borderRadius: { topLeft: 8, topRight: 8 },
+                        barThickness: 32,
+                        maxBarThickness: 44,
+                    }]
+                },
+                options: monthlyChartOptions()
+            });
+        }
+
+        function initMonthlyChart() {
+            const labels = {{ monthly | map(attribute='label') | list | tojson }};
+            const values = {{ monthly | map(attribute='total') | list | tojson }};
+            renderMonthlyChart(labels, values);
+        }
+
+        function formatIsoDate(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        function shiftMonths(base, count) {
+            const d = new Date(base.getFullYear(), base.getMonth() - (count - 1), 1);
+            return d;
+        }
+
+        function updateChartSubtitle(data) {
+            const el = document.getElementById('chartRangeSubtitle');
+            if (!el) return;
+            const months = data.months ?? 0;
+            el.textContent = `${data.dari_display} — ${data.sampai_display} · ${months} bulan · kategori tagihan mitra`;
+        }
+
+        function syncChartUrl(dari, sampai) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('chart_dari', dari);
+            url.searchParams.set('chart_sampai', sampai);
+            window.history.replaceState({}, '', url);
+        }
+
+        async function loadMonthlyChart(dari, sampai) {
+            const applyBtn = document.getElementById('chartRangeApply');
+            if (applyBtn) {
+                applyBtn.disabled = true;
+                applyBtn.textContent = 'Memuat…';
+            }
+            try {
+                const qs = new URLSearchParams({ dari, sampai });
+                const res = await fetch(`/api/dashboard/monthly-chart?${qs}`, { credentials: 'same-origin' });
+                if (!res.ok) throw new Error('Gagal memuat data');
+                const data = await res.json();
+                renderMonthlyChart(data.labels || [], data.values || []);
+                updateChartSubtitle(data);
+                syncChartUrl(data.dari, data.sampai);
+                const dariInput = document.getElementById('chartDari');
+                const sampaiInput = document.getElementById('chartSampai');
+                if (dariInput) dariInput.value = data.dari;
+                if (sampaiInput) sampaiInput.value = data.sampai;
+            } catch (err) {
+                alert('Gagal memuat grafik. Periksa rentang tanggal.');
+            } finally {
+                if (applyBtn) {
+                    applyBtn.disabled = false;
+                    applyBtn.textContent = 'Terapkan';
+                }
+            }
+        }
+
+        function initChartRangeControls() {
+            const form = document.getElementById('chartRangeForm');
+            if (!form) return;
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const dari = document.getElementById('chartDari')?.value;
+                const sampai = document.getElementById('chartSampai')?.value;
+                if (!dari || !sampai) {
+                    alert('Pilih tanggal dari dan sampai.');
+                    return;
+                }
+                if (dari > sampai) {
+                    alert('Tanggal "Dari" tidak boleh setelah "Sampai".');
+                    return;
+                }
+                loadMonthlyChart(dari, sampai);
+            });
+
+            document.querySelectorAll('.chart-preset').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const months = parseInt(btn.dataset.months, 10) || 6;
+                    const end = new Date();
+                    const start = shiftMonths(end, months);
+                    const dari = formatIsoDate(start);
+                    const sampai = formatIsoDate(end);
+                    document.getElementById('chartDari').value = dari;
+                    document.getElementById('chartSampai').value = sampai;
+                    loadMonthlyChart(dari, sampai);
+                });
             });
         }
 
@@ -583,28 +1056,30 @@
             const terbayar = {{ summary.terbayar }};
             const diajukan = {{ summary.diajukan }};
             const lainnya = Math.max(0, {{ summary.total }} - terbayar - diajukan);
+            const total = terbayar + diajukan + lainnya;
 
             new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: ['Terbayar', 'Diajukan', 'Lainnya'],
                     datasets: [{
-                        data: [terbayar, diajukan, lainnya],
-                        backgroundColor: ['#10b981', '#f59e0b', '#55a7d4'],
+                        data: total ? [terbayar, diajukan, lainnya] : [1],
+                        backgroundColor: total ? ['#10b981', '#f59e0b', '#55a7d4'] : ['#e2e8f0'],
                         borderWidth: 0,
-                        hoverOffset: 4,
+                        hoverOffset: 3,
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    cutout: '68%',
+                    cutout: '72%',
                     plugins: {
                         legend: { display: false },
                         tooltip: {
+                            enabled: total > 0,
                             backgroundColor: BGN_NAVY,
                             callbacks: {
-                                label: (c) => ' Rp ' + c.raw.toLocaleString('id-ID')
+                                label: (c) => ' Rp ' + Number(c.raw).toLocaleString('id-ID')
                             }
                         }
                     }
@@ -614,7 +1089,42 @@
 
         window.addEventListener('load', () => {
             initMonthlyChart();
+            initChartRangeControls();
             initStatusChart();
+
+            // ============================================
+            // SCROLL ANIMATIONS
+            // ============================================
+
+            const animatedElements = document.querySelectorAll('.animate-on-scroll, .stagger-children');
+
+            if (animatedElements.length > 0) {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            // Also trigger child animations
+                            if (entry.target.classList.contains('stagger-children')) {
+                                entry.target.classList.add('visible');
+                            }
+                        }
+                    });
+                }, {
+                    threshold: 0.1,
+                    rootMargin: '0px 0px -50px 0px'
+                });
+
+                animatedElements.forEach(el => {
+                    observer.observe(el);
+                });
+            }
+
+            // Trigger initial animations after page load
+            setTimeout(() => {
+                document.querySelectorAll('.stagger-children').forEach(el => {
+                    el.classList.add('visible');
+                });
+            }, 500);
         });
     </script>
 </body>

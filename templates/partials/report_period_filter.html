@@ -1,0 +1,56 @@
+{# Filter periode sinkron dengan Laporan Keuangan — butuh: form_action, filters (dari/sampai), period_label #}
+<div class="report-sheet p-4 mb-5 no-print">
+    <form method="GET" action="{{ form_action }}" class="flex flex-wrap gap-3 items-end">
+        <div>
+            <label class="block text-xs text-slate-500 mb-1">Dari tanggal</label>
+            <input type="date" name="dari" value="{{ filters.dari or '' }}" class="text-sm px-3 py-2 border rounded-xl form-input min-w-[140px]">
+        </div>
+        <div>
+            <label class="block text-xs text-slate-500 mb-1">Sampai tanggal</label>
+            <input type="date" name="sampai" value="{{ filters.sampai or '' }}" class="text-sm px-3 py-2 border rounded-xl form-input min-w-[140px]">
+        </div>
+        {% for hidden in hidden_fields or [] %}
+        <input type="hidden" name="{{ hidden.name }}" value="{{ hidden.value }}">
+        {% endfor %}
+        <button type="submit" class="px-4 py-2 text-sm font-semibold bg-[#071e49] text-white rounded-xl">Terapkan</button>
+        <a href="{{ form_action }}" class="px-4 py-2 text-sm border rounded-xl text-slate-600 hover:bg-slate-50">Semua periode</a>
+        {% if 'transfer_bgn' in user_menu_keys %}
+        <a href="{{ transfer_bgn_href or ('/transfer-bgn' ~ (laporan_qs or '')) }}" class="px-4 py-2 text-sm border rounded-xl text-emerald-800 hover:bg-emerald-50">
+            <i class="fa-solid fa-building-columns mr-1"></i> Transfer BGN
+        </a>
+        {% endif %}
+        <a href="/laporan{{ laporan_qs or '' }}" class="px-4 py-2 text-sm border rounded-xl text-[#071e49] hover:bg-slate-50">
+            <i class="fa-solid fa-clipboard-list mr-1"></i> Laporan Keuangan
+        </a>
+        <div class="flex gap-1 ml-1">
+            <button type="button" class="period-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border" data-months="3">3 bln</button>
+            <button type="button" class="period-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border" data-months="6">6 bln</button>
+            <button type="button" class="period-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border" data-months="12">12 bln</button>
+        </div>
+    </form>
+    <p class="text-xs text-slate-400 mt-2">
+        Periode aktif: <strong class="text-slate-600">{{ period_label }}</strong>
+        — angka diselaraskan dengan menu <a href="/laporan{{ laporan_qs or '' }}" class="text-[#071e49] hover:underline">Laporan Keuangan</a>
+    </p>
+</div>
+<script>
+(function () {
+    function formatIso(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    document.querySelectorAll('.period-preset').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const months = parseInt(btn.dataset.months, 10) || 6;
+            const end = new Date();
+            const start = new Date(end.getFullYear(), end.getMonth() - (months - 1), 1);
+            const form = btn.closest('form');
+            if (!form) return;
+            const dari = form.querySelector('[name=dari]');
+            const sampai = form.querySelector('[name=sampai]');
+            if (dari) dari.value = formatIso(start);
+            if (sampai) sampai.value = formatIso(end);
+            form.submit();
+        });
+    });
+})();
+</script>

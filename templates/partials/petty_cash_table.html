@@ -1,0 +1,384 @@
+{% if laporan is not none and laporan %}
+{% set is_buku_besar = (laporan.report_type or '') == 'buku_besar' %}
+{% set is_reimb = is_reimbursement or (not is_buku_besar) %}
+{% set saldo_akhir = laporan.saldo_akhir or laporan.sisa_dana or 0 %}
+
+<!-- Report Table -->
+<div class="report-sheet overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 no-print">
+        <div class="font-semibold text-[#071e49] text-sm">
+            <i class="fa-solid fa-table-list text-[#55a7d4] mr-1"></i>
+            Rincian Transaksi
+            {% if has_filters %}<span class="text-slate-400 font-normal">(hasil filter)</span>{% endif %}
+        </div>
+    </div>
+
+    <div class="table-scroll-wrap overflow-x-auto">
+        <table class="w-full ledger-table">
+            <thead>
+                <tr>
+                    {% if can_edit %}<th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>{% endif %}
+                    <th class="text-left w-10">No</th>
+                    <th class="text-left w-28">Tanggal</th>
+                    {% if is_buku_besar %}
+                    <th class="text-left w-28">Tipe</th>
+                    <th class="text-left min-w-[240px]">Keterangan</th>
+                    <th class="text-right w-28">Debit</th>
+                    <th class="text-right w-28">Kredit</th>
+                    <th class="text-right w-32">Saldo Akhir</th>
+                    {% else %}
+                    <th class="text-left min-w-[200px]">Deskripsi</th>
+                    <th class="text-right w-28">Pemasukan</th>
+                    <th class="text-right w-28">Pengeluaran</th>
+                    <th class="text-center w-28">Status</th>
+                    <th class="text-center w-32">Nota</th>
+                    <th class="text-left w-32">Ket</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% if is_buku_besar and laporan.saldo_awal is not none and not has_filters %}
+                <tr class="bg-slate-50 font-medium">
+                    {% if can_edit %}<td class="no-print"></td>{% endif %}
+                    <td></td>
+                    <td></td>
+                    <td><span class="badge-tipe bg-slate-200 text-slate-600">SALDO</span></td>
+                    <td class="text-[#071e49]">Saldo Awal Periode</td>
+                    <td class="text-right money text-slate-400">—</td>
+                    <td class="text-right money text-slate-400">—</td>
+                    <td class="text-right money font-semibold text-[#071e49]">{{ format_rupiah(laporan.saldo_awal or 0) }}</td>
+                </tr>
+                {% elif not is_buku_besar and not has_filters %}
+                <tr class="bg-emerald-50/60 font-medium row-income">
+                    {% if can_edit %}<td class="no-print"></td>{% endif %}
+                    <td></td>
+                    <td></td>
+                    <td class="text-[#071e49]">Saldo Awal</td>
+                    <td class="text-right money text-emerald-700 font-semibold">{{ format_rupiah(laporan.saldo_awal or 0) }}</td>
+                    <td class="text-right money text-slate-300">—</td>
+                    <td></td>
+                    <td class="nota-cell"></td>
+                    <td></td>
+                </tr>
+                {% endif %}
+
+                {% for item in items %}
+                {% set debit = item.debit or 0 %}
+                {% set kredit = item.kredit or (item.jumlah if debit == 0 else 0) %}
+                {% set row_type = 'income' if debit > 0 and kredit == 0 else 'expense' %}
+                <tr class="ledger-row {% if row_type == 'income' %}row-income{% else %}row-expense{% endif %}"
+                    data-type="{{ row_type }}" data-id="{{ item.id }}">
+                    {% if can_edit %}
+                    <td class="no-print px-2">
+                        <input type="checkbox" class="row-checkbox rounded" value="{{ item.id }}">
+                    </td>
+                    {% endif %}
+                    <td class="text-slate-400 font-mono text-xs">{{ item.no or loop.index }}</td>
+                    <td class="text-slate-600 whitespace-nowrap text-xs">{{ format_tanggal(item.tanggal) }}</td>
+                    {% if is_buku_besar %}
+                    <td>
+                        <span class="badge-tipe {% if row_type == 'income' %}bg-emerald-100 text-emerald-700{% else %}bg-blue-50 text-blue-700{% endif %}">
+                            {{ item.tipe_transaksi or 'Jurnal' }}
+                        </span>
+                    </td>
+                    <td class="font-medium text-[#071e49] leading-snug">{{ item.pengajuan }}</td>
+                    <td class="text-right money {% if debit > 0 %}text-emerald-700 font-semibold{% else %}text-slate-300{% endif %}">
+                        {% if debit > 0 %}{{ format_rupiah(debit) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="text-right money {% if kredit > 0 %}text-amber-700 font-semibold{% else %}text-slate-300{% endif %}">
+                        {% if kredit > 0 %}{{ format_rupiah(kredit) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="text-right money font-medium {% if (item.saldo_akhir or 0) < 0 %}saldo-negatif{% else %}text-[#071e49]{% endif %}">
+                        {% if item.saldo_akhir is not none %}{{ format_rupiah(item.saldo_akhir) }}{% else %}—{% endif %}
+                    </td>
+                    {% else %}
+                    <td class="font-medium text-[#071e49] leading-snug">{{ item.pengajuan }}</td>
+                    <td class="text-right money {% if debit > 0 %}text-emerald-700 font-semibold{% else %}text-slate-300{% endif %}">
+                        {% if debit > 0 %}{{ format_rupiah(debit) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="text-right money {% if kredit > 0 %}text-amber-700 font-semibold{% else %}text-slate-300{% endif %}">
+                        {% if kredit > 0 %}{{ format_rupiah(kredit) }}{% elif item.jumlah > 0 %}{{ format_rupiah(item.jumlah) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% set item_status = item.status or 'DIAJUKAN' %}
+                        {% if can_edit %}
+                        <select class="status-select text-[10px] font-bold rounded-full px-2 py-0.5 border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#55a7d4]
+                            {% if item_status == 'DIAJUKAN' %}bg-blue-100 text-blue-700
+                            {% elif item_status == 'DISETUJUI' %}bg-emerald-100 text-emerald-700
+                            {% elif item_status == 'DIBAYAR' %}bg-violet-100 text-violet-700
+                            {% elif item_status == 'DIBATALKAN' %}bg-red-100 text-red-600
+                            {% else %}bg-slate-100 text-slate-600{% endif %}"
+                            onchange="updateItemStatus({{ item.id }}, this.value)"
+                            data-item-id="{{ item.id }}">
+                            <option value="DIAJUKAN" {% if item_status == 'DIAJUKAN' %}selected{% endif %}>Diajukan</option>
+                            <option value="DISETUJUI" {% if item_status == 'DISETUJUI' %}selected{% endif %}>Disetujui</option>
+                            <option value="DIBAYAR" {% if item_status == 'DIBAYAR' %}selected{% endif %}>Dibayar</option>
+                            <option value="DIBATALKAN" {% if item_status == 'DIBATALKAN' %}selected{% endif %}>Dibatalkan</option>
+                        </select>
+                        {% else %}
+                        <span class="text-[10px] font-bold rounded-full px-2 py-0.5
+                            {% if item_status == 'DIAJUKAN' %}bg-blue-100 text-blue-700
+                            {% elif item_status == 'DISETUJUI' %}bg-emerald-100 text-emerald-700
+                            {% elif item_status == 'DIBAYAR' %}bg-violet-100 text-violet-700
+                            {% elif item_status == 'DIBATALKAN' %}bg-red-100 text-red-600
+                            {% else %}bg-slate-100 text-slate-600{% endif %}">
+                            {{ item_status }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center nota-cell">
+                        <div class="nota-actions" id="nota-cell-{{ item.id }}">
+                            {% if item.nota_path %}
+                            <img src="/uploads/{{ item.nota_path }}" alt="Nota {{ item.no or loop.index }}"
+                                 class="nota-thumb-lg"
+                                 title="Klik untuk perbesar"
+                                 onclick="openNota('/uploads/{{ item.nota_path }}', '{{ item.pengajuan | e }}')">
+                            {% if can_upload %}
+                            <button type="button" class="btn-nota btn-nota-del no-print" onclick="deleteNota({{ item.id }})">
+                                <i class="fa-solid fa-trash-can"></i> Hapus
+                            </button>
+                            {% endif %}
+                            {% else %}
+                            <div class="w-[72px] h-[48px] rounded-lg border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-300 text-[10px] no-print">
+                                Kosong
+                            </div>
+                            {% endif %}
+                            {% if can_upload %}
+                            <button type="button" class="btn-nota btn-nota-add no-print" onclick="triggerNotaUpload({{ item.id }})">
+                                <i class="fa-solid fa-plus"></i> Tambah File
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="ket-cell">
+                        {% if can_upload %}
+                        <div class="no-print">
+                            <button type="button"
+                                    class="ket-menu-btn {% if item.ket %}has-ket{% endif %}"
+                                    id="ket-btn-{{ item.id }}"
+                                    onclick="toggleKetPopover({{ item.id }}, event)"
+                                    title="{% if item.ket %}{{ item.ket }}{% else %}Tambah keterangan{% endif %}">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                            <div class="ket-popover" id="ket-popover-{{ item.id }}" onclick="event.stopPropagation()">
+                                <textarea class="ket-textarea" id="ket-text-{{ item.id }}" placeholder="Tulis keterangan...">{{ item.ket or '' }}</textarea>
+                                <div class="ket-popover-actions">
+                                    <button type="button" class="btn-ket-cancel" onclick="closeKetPopover({{ item.id }})">Batal</button>
+                                    <button type="button" class="btn-ket-save" onclick="saveKetPopover({{ item.id }})">Simpan</button>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="text-xs text-slate-600">{{ item.ket or '—' }}</span>
+                        {% endif %}
+                        <span class="hidden print:inline text-xs text-slate-600">{{ item.ket or '—' }}</span>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+
+                {% if not items %}
+                <tr>
+                    <td colspan="{% if is_buku_besar %}9{% else %}9{% endif %}" class="px-6 py-10 text-center text-sm text-slate-400">
+                        Tidak ada transaksi yang cocok dengan filter. <a href="/petty-cash{% if selected_upload_id %}?upload_id={{ selected_upload_id }}{% endif %}" class="text-[#55a7d4] underline">Reset filter</a>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+            {% if is_buku_besar and items %}
+            <tfoot class="bg-[#071e49] text-white text-sm font-semibold">
+                <tr>
+                    <td colspan="{% if can_edit %}6{% else %}5{% endif %}" class="px-4 py-3 text-right uppercase tracking-wider text-xs opacity-80">
+                        {% if has_filters %}Subtotal Filter{% else %}Total{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right money">{{ format_rupiah(total_penerimaan) }}</td>
+                    <td class="px-4 py-3 text-right money">{{ format_rupiah(total_pengeluaran) }}</td>
+                    <td class="px-4 py-3 text-right money {% if saldo_akhir < 0 and not has_filters %}text-red-300{% endif %}">
+                        {% if has_filters %}—{% else %}{{ format_rupiah(saldo_akhir) }}{% endif %}
+                    </td>
+                </tr>
+            </tfoot>
+            {% else %}
+            <tfoot class="border-t-2 border-slate-200 bg-slate-50 text-sm font-semibold">
+                <tr>
+                    <td colspan="4" class="px-4 py-3 text-right text-slate-600">Total Pemasukan</td>
+                    <td class="px-4 py-3 text-right money text-slate-300">—</td>
+                    <td class="px-4 py-3 text-right money text-emerald-700">{{ format_rupiah(laporan.saldo_awal or total_penerimaan or 0) }}</td>
+                    <td></td>
+                    <td></td><td></td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="px-4 py-3 text-right text-slate-600">Total Pengeluaran</td>
+                    <td class="px-4 py-3 text-right money text-slate-300">—</td>
+                    <td class="px-4 py-3 text-right money text-amber-700">{{ format_rupiah(total_pengeluaran or 0) }}</td>
+                    <td></td><td></td>
+                </tr>
+                <tr>
+                    <td colspan="5" class="px-4 py-3 text-right text-slate-600">Sisa Dana</td>
+                    <td colspan="2" class="px-4 py-3 text-right money {% if (laporan.sisa_dana or 0) < 0 %}saldo-negatif{% else %}text-emerald-700{% endif %}">
+                        {{ format_rupiah(laporan.sisa_dana or 0) }}
+                    </td>
+                    <td></td><td></td>
+                </tr>
+                <tr class="bg-[#071e49]/5">
+                    <td colspan="4" class="px-4 py-4 text-right text-[#071e49] font-bold">Total yang Digantikan</td>
+                    <td class="px-4 py-4 text-right money text-slate-300">—</td>
+                    <td class="px-4 py-4 text-right money text-[#071e49] font-bold">{{ format_rupiah(total_pengeluaran or 0) }}</td>
+                    <td></td><td></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="px-8 py-5 border-t border-slate-100 bg-gradient-to-r from-slate-50 to-white text-sm">
+        {% if laporan.payment_info %}
+        <div class="font-medium text-[#071e49] mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-circle-info text-[#55a7d4]"></i>{{ laporan.payment_info }}
+        </div>
+        {% endif %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs text-slate-500">
+            <div class="border border-slate-200 rounded-xl p-3 bg-white">
+                <div class="uppercase tracking-wider mb-1 text-slate-400">Dicetak dari</div>
+                <div class="font-semibold text-[#071e49]">Sistem Pelaporan Keuangan SPPG</div>
+            </div>
+            {% if not is_buku_besar %}
+            <div class="border border-slate-200 rounded-xl p-3 bg-white">
+                <div class="uppercase tracking-wider mb-1 text-slate-400">Pemohon</div>
+                <div class="font-semibold text-[#071e49]">{{ laporan.nama_karyawan or '—' }}</div>
+                {% if laporan.tanggal_ttd_pemohon %}
+                <div class="mt-2 pt-2 border-t border-slate-100 font-semibold text-[#071e49] text-sm">
+                    {{ format_tanggal(laporan.tanggal_ttd_pemohon) }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="border border-slate-200 rounded-xl p-3 bg-white">
+                <div class="uppercase tracking-wider mb-1 text-slate-400">Yang Menyetujui</div>
+                <div class="font-semibold text-[#071e49]">{{ laporan.yang_menyetujui or '—' }}</div>
+                {% if laporan.tanggal_ttd_menyetujui %}
+                <div class="mt-2 pt-2 border-t border-slate-100 font-semibold text-[#071e49] text-sm">
+                    {{ format_tanggal(laporan.tanggal_ttd_menyetujui) }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="border border-slate-22 rounded-xl p-3 bg-white">
+                <div class="uppercase tracking-wider mb-1 text-slate-400">Rekening Pembayaran</div>
+                <div class="font-semibold text-[#071e49]">
+                    {{ laporan.bank or '' }} {{ laporan.nomor_rekening or '' }}
+                    {% if laporan.atas_nama %}— a.n. {{ laporan.atas_nama }}{% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="border border-slate-200 rounded-xl p-3 bg-white md:col-span-2">
+                <div class="uppercase tracking-wider mb-1 text-slate-400">Keterangan</div>
+                <div class="font-semibold text-[#071e49]">Accurate Accounting — Akun 11010101 PETTY CASH</div>
+                <div class="text-slate-400 mt-1">Data diekstrak otomatis dari PDF Rincian Buku Besar</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% else %}
+{# No laporan — items only, show simple table #}
+{% set is_reimb = True %}
+{% set saldo_akhir = 0 %}
+<div class="report-sheet overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 no-print">
+        <div class="font-semibold text-[#071e49] text-sm">
+            <i class="fa-solid fa-table-list text-[#55a7d4] mr-1"></i>
+            Rincian Transaksi
+        </div>
+    </div>
+    <div class="table-scroll-wrap overflow-x-auto">
+        <table class="w-full ledger-table">
+            <thead>
+                <tr>
+                    {% if can_edit %}<th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>{% endif %}
+                    <th class="text-left w-10">No</th>
+                    <th class="text-left w-28">Tanggal</th>
+                    <th class="text-left min-w-[200px]">Deskripsi</th>
+                    <th class="text-right w-28">Pengeluaran</th>
+                    <th class="text-center w-32">Nota</th>
+                    <th class="text-left w-32">Ket</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                {% set debit = item.debit or 0 %}
+                {% set kredit = item.kredit or (item.jumlah if debit == 0 else 0) %}
+                <tr class="ledger-row" data-id="{{ item.id }}">
+                    {% if can_edit %}
+                    <td class="no-print px-2">
+                        <input type="checkbox" class="row-checkbox rounded" value="{{ item.id }}">
+                    </td>
+                    {% endif %}
+                    <td class="text-slate-400 font-mono text-xs">{{ item.no or loop.index }}</td>
+                    <td class="text-slate-600 whitespace-nowrap text-xs">{{ format_tanggal(item.tanggal) }}</td>
+                    <td class="font-medium text-[#071e49] leading-snug">{{ item.pengajuan }}</td>
+                    <td class="text-right money {% if item.jumlah > 0 %}text-amber-700 font-semibold{% else %}text-slate-300{% endif %}">
+                        {% if item.jumlah > 0 %}{{ format_rupiah(item.jumlah) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="text-center nota-cell">
+                        <div class="nota-actions" id="nota-cell-{{ item.id }}">
+                            {% if item.nota_path %}
+                            <img src="/uploads/{{ item.nota_path }}" alt="Nota {{ item.no or loop.index }}"
+                                 class="nota-thumb-lg"
+                                 title="Klik untuk perbesar"
+                                 onclick="openNota('/uploads/{{ item.nota_path }}', '{{ item.pengajuan | e }}')">
+                            {% if can_upload %}
+                            <button type="button" class="btn-nota btn-nota-del no-print" onclick="deleteNota({{ item.id }})">
+                                <i class="fa-solid fa-trash-can"></i> Hapus
+                            </button>
+                            {% endif %}
+                            {% else %}
+                            <div class="w-[72px] h-[48px] rounded-lg border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-300 text-[10px] no-print">
+                                Kosong
+                            </div>
+                            {% endif %}
+                            {% if can_upload %}
+                            <button type="button" class="btn-nota btn-nota-add no-print" onclick="triggerNotaUpload({{ item.id }})">
+                                <i class="fa-solid fa-plus"></i> Tambah File
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="ket-cell">
+                        {% if can_upload %}
+                        <div class="no-print">
+                            <button type="button"
+                                    class="ket-menu-btn {% if item.ket %}has-ket{% endif %}"
+                                    id="ket-btn-{{ item.id }}"
+                                    onclick="toggleKetPopover({{ item.id }}, event)"
+                                    title="{% if item.ket %}{{ item.ket }}{% else %}Tambah keterangan{% endif %}">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                            <div class="ket-popover" id="ket-popover-{{ item.id }}" onclick="event.stopPropagation()">
+                                <textarea class="ket-textarea" id="ket-text-{{ item.id }}" placeholder="Tulis keterangan...">{{ item.ket or '' }}</textarea>
+                                <div class="ket-popover-actions">
+                                    <button type="button" class="btn-ket-cancel" onclick="closeKetPopover({{ item.id }})">Batal</button>
+                                    <button type="button" class="btn-ket-save" onclick="saveKetPopover({{ item.id }})">Simpan</button>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="text-xs text-slate-600">{{ item.ket or '—' }}</span>
+                        {% endif %}
+                        <span class="hidden print:inline text-xs text-slate-600">{{ item.ket or '—' }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+
+                {% if not items %}
+                <tr>
+                    <td colspan="{% if can_edit %}8{% else %}7{% endif %}" class="px-6 py-10 text-center text-sm text-slate-400">
+                        Belum ada transaksi.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}

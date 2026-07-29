@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Laporan Transfer BGN • Input & Output</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        {% include 'partials/layout_styles.html' %}
+        {% include 'partials/table_page_styles.html' %}
+        .report-hero {
+            background: linear-gradient(135deg, #041229 0%, #071e49 50%, #0c3d6e 100%);
+            border-radius: 1.35rem; color: #fff; position: relative; overflow: hidden;
+        }
+        .report-hero::after {
+            content: ''; position: absolute; top: -40%; right: -8%;
+            width: 280px; height: 280px;
+            background: radial-gradient(circle, rgba(201,165,88,0.22) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero-kpi {
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.18); border-radius: 1.1rem; padding: 1rem 1.15rem;
+        }
+        .report-sheet {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem;
+            box-shadow: 0 12px 48px -16px rgba(7, 30, 73, 0.14);
+        }
+        .ledger-table thead th {
+            background: var(--bgn-navy); color: #fff; font-size: 0.68rem;
+            letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+            padding: 0.85rem 1rem; white-space: nowrap;
+        }
+        .ledger-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+        .ledger-table tbody tr:hover { background: #f8fafc; }
+        .ledger-table td { padding: 0.75rem 1rem; font-size: 0.82rem; vertical-align: middle; }
+        .money { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+        .section-badge-in {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; padding: 4px 10px; border-radius: 999px;
+            background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;
+        }
+        .section-badge-out {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; padding: 4px 10px; border-radius: 999px;
+            background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;
+        }
+        .pct-bar {
+            height: 6px; border-radius: 999px; background: #f1f5f9; overflow: hidden;
+        }
+        .pct-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #55a7d4, #071e49); }
+        .print-header { display: none; }
+        @media print {
+            aside, nav, .no-print { display: none !important; }
+            body { background: #fff; }
+            main { padding: 0 !important; max-width: 100% !important; }
+            .report-sheet, .report-hero { box-shadow: none; break-inside: avoid; }
+            .print-header { display: block; margin-bottom: 1rem; }
+            .ledger-table tbody tr:hover { background: transparent; }
+        }
+    </style>
+</head>
+<body class="app-body">
+    {% set active_menu = 'transfer_bgn' %}
+    {% include 'partials/navbar.html' %}
+
+    <div class="max-w-screen-2xl mx-auto flex">
+        {% include 'partials/sidebar.html' %}
+
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
+            {% set period_label = dari_display ~ ' — ' ~ sampai_display %}
+
+            <div class="print-header">
+                <div class="text-lg font-bold text-[#071e49]">{{ report_title }}</div>
+                <div class="text-sm text-slate-600">{{ report_subtitle }}</div>
+                <div class="text-xs text-slate-500 mt-1">Periode: {{ period_label }} · Dicetak {{ generated_at_display }}</div>
+            </div>
+
+            {% include 'partials/beranda_flow_guide.html' %}
+
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-3 no-print">
+                <div>
+                    <h1 class="text-2xl font-bold text-[#071e49] font-display">{{ report_title }}</h1>
+                    <p class="text-sm text-slate-500 mt-1">{{ report_subtitle }}</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="window.print()" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700">
+                        <i class="fa-solid fa-print"></i> Cetak
+                    </button>
+                    <a href="{{ export_csv_href }}" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i> Export CSV
+                    </a>
+                    <a href="{{ kelola_href }}" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl bg-[#071e49] text-white hover:bg-[#0c3d6e]">
+                        <i class="fa-solid fa-pen-to-square"></i> Kelola Transfer
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filter -->
+            <div class="report-sheet p-4 mb-5 no-print">
+                <form method="GET" action="/transfer-bgn/laporan" class="flex flex-wrap gap-3 items-end">
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Dari tanggal</label>
+                        <input type="date" name="dari" value="{{ filters.dari or '' }}" class="text-sm px-3 py-2 border rounded-xl form-input min-w-[140px]">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Sampai tanggal</label>
+                        <input type="date" name="sampai" value="{{ filters.sampai or '' }}" class="text-sm px-3 py-2 border rounded-xl form-input min-w-[140px]">
+                    </div>
+                    <button type="submit" class="px-4 py-2 text-sm font-semibold bg-[#071e49] text-white rounded-xl">Terapkan</button>
+                    <a href="/transfer-bgn/laporan" class="px-4 py-2 text-sm border rounded-xl text-slate-600">Semua periode</a>
+                    <div class="flex gap-1 ml-1">
+                        <button type="button" class="lap-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border" data-months="3">3 bln</button>
+                        <button type="button" class="lap-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border" data-months="6">6 bln</button>
+                        <button type="button" class="lap-preset text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border" data-months="12">12 bln</button>
+                    </div>
+                </form>
+                <p class="text-xs text-slate-400 mt-2">
+                    Periode aktif: <strong class="text-slate-600">{{ period_label }}</strong>
+                    {% if not period_filtered %} (tanpa filter — semua data){% endif %}
+                    · Dicetak {{ generated_at_display }}
+                </p>
+            </div>
+
+            {% include 'partials/bgn_anggaran_global.html' %}
+
+            <!-- Ringkasan -->
+            <div class="report-hero px-6 py-6 mb-5">
+                <div class="relative z-10">
+                    <div class="text-[10px] uppercase tracking-[0.3em] text-[#c9a558] font-semibold mb-3">Ringkasan Dana Operasional</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="hero-kpi">
+                            <div class="text-[10px] uppercase tracking-wider text-emerald-300/90 font-semibold">Input — Transfer Masuk BGN</div>
+                            <div class="mt-1 text-2xl font-bold money text-emerald-300">+ {{ format_rupiah(total_masuk) }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">{{ bgn_count }} transfer dana operasional</div>
+                        </div>
+                        <div class="hero-kpi">
+                            <div class="text-[10px] uppercase tracking-wider text-amber-200/90 font-semibold">Output — Pengeluaran Operasional</div>
+                            <div class="mt-1 text-2xl font-bold money text-amber-200">− {{ format_rupiah(total_keluar) }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">{{ expense_count }} transaksi (termasuk insentif mitra)</div>
+                        </div>
+                        <div class="hero-kpi" style="border-color: rgba(201,165,88,0.35);">
+                            <div class="text-[10px] uppercase tracking-wider text-[#f5d78e]/90 font-semibold">Saldo Dana Operasional</div>
+                            <div class="mt-1 text-2xl font-bold money {% if saldo >= 0 %}text-emerald-300{% else %}text-red-300{% endif %}">{{ format_rupiah(saldo) }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">Input BGN − Output operasional</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-5">
+                <!-- Grafik alur bulanan -->
+                <div class="xl:col-span-5 report-sheet overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100">
+                        <h2 class="font-semibold text-[#071e49]">Alur per Bulan</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Masuk BGN vs keluar operasional</p>
+                    </div>
+                    <div class="p-4">
+                        <div class="h-64">
+                            <canvas id="bgnFlowChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabel bulanan -->
+                <div class="xl:col-span-7 report-sheet overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100">
+                        <h2 class="font-semibold text-[#071e49]">Rekapitulasi Bulanan</h2>
+                    </div>
+                    <div class="table-scroll-wrap overflow-x-auto">
+                        <table class="ledger-table w-full">
+                            <thead>
+                                <tr>
+                                    <th>Bulan</th>
+                                    <th class="text-right">Masuk BGN</th>
+                                    <th class="text-right">Keluar Operasional</th>
+                                    <th class="text-right">Saldo Bulan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in monthly_flow %}
+                                <tr>
+                                    <td class="font-medium text-[#071e49]">{{ m.label }}</td>
+                                    <td class="text-right money text-emerald-700">+ {{ format_rupiah(m.masuk) }}</td>
+                                    <td class="text-right money text-amber-700">− {{ format_rupiah(m.keluar) }}</td>
+                                    <td class="text-right money font-bold {% if m.saldo >= 0 %}text-emerald-700{% else %}text-red-600{% endif %}">{{ format_rupiah(m.saldo) }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="py-10 text-center text-slate-400 text-sm">Belum ada data pada periode ini.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INPUT -->
+            <div class="report-sheet overflow-hidden mb-5">
+                <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <span class="section-badge-in"><i class="fa-solid fa-arrow-down"></i> Input</span>
+                        <h2 class="font-semibold text-[#071e49] mt-2">Transfer Masuk BGN</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Dana operasional yang diterima dari BGN</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-slate-500">{{ bgn_count }} transfer</div>
+                        <div class="text-lg font-bold money text-emerald-700">{{ format_rupiah(total_masuk) }}</div>
+                    </div>
+                </div>
+                <div class="table-scroll-wrap overflow-x-auto">
+                    <table class="ledger-table w-full">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Tanggal</th>
+                                <th>Keterangan</th>
+                                <th>No. Referensi</th>
+                                <th>Periode</th>
+                                <th class="text-right">Jumlah</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td class="text-slate-400">{{ loop.index }}</td>
+                                <td class="whitespace-nowrap">{{ format_tanggal(item.tanggal) }}</td>
+                                <td class="font-medium text-[#071e49]">{{ item.keterangan }}</td>
+                                <td class="text-slate-500 font-mono text-xs">{{ item.no_referensi or '—' }}</td>
+                                <td class="text-slate-500 text-xs">{{ item.periode or '—' }}</td>
+                                <td class="text-right font-bold money text-emerald-700">{{ format_rupiah(item.jumlah) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="py-12 text-center text-slate-400 text-sm">Belum ada transfer BGN pada periode ini.</td>
+                            </tr>
+                            {% endfor %}
+                            {% if items %}
+                            <tr class="bg-emerald-50/60 font-bold">
+                                <td colspan="5" class="text-right uppercase text-xs tracking-wider text-emerald-800">Total Input</td>
+                                <td class="text-right money text-emerald-800">{{ format_rupiah(total_masuk) }}</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- OUTPUT -->
+            <div class="report-sheet overflow-hidden mb-5">
+                <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <span class="section-badge-out"><i class="fa-solid fa-arrow-up"></i> Output</span>
+                        <h2 class="font-semibold text-[#071e49] mt-2">Pengeluaran Operasional</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Pemakaian dana BGN — tagihan, insentif mitra, gaji, petty cash, dll.</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-slate-500">{{ expense_count }} transaksi</div>
+                        <div class="text-lg font-bold money text-amber-700">{{ format_rupiah(total_keluar) }}</div>
+                    </div>
+                </div>
+                <div class="table-scroll-wrap overflow-x-auto">
+                    <table class="ledger-table w-full">
+                        <thead>
+                            <tr>
+                                <th>Modul Operasional</th>
+                                <th class="text-center">Transaksi</th>
+                                <th class="text-right">Total</th>
+                                <th class="text-right w-28">%</th>
+                                <th class="w-12"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mod in expense_modules %}
+                            <tr>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid {{ mod.icon }} text-[#55a7d4]"></i>
+                                        <span class="font-medium text-[#071e49]">{{ mod.label }}</span>
+                                    </div>
+                                </td>
+                                <td class="text-center text-slate-500">{{ mod.count }}</td>
+                                <td class="text-right font-bold money text-amber-700">{{ format_rupiah(mod.total) }}</td>
+                                <td class="text-right">
+                                    <div class="text-xs font-semibold text-slate-600 mb-1">{{ mod.pct }}%</div>
+                                    <div class="pct-bar"><div class="pct-bar-fill" style="width: {{ mod.pct }}%"></div></div>
+                                </td>
+                                <td>
+                                    <a href="{{ mod.href }}" class="text-[#55a7d4] hover:text-[#071e49] no-print" title="Buka modul"><i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="py-12 text-center text-slate-400 text-sm">Tidak ada pengeluaran pada periode ini.</td>
+                            </tr>
+                            {% endfor %}
+                            {% if expense_modules %}
+                            <tr class="bg-amber-50/60 font-bold">
+                                <td class="uppercase text-xs tracking-wider text-amber-900">Total Output</td>
+                                <td class="text-center">{{ expense_count }}</td>
+                                <td class="text-right money text-amber-800">{{ format_rupiah(total_keluar) }}</td>
+                                <td class="text-right text-xs">100%</td>
+                                <td></td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Kesimpulan saldo -->
+            <div class="report-sheet p-5 mb-5">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Kesimpulan Laporan</div>
+                        <div class="text-sm text-slate-600 mt-1 max-w-2xl">
+                            Dana operasional BGN masuk sebesar <strong>{{ format_rupiah(total_masuk) }}</strong>,
+                            digunakan untuk operasional sebesar <strong>{{ format_rupiah(total_keluar) }}</strong>
+                            (termasuk insentif mitra dan modul lainnya).
+                        </div>
+                    </div>
+                    <div class="text-right px-5 py-4 rounded-2xl {% if saldo >= 0 %}bg-emerald-50 border border-emerald-200{% else %}bg-red-50 border border-red-200{% endif %}">
+                        <div class="text-[10px] uppercase tracking-wider font-semibold {% if saldo >= 0 %}text-emerald-700{% else %}text-red-700{% endif %}">Saldo Dana Operasional</div>
+                        <div class="text-2xl font-bold money mt-1 {% if saldo >= 0 %}text-emerald-800{% else %}text-red-700{% endif %}">{{ format_rupiah(saldo) }}</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const flowLabels = {{ monthly_flow | map(attribute='label') | list | tojson }};
+        const flowMasuk = {{ monthly_flow | map(attribute='masuk') | list | tojson }};
+        const flowKeluar = {{ monthly_flow | map(attribute='keluar') | list | tojson }};
+        const hasFlow = flowMasuk.some(v => v > 0) || flowKeluar.some(v => v > 0);
+        const chartEl = document.getElementById('bgnFlowChart');
+        if (chartEl) {
+            new Chart(chartEl, {
+                type: 'bar',
+                data: {
+                    labels: hasFlow ? flowLabels : ['Belum ada data'],
+                    datasets: [
+                        {
+                            label: 'Masuk BGN',
+                            data: hasFlow ? flowMasuk : [0],
+                            backgroundColor: 'rgba(16, 185, 129, 0.75)',
+                            borderRadius: 4,
+                            barThickness: 18,
+                        },
+                        {
+                            label: 'Keluar Operasional',
+                            data: hasFlow ? flowKeluar : [0],
+                            backgroundColor: 'rgba(245, 158, 11, 0.75)',
+                            borderRadius: 4,
+                            barThickness: 18,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: c => ' ' + c.dataset.label + ': Rp ' + Number(c.raw).toLocaleString('id-ID'),
+                            },
+                        },
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: v => v >= 1e6 ? (v / 1e6).toFixed(1) + ' jt' : (v / 1e3).toFixed(0) + ' rb',
+                                font: { size: 10 },
+                            },
+                            grid: { color: '#f1f5f9' },
+                        },
+                        x: { ticks: { font: { size: 10 }, maxRotation: 45 } },
+                    },
+                },
+            });
+        }
+
+        function formatIso(d) {
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+        document.querySelectorAll('.lap-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const months = parseInt(btn.dataset.months, 10) || 6;
+                const end = new Date();
+                const start = new Date(end.getFullYear(), end.getMonth() - (months - 1), 1);
+                const form = btn.closest('form');
+                form.querySelector('[name=dari]').value = formatIso(start);
+                form.querySelector('[name=sampai]').value = formatIso(end);
+                form.submit();
+            });
+        });
+    </script>
+</body>
+</html>

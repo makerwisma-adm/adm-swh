@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Pendapatan Mitra • Pelaporan Keuangan SPPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        {% include 'partials/layout_styles.html' %}
+        {% include 'partials/table_page_styles.html' %}
+        .report-hero {
+            background: linear-gradient(135deg, #071e49 0%, #0c3d6e 45%, #1a5f8a 100%);
+            border-radius: 1.5rem;
+            color: #fff;
+        }
+        .report-sheet {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.25rem;
+            box-shadow: 0 12px 48px -16px rgba(7, 30, 73, 0.18);
+        }
+    </style>
+</head>
+<body class="app-body">
+    {% set active_menu = 'pendapatan_mitra' %}
+    {% include 'partials/navbar.html' %}
+
+    <div class="max-w-screen-2xl mx-auto flex">
+        {% include 'partials/sidebar.html' %}
+
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
+            {% include 'partials/keuangan_flow_guide.html' %}
+            {% include 'partials/mitra_flow_guide.html' %}
+            {% include 'partials/mitra_saldo_strip.html' %}
+
+            {% set form_action = '/pendapatan-mitra' %}
+            {% include 'partials/report_period_filter.html' %}
+
+            <div class="mb-6 no-print">
+                <h1 class="text-2xl font-bold text-[#071e49] font-display">
+                    {% if is_mitra %}Pendapatan Saya{% else %}Pendapatan Mitra{% endif %}
+                </h1>
+                <p class="text-sm text-slate-500 mt-1">
+                    {% if is_mitra %}
+                    Laporan pendapatan insentif untuk {{ mitra_nama }} — data mengikuti pencatatan di Insentif Mitra.
+                    {% else %}
+                    Laporan pendapatan mitra dari data Insentif Mitra. Setiap entri baru di Insentif Mitra otomatis tampil di sini.
+                    {% endif %}
+                </p>
+            </div>
+
+            <form method="GET" action="/pendapatan-mitra" class="mb-5 no-print grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {% if filters.dari %}<input type="hidden" name="dari" value="{{ filters.dari }}">{% endif %}
+                {% if filters.sampai %}<input type="hidden" name="sampai" value="{{ filters.sampai }}">{% endif %}
+                <input type="text" name="search" value="{{ filters.search }}" placeholder="Cari keterangan / nama..."
+                       class="px-3 py-2.5 rounded-xl border border-slate-200 text-sm">
+                <select name="periode" class="px-3 py-2.5 rounded-xl border border-slate-200 text-sm">
+                    <option value="">Semua periode</option>
+                    {% for p in periode_options %}
+                    <option value="{{ p }}" {% if filters.periode == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+                <select name="status" class="px-3 py-2.5 rounded-xl border border-slate-200 text-sm">
+                    <option value="">Semua status</option>
+                    {% for s in status_options %}
+                    <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="px-4 py-2.5 rounded-xl bg-[#071e49] text-white text-sm font-semibold">Filter</button>
+                <a href="/pendapatan-mitra" class="px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-center text-slate-600 hover:bg-slate-50">Reset</a>
+            </form>
+
+            <div class="report-hero p-6 sm:p-8 mb-6">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                        <div class="text-[10px] uppercase tracking-wider text-white/55">Transaksi</div>
+                        <div class="text-2xl font-bold money mt-1">{{ items|length }}</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] uppercase tracking-wider text-white/55">Total Pendapatan</div>
+                        <div class="text-2xl font-bold money mt-1">{{ format_rupiah(total_filtered) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] uppercase tracking-wider text-white/55">Terbayar</div>
+                        <div class="text-xl font-bold money mt-1">{{ format_rupiah(terbayar_total) }}</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] uppercase tracking-wider text-white/55">Diajukan</div>
+                        <div class="text-xl font-bold money mt-1">{{ format_rupiah(diajukan_total) }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if by_periode %}
+            <div class="report-sheet overflow-hidden mb-6">
+                <div class="px-5 py-4 border-b border-slate-100 font-semibold text-[#071e49]">
+                    <i class="fa-solid fa-chart-pie text-emerald-600 mr-1"></i> Ringkasan per Periode
+                </div>
+                <div class="table-scroll-wrap overflow-x-auto">
+                    <table class="w-full text-sm ledger-table">
+                        <thead>
+                            <tr>
+                                <th class="text-left px-4 py-3">Periode</th>
+                                <th class="text-center px-4 py-3">Transaksi</th>
+                                <th class="text-right px-4 py-3">Total</th>
+                                <th class="text-right px-4 py-3">Terbayar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in by_periode %}
+                            <tr class="border-t border-slate-100">
+                                <td class="px-4 py-3 font-medium text-[#071e49]">{{ row.label }}</td>
+                                <td class="px-4 py-3 text-center">{{ row.count }}</td>
+                                <td class="px-4 py-3 text-right money font-semibold">{{ format_rupiah(row.total) }}</td>
+                                <td class="px-4 py-3 text-right money text-emerald-700">{{ format_rupiah(row.terbayar) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="report-sheet overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div class="font-semibold text-[#071e49]">
+                        <i class="fa-solid fa-sack-dollar text-emerald-600 mr-1"></i> Rincian Pendapatan
+                    </div>
+                    <div class="text-xs text-slate-500">{{ items|length }} baris</div>
+                </div>
+                <div class="table-scroll-wrap overflow-x-auto">
+                    <table class="w-full text-sm ledger-table">
+                        <thead>
+                            <tr>
+                                <th class="text-left px-4 py-3">No</th>
+                                <th class="text-left px-4 py-3">Tanggal</th>
+                                <th class="text-left px-4 py-3">Periode</th>
+                                <th class="text-left px-4 py-3">Keterangan</th>
+                                <th class="text-left px-4 py-3">Atas Nama</th>
+                                <th class="text-center px-4 py-3">Status</th>
+                                <th class="text-right px-4 py-3">Jumlah</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr class="border-t border-slate-100">
+                                <td class="px-4 py-3 text-slate-400 font-mono text-xs">{{ item.no or loop.index }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap">{{ item.tanggal_display or format_tanggal(item.tanggal) }}</td>
+                                <td class="px-4 py-3 text-xs text-slate-600">{{ item.periode_label or '—' }}</td>
+                                <td class="px-4 py-3">{{ item.pengajuan or '—' }}</td>
+                                <td class="px-4 py-3">{{ item.atas_nama or '—' }}</td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full
+                                        {% if (item.status or '').upper() in ('DIBAYARKAN', 'TERBAYAR') %}bg-emerald-50 text-emerald-700{% else %}bg-amber-50 text-amber-700{% endif %}">
+                                        {{ item.status or '—' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-right money font-semibold text-emerald-700">{{ format_rupiah(item.jumlah) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="px-4 py-12 text-center text-slate-400">
+                                    <i class="fa-solid fa-sack-dollar text-2xl mb-2 block"></i>
+                                    {% if is_mitra %}
+                                    Belum ada data pendapatan untuk {{ mitra_nama }}.
+                                    {% else %}
+                                    Belum ada data pendapatan. Tambahkan entri di menu <a href="/insentif-mitra" class="text-[#071e49] font-semibold hover:underline">Insentif Mitra</a>.
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if items %}
+                        <tfoot class="bg-slate-50 font-semibold">
+                            <tr>
+                                <td colspan="6" class="px-4 py-3 text-right text-slate-600">Total</td>
+                                <td class="px-4 py-3 text-right money text-emerald-700">{{ format_rupiah(total_filtered) }}</td>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

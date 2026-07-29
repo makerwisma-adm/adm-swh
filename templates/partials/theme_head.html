@@ -1,0 +1,17 @@
+{# Injects global theme CSS variables — requires `theme` in context #}
+<style id="app-theme-vars">
+:root {
+    --bgn-navy: {{ theme.primary }};
+    --bgn-blue: {{ theme.secondary }};
+    --bgn-gold: {{ theme.accent }};
+    --bgn-icon: {{ theme.icon }};
+    --icon-radius: {{ theme.icon_radius }};
+    --theme-primary: {{ theme.primary }};
+    --theme-accent: {{ theme.accent }};
+    --theme-secondary: {{ theme.secondary }};
+}
+</style>
+<script>
+window.__APP_THEME__ = {{ theme | tojson }};
+</script>
+<script src="/static/js/theme.js" defer></script>

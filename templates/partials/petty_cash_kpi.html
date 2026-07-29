@@ -1,0 +1,177 @@
+{% if laporan %}
+{% set is_buku_besar = (laporan.report_type or '') == 'buku_besar' %}
+{% set is_reimb = is_reimbursement or (not is_buku_besar) %}
+
+{% if is_reimb %}
+<div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div class="kpi-card">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Saldo Awal</div>
+        <div class="mt-1 text-xl font-bold money text-[#071e49]">{{ format_rupiah(laporan.saldo_awal or 0) }}</div>
+        <div class="text-[10px] text-slate-400 mt-0.5">Dana tersedia</div>
+    </div>
+    <div class="kpi-card border-l-4 border-l-[#55a7d4]">
+        <div class="text-[10px] uppercase tracking-wider text-[#55a7d4] font-semibold">Total Digantikan</div>
+        <div class="mt-1 text-xl font-bold money text-[#071e49]">{{ format_rupiah(total_pengeluaran or 0) }}</div>
+        <div class="text-[10px] text-slate-400 mt-0.5">Jumlah semua pengeluaran</div>
+    </div>
+    <div class="kpi-card border-l-4 border-l-[#c9a558]">
+        <div class="text-[10px] uppercase tracking-wider text-[#071e49] font-semibold">Sisa Dana</div>
+        <div class="mt-1 text-xl font-bold money {% if not has_filters and (laporan.sisa_dana or 0) < 0 %}saldo-negatif{% else %}text-[#071e49]{% endif %}">
+            {% if has_filters %}—{% else %}{{ format_rupiah(laporan.sisa_dana or 0) }}{% endif %}
+        </div>
+        <div class="text-[10px] text-slate-400 mt-0.5">
+            {% if has_filters %}{{ items|length }} dari {{ all_items_count }}{% else %}{{ nota_count or 0 }} nota{% endif %}
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="kpi-card">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Saldo Awal</div>
+        <div class="mt-1 text-xl font-bold money text-[#071e49]">{{ format_rupiah(laporan.saldo_awal or 0) }}</div>
+    </div>
+    <div class="kpi-card">
+        <div class="text-[10px] uppercase tracking-wider text-emerald-600 font-semibold">
+            {% if has_filters %}Pemasukan (filter){% else %}Total Penerimaan{% endif %}
+        </div>
+        <div class="mt-1 text-xl font-bold money text-emerald-700">{{ format_rupiah(total_penerimaan or 0) }}</div>
+        <div class="text-[10px] text-slate-400 mt-0.5">Debit / Top-up</div>
+    </div>
+    <div class="kpi-card">
+        <div class="text-[10px] uppercase tracking-wider text-amber-600 font-semibold">
+            {% if has_filters %}Pengeluaran (filter){% else %}Total Pengeluaran{% endif %}
+        </div>
+        <div class="mt-1 text-xl font-bold money text-amber-700">{{ format_rupiah(total_pengeluaran or 0) }}</div>
+        <div class="text-[10px] text-slate-400 mt-0.5">Kredit / Biaya</div>
+    </div>
+    <div class="kpi-card border-l-4 border-l-[#c9a558]">
+        <div class="text-[10px] uppercase tracking-wider text-[#071e49] font-semibold">Saldo Akhir</div>
+        <div class="mt-1 text-xl font-bold money {% if not has_filters and saldo_akhir < 0 %}saldo-negatif{% else %}text-[#071e49]{% endif %}">
+            {% if has_filters %}—{% else %}{{ format_rupiah(saldo_akhir) }}{% endif %}
+        </div>
+        <div class="text-[10px] text-slate-400 mt-0.5">
+            {% if has_filters %}{{ items|length }} dari {{ all_items_count }}{% else %}{{ all_items_count }}{% endif %} transaksi
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+{# No laporan — tampilkan saldo kas dari Transfer BGN + breakdown per modul #}
+{% if anggaran_global %}
+{% set pc_module = None %}
+{% for m in expense_modules %}
+    {% if m.key == 'petty_cash' %}
+        {% set pc_module = m %}
+    {% endif %}
+{% endfor %}
+
+{# Hero saldo kas #}
+<div class="report-hero px-8 py-6 mb-6 relative">
+    <div class="relative z-10 flex flex-wrap items-start justify-between gap-6">
+        <div class="flex-1 min-w-[200px]">
+            <div class="text-[10px] uppercase tracking-[0.35em] text-[#c9a558] font-semibold mb-2">
+                Kas Petty Cash
+            </div>
+            <h2 class="font-display text-2xl md:text-3xl font-bold tracking-tight">
+                Saldo Kas BGN
+            </h2>
+            {% if period_filtered %}
+            <div class="mt-3 inline-flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-1.5 rounded-full text-xs">
+                <i class="fa-regular fa-calendar"></i>
+                <span>{{ period_label }}</span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="text-right">
+            {% if not period_filtered %}
+            <div class="text-[10px] uppercase tracking-wider text-white/50 font-semibold mb-1">SALDO KAS (SEMUA)</div>
+            {% else %}
+            <div class="text-[10px] uppercase tracking-wider text-white/50 font-semibold mb-1">SALDO PERIODE</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# KPI: Uang Masuk | Pengeluaran | Sisa #}
+<div class="grid grid-cols-3 gap-4 mb-6">
+    <div class="kpi-card text-center">
+        <div class="text-[10px] uppercase tracking-wider text-white/60 font-semibold">Uang Masuk BGN</div>
+        <div class="mt-1 text-xl font-bold money text-emerald-300">
+            {{ format_rupiah(total_masuk if period_filtered else total_masuk_all) }}
+        </div>
+        <div class="text-[10px] text-white/40 mt-0.5">
+            {{ bgn_count if period_filtered else bgn_count_all }} transfer
+        </div>
+    </div>
+    <div class="kpi-card text-center border-l-4 border-l-amber-400">
+        <div class="text-[10px] uppercase tracking-wider text-amber-500 font-semibold">Total Pengeluaran</div>
+        <div class="mt-1 text-xl font-bold money text-amber-300">
+            {{ format_rupiah(total_keluar if period_filtered else total_keluar_all) }}
+        </div>
+        <div class="text-[10px] text-white/40 mt-0.5">
+            {{ expense_count if period_filtered else expense_count_all }} transaksi LUNAS
+        </div>
+    </div>
+    <div class="kpi-card text-center border-l-4 border-l-[#c9a558]">
+        <div class="text-[10px] uppercase tracking-wider text-[#c9a558] font-semibold">Sisa Dana Kas</div>
+        <div class="mt-1 text-xl font-bold money {% if (saldo if period_filtered else saldo_all) >= 0 %}text-emerald-300{% else %}text-red-300{% endif %}">
+            {{ format_rupiah(saldo if period_filtered else saldo_all) }}
+        </div>
+        {% if pending_expense_count > 0 %}
+        <div class="text-[10px] text-white/40 mt-0.5">
+            ({{ pending_expense_count }} pending — belum mengurangi saldo)
+        </div>
+        {% else %}
+        <div class="text-[10px] text-white/40 mt-0.5">Saldo kas tersedia</div>
+        {% endif %}
+    </div>
+</div>
+
+{# Breakdown per modul pengeluaran #}
+{% if expense_modules %}
+<div class="mb-6">
+    <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Rincian Pengeluaran per Modul</div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {% for mod in expense_modules %}
+        {% set mod_total = mod.total or 0 %}
+        {% set mod_count = mod.count or 0 %}
+        {% set pct = (mod_total / (total_keluar if period_filtered else total_keluar_all) * 100)|round|int if (total_keluar if period_filtered else total_keluar_all) > 0 else 0 %}
+        <a href="{{ mod.href }}" class="kpi-card hover:border-[#55a7d4] transition-colors">
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{{ mod.title }}</div>
+            <div class="mt-1 text-lg font-bold money text-[#071e49]">{{ format_rupiah(mod_total) }}</div>
+            <div class="mt-1 flex items-center gap-2">
+                <div class="flex-1 bg-slate-100 rounded-full h-1.5">
+                    <div class="h-1.5 rounded-full {% if mod.key == 'petty_cash' %}bg-[#55a7d4]{% else %}bg-[#c9a558]{% endif %}"
+                         style="width: {{ pct }}%"></div>
+                </div>
+                <span class="text-[10px] text-slate-400 font-medium">{{ pct }}%</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-0.5">{{ mod_count }} transaksi</div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+{# Petty Cash item KPI fallback #}
+<div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div class="kpi-card">
+        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Total Pengeluaran Petty Cash</div>
+        <div class="mt-1 text-xl font-bold money text-[#071e49]">{{ format_rupiah(total_pengeluaran or 0) }}</div>
+        <div class="text-[10px] text-slate-400 mt-0.5">{{ all_items_count }} transaksi</div>
+    </div>
+    <div class="kpi-card border-l-4 border-l-[#55a7d4]">
+        <div class="text-[10px] uppercase tracking-wider text-[#55a7d4] font-semibold">Nota Terlampir</div>
+        <div class="mt-1 text-xl font-bold money text-[#071e49]">{{ nota_count or 0 }}</div>
+        <div class="text-[10px] text-slate-400 mt-0.5">dari {{ all_items_count }} transaksi</div>
+    </div>
+    <div class="kpi-card border-l-4 border-l-[#c9a558]">
+        <div class="text-[10px] uppercase tracking-wider text-[#071e49] font-semibold">Petty Cash Items</div>
+        <div class="mt-1 text-xl font-bold money text-[#071e49]">{{ all_items_count }}</div>
+        <div class="text-[10px] text-slate-400 mt-0.5">di sistem</div>
+    </div>
+</div>
+{% endif %}

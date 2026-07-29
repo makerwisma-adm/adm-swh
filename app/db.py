@@ -6,7 +6,7 @@ import urllib.error
 import urllib.request
 from typing import Any, Optional
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IS_VERCEL = os.getenv("VERCEL") == "1"
 
 TURSO_URL = os.getenv("TURSO_DATABASE_URL", "").strip()
@@ -101,7 +101,13 @@ def sync_db_from_blob() -> bool:
             if e.code == 404:
                 _db_restored = True
                 return False
-            raise
+            print(f"⚠️  sync_db_from_blob HTTP {e.code}: {e}")
+            _db_restored = True
+            return False
+        except Exception as exc:
+            print(f"⚠️  sync_db_from_blob gagal: {exc}")
+            _db_restored = True
+            return False
     return False
 
 
@@ -110,12 +116,17 @@ def sync_db_to_blob() -> bool:
     if not use_blob_persist() or not os.path.exists(DB_PATH):
         return False
     with _blob_lock:
-        with open(DB_PATH, "rb") as f:
-            data = f.read()
-        if not data:
+        try:
+            with open(DB_PATH, "rb") as f:
+                data = f.read()
+            if not data:
+                return False
+            _blob_put(BLOB_DB_PATHNAME, data)
+            return True
+        except Exception as exc:
+            # Jangan gagalkan request/startup jika Blob sementara error
+            print(f"⚠️  sync_db_to_blob gagal: {exc}")
             return False
-        _blob_put(BLOB_DB_PATHNAME, data)
-        return True
 
 
 class _TursoConnection:

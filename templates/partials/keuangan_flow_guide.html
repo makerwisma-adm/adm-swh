@@ -1,0 +1,137 @@
+{# Alur modul pengeluaran — butuh flow_module_key, flow_module_label, laporan_qs, transfer_bgn_href #}
+<style>
+    .keu-flow {
+        background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%);
+        border: 1px solid #bbf7d0;
+        border-radius: 1rem;
+        padding: 1rem 1.1rem;
+    }
+    .keu-flow-title {
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .keu-flow-steps {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem 0.25rem;
+    }
+    .keu-flow-step {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0.75rem;
+        border-radius: 0.75rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #475569;
+        text-decoration: none;
+        transition: border-color .15s, box-shadow .15s;
+        white-space: nowrap;
+    }
+    .keu-flow-step:hover:not(.is-current):not(.is-saldo) {
+        border-color: #55a7d4;
+        color: #071e49;
+    }
+    .keu-flow-step.is-current {
+        background: #071e49;
+        border-color: #071e49;
+        color: #fff;
+        box-shadow: 0 4px 14px -4px rgba(7, 30, 73, 0.45);
+    }
+    .keu-flow-step.is-income { border-color: #86efac; background: #f0fdf4; color: #166534; }
+    .keu-flow-step.is-income.is-current { background: #059669; border-color: #059669; color: #fff; }
+    .keu-flow-step.is-saldo {
+        cursor: default;
+        border-style: dashed;
+        background: #fff;
+    }
+    .keu-flow-step-icon {
+        width: 1.35rem;
+        height: 1.35rem;
+        border-radius: 0.45rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.62rem;
+        background: #f1f5f9;
+        color: #64748b;
+        flex-shrink: 0;
+    }
+    .keu-flow-step.is-current .keu-flow-step-icon {
+        background: rgba(255,255,255,0.15);
+        color: #c9a558;
+    }
+    .keu-flow-step.is-income .keu-flow-step-icon { background: #dcfce7; color: #16a34a; }
+    .keu-flow-step.is-income.is-current .keu-flow-step-icon { background: rgba(255,255,255,0.15); color: #bbf7d0; }
+    .keu-flow-arrow {
+        color: #94a3b8;
+        font-size: 0.55rem;
+        padding: 0 0.15rem;
+    }
+    .keu-flow-note {
+        margin-top: 0.65rem;
+        font-size: 0.7rem;
+        color: #64748b;
+        line-height: 1.45;
+    }
+    @media (max-width: 640px) {
+        .keu-flow-arrow { display: none; }
+        .keu-flow-steps { flex-direction: column; align-items: stretch; }
+        .keu-flow-step { justify-content: flex-start; }
+    }
+</style>
+
+<div class="keu-flow no-print mb-5">
+    <div class="keu-flow-title">
+        <i class="fa-solid fa-link"></i>
+        Terhubung dengan Transfer BGN
+    </div>
+    <div class="keu-flow-steps">
+        {% if 'transfer_bgn' in user_menu_keys %}
+        <a href="{{ transfer_bgn_href }}" class="keu-flow-step is-income {% if active_menu == 'transfer_bgn' %}is-current{% endif %}">
+            <span class="keu-flow-step-icon"><i class="fa-solid fa-building-columns"></i></span>
+            <span>Transfer BGN</span>
+        </a>
+        <span class="keu-flow-arrow"><i class="fa-solid fa-minus"></i></span>
+        {% endif %}
+        {% if flow_module_label %}
+        <span class="keu-flow-step is-current" style="cursor:default;">
+            <span class="keu-flow-step-icon"><i class="fa-solid {{ flow_module_icon }}"></i></span>
+            <span>{{ flow_module_label }}</span>
+        </span>
+        <span class="keu-flow-arrow"><i class="fa-solid fa-plus"></i></span>
+        {% endif %}
+        {% if 'laporan' in user_menu_keys %}
+        <a href="{{ laporan_href }}" class="keu-flow-step {% if active_menu == 'laporan' %}is-current{% endif %}">
+            <span class="keu-flow-step-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+            <span>Laporan Keuangan</span>
+        </a>
+        <span class="keu-flow-arrow"><i class="fa-solid fa-equals"></i></span>
+        {% endif %}
+        <span class="keu-flow-step is-saldo">
+            <span class="keu-flow-step-icon"><i class="fa-solid fa-sack-dollar"></i></span>
+            <span>Saldo BGN</span>
+        </span>
+    </div>
+    <p class="keu-flow-note">
+        Pengeluaran <strong>DIBAYARKAN</strong> di <strong>{{ flow_module_label or 'modul ini' }}</strong> mengurangi uang masuk
+        {% if 'transfer_bgn' in user_menu_keys %}
+        <a href="{{ transfer_bgn_href }}" class="text-[#071e49] font-semibold hover:underline">Transfer BGN</a>
+        {% else %}Transfer BGN{% endif %}.
+        Ringkasan gabungan ada di
+        {% if 'laporan' in user_menu_keys %}
+        <a href="{{ laporan_href }}" class="text-[#071e49] font-semibold hover:underline">Laporan Keuangan</a>
+        {% else %}Laporan Keuangan{% endif %}.
+        {% if period_label %} Periode aktif: <strong>{{ period_label }}</strong>.{% endif %}
+    </p>
+</div>

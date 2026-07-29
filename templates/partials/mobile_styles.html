@@ -1,0 +1,251 @@
+{# Responsif mobile — disertakan lewat layout_styles.html #}
+@media (max-width: 1023px) {
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    body.app-body,
+    body.min-h-screen {
+        overflow-x: hidden;
+    }
+
+    .app-navbar > div {
+        padding-left: max(0.75rem, env(safe-area-inset-left));
+        padding-right: max(0.75rem, env(safe-area-inset-right));
+    }
+
+    .app-navbar .font-display.text-lg {
+        font-size: 0.95rem;
+    }
+
+    .app-navbar .nav-brand-typing__ghost,
+    .app-navbar .nav-brand-typing__live {
+        max-width: 9.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .app-navbar .logout-text {
+        display: none;
+    }
+
+    .app-navbar .logout-btn {
+        min-width: 2.25rem;
+        min-height: 2.25rem;
+        padding: 0.5rem !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    main.flex-1 {
+        padding: 1rem !important;
+        padding-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+    }
+
+    .report-hero,
+    .dash-hero,
+    .setup-hero {
+        padding-left: 1.1rem !important;
+        padding-right: 1.1rem !important;
+    }
+
+    .report-hero h2,
+    .dash-hero h1 {
+        font-size: 1.35rem !important;
+        line-height: 1.25 !important;
+    }
+
+    .hero-kpi,
+    .hero-stat {
+        padding: 0.7rem 0.8rem !important;
+    }
+
+    .hero-kpi .text-2xl,
+    .hero-kpi .text-xl,
+    .hero-stat .text-2xl,
+    .hero-stat .text-xl {
+        font-size: 1.1rem !important;
+    }
+
+    /* Toolbar & filter — stack vertikal */
+    #bulk-toolbar,
+    .bulk-toolbar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem !important;
+    }
+
+    #bulk-toolbar button,
+    .bulk-toolbar button,
+    #bulk-toolbar a,
+    .bulk-toolbar a {
+        width: 100%;
+        justify-content: center;
+        min-height: 2.75rem;
+    }
+
+    form.flex.flex-wrap,
+    .filter-form-mobile {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    form.flex.flex-wrap > div,
+    .filter-form-mobile > div {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    form.flex.flex-wrap .flex.gap-2,
+    .filter-form-mobile .flex.gap-2 {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    form.flex.flex-wrap button,
+    form.flex.flex-wrap a,
+    .filter-form-mobile button,
+    .filter-form-mobile a {
+        width: 100%;
+        min-height: 2.75rem;
+        text-align: center;
+        justify-content: center;
+    }
+
+    /* Tabel — scroll horizontal dengan petunjuk */
+    .overflow-x-auto {
+        -webkit-overflow-scrolling: touch;
+        margin-left: -0.25rem;
+        margin-right: -0.25rem;
+        padding-bottom: 0.25rem;
+    }
+
+    .table-scroll-wrap {
+        position: relative;
+    }
+
+    .table-scroll-wrap::after {
+        content: 'Geser →';
+        position: absolute;
+        right: 0.35rem;
+        bottom: 0.15rem;
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--cool-accent-deep, #3d8fa3);
+        background: color-mix(in srgb, var(--warm-surface) 92%, var(--cool-mist));
+        padding: 0.15rem 0.45rem;
+        border-radius: 999px;
+        pointer-events: none;
+        opacity: 0.85;
+    }
+
+    .ledger-table {
+        min-width: 640px;
+    }
+
+    .ledger-table thead th,
+    .ledger-table td {
+        padding: 0.55rem 0.65rem !important;
+        font-size: 0.75rem !important;
+    }
+
+    /* Modal — hampir full screen di HP */
+    .fixed.inset-0.z-\[90\],
+    .fixed.inset-0[class*="z-"] {
+        padding: 0.5rem !important;
+        align-items: flex-end !important;
+    }
+
+    .fixed.inset-0.z-\[90\] > div,
+    .fixed.inset-0[class*="z-"] > .modal-panel,
+    .fixed.inset-0[class*="z-"] > div:first-child {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 92vh !important;
+        overflow-y: auto !important;
+        border-bottom-left-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    /* Tombol & input — area sentuh lebih besar */
+    button,
+    a.px-4.py-2,
+    .form-input,
+    input[type="text"],
+    input[type="date"],
+    input[type="number"],
+    input[type="file"],
+    select,
+    textarea {
+        min-height: 2.75rem;
+    }
+
+    input[type="file"] {
+        font-size: 0.8rem;
+    }
+
+    /* Header halaman */
+    .mb-5.flex.flex-wrap.items-center.justify-between,
+    .no-print.flex.flex-wrap.items-center.justify-between {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+
+    .no-print.flex.flex-wrap.items-center.justify-between > button,
+    .no-print.flex.flex-wrap.items-center.justify-between > a {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Chart dashboard */
+    .chart-panel,
+    .panel-card canvas {
+        max-height: 260px !important;
+    }
+
+    .portal-hub-banner {
+        padding: 1rem !important;
+    }
+
+    .portal-feature,
+    .portal-link {
+        padding: 0.85rem !important;
+    }
+
+    /* Upload form */
+    form.flex.items-center.gap-3.flex-wrap {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        width: 100%;
+    }
+
+    form.flex.items-center.gap-3.flex-wrap input[type="file"],
+    form.flex.items-center.gap-3.flex-wrap button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 380px) {
+    .grid.grid-cols-2 {
+        grid-template-columns: 1fr !important;
+    }
+
+    .app-navbar img.logo-bgn,
+    .app-navbar img[alt*="Logo"] {
+        width: 2.25rem !important;
+        height: 2.25rem !important;
+    }
+}
+
+/* Mobile drawer — touch targets */
+@media (max-width: 1023px) {
+    .mobile-nav-toggle {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+    }
+}

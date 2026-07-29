@@ -2,175 +2,285 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, viewport-fit=cover">
     <title>Portal Masuk • SPPG Wisma Haji Madiun</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
         :root { --navy: #071e49; --blue: #55a7d4; --gold: #c9a558; }
         body { font-family: 'Inter', system-ui, sans-serif; }
         .font-display { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; }
+
+        /* Animated Background */
         .portal-bg {
             background:
                 radial-gradient(ellipse 80% 60% at 10% 0%, rgba(85,167,212,0.18) 0%, transparent 55%),
                 radial-gradient(ellipse 60% 50% at 90% 100%, rgba(201,165,88,0.12) 0%, transparent 50%),
                 linear-gradient(160deg, #041229 0%, #071e49 40%, #0c3d6e 100%);
             min-height: 100vh;
+            position: relative;
+            overflow: hidden;
         }
+
+        /* Animated particles */
+        .portal-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                radial-gradient(circle at 20% 80%, rgba(85,167,212,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(201,165,88,0.08) 0%, transparent 50%);
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
         .glass-card {
             background: rgba(255,255,255,0.97);
             border: 1px solid rgba(255,255,255,0.6);
             box-shadow: 0 24px 64px -16px rgba(4,18,41,0.45);
+            animation: scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .input-field {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .input-field:focus {
             outline: none;
             border-color: var(--blue);
-            box-shadow: 0 0 0 3px rgba(85,167,212,0.18);
+            box-shadow: 0 0 0 3px rgba(85,167,212,0.18), 0 0 20px rgba(85,167,212,0.1);
+            transform: scale(1.01);
         }
-        .btn-login:not(:disabled):hover { background: #065f46; }
+
+        /* Button animations */
+        .btn-login {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+        .btn-login:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        .btn-login:not(:disabled):hover {
+            background: #065f46;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(5, 95, 70, 0.4);
+        }
+        .btn-login:active {
+            transform: translateY(0) scale(0.98);
+        }
         .btn-login:disabled { opacity: .7; cursor: wait; }
+
+        /* Portal buttons animation */
+        .portal-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .portal-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        .portal-btn:hover::before {
+            left: 100%;
+        }
+        .portal-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        /* Logo animation */
+        .logo-animated {
+            animation: fadeInDown 0.8s ease forwards;
+        }
+
+        /* Staggered animations */
+        .stagger-1 { animation-delay: 100ms; opacity: 0; animation-fill-mode: forwards; }
+        .stagger-2 { animation-delay: 200ms; opacity: 0; animation-fill-mode: forwards; }
+        .stagger-3 { animation-delay: 300ms; opacity: 0; animation-fill-mode: forwards; }
+        .stagger-4 { animation-delay: 400ms; opacity: 0; animation-fill-mode: forwards; }
+        .stagger-5 { animation-delay: 500ms; opacity: 0; animation-fill-mode: forwards; }
+
+        /* Spinner */
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { animation: spin .7s linear infinite; }
+
+        /* Error shake */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .shake { animation: shake 0.4s ease; }
+
+        /* Floating animation for decorative elements */
+        .float-slow {
+            animation: float 6s ease-in-out infinite;
+        }
+        .float-medium {
+            animation: float 4s ease-in-out infinite;
+            animation-delay: 1s;
+        }
+
+        /* Brand logo glow */
+        .logo-glow {
+            filter: drop-shadow(0 0 20px rgba(201,165,88,0.3));
+            transition: filter 0.3s ease;
+        }
+        .logo-glow:hover {
+            filter: drop-shadow(0 0 30px rgba(201,165,88,0.5));
+        }
     </style>
 </head>
 <body class="portal-bg text-slate-800">
-    <div class="min-h-screen flex flex-col lg:flex-row">
+    <div class="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 relative z-10"
+         style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom));">
 
-        <!-- Panel kiri: branding & akses cepat -->
-        <div class="lg:w-[46%] xl:w-[42%] flex flex-col justify-between p-6 md:p-10 lg:p-12 text-white">
+        <!-- Branding di tengah atas -->
+        <div class="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 text-white logo-animated">
+            <img src="/static/images/logo-bgn.jpg" alt="Logo Badan Gizi Nasional"
+                 class="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover object-center shrink-0 shadow-lg ring-2 ring-white/25 logo-glow transition-all duration-300 hover:scale-110">
             <div>
-                <div class="flex items-center gap-4 mb-10">
-                    <img src="/static/images/logo-bgn.jpg" alt="Logo Badan Gizi Nasional" class="w-16 h-16 rounded-full object-cover object-center shrink-0 shadow-lg ring-2 ring-white/25">
-                    <div>
-                        <div class="text-[10px] uppercase tracking-[0.2em] text-[#c9a558] font-semibold">Badan Gizi Nasional</div>
-                        <h1 class="font-display text-xl md:text-2xl font-bold tracking-tight">SPPG Wisma Haji Madiun</h1>
-                        <p class="text-white/55 text-xs mt-0.5">Satuan Pelayanan Pemenuhan Gizi NGEGONG 2.</p>
-                    </div>
-                </div>
-
-                <h2 class="font-display text-2xl md:text-3xl font-bold leading-tight mb-3">
-                    {% if user %}Selamat datang kembali{% else %}Portal Pelaporan Keuangan{% endif %}
-                </h2>
-                <p class="text-white/60 text-sm leading-relaxed max-w-md">
-                    {% if user %}
-                    Buka dashboard untuk mengelola laporan keuangan SPPG.
-                    {% else %}
-                    Masuk dengan akun Maker SPPG. Sesi aktif 7 hari agar tidak perlu login berulang.
-                    {% endif %}
-                </p>
-            </div>
-
-            <div class="mt-8 text-[11px] text-white/35">
-                <span><i class="fa-solid fa-shield-halved mr-1"></i> Akses internal SPPG</span>
+                <div class="text-[10px] uppercase tracking-[0.2em] text-[#c9a558] font-semibold">Badan Gizi Nasional</div>
+                <h1 class="font-display text-lg sm:text-xl md:text-2xl font-bold tracking-tight">SPPG Wisma Haji Madiun</h1>
+                <p class="text-white/55 text-xs mt-0.5">Portal Pelaporan Keuangan</p>
             </div>
         </div>
 
-        <!-- Panel kanan: form login / portal user -->
-        <div class="flex-1 flex items-center justify-center p-6 md:p-10">
-            <div class="glass-card w-full max-w-md rounded-3xl p-7 md:p-8">
+        <!-- Kartu form login di tengah -->
+        <div class="glass-card w-full max-w-md rounded-3xl p-5 sm:p-7 md:p-8">
 
-                {% if user %}
-                <!-- Sudah login: portal cepat -->
-                <div class="text-center mb-6">
-                    <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[#55a7d4] to-[#071e49] flex items-center justify-center text-white text-xl font-bold mb-4">
-                        {{ (user.full_name or user.username or 'U')[:1]|upper }}
-                    </div>
-                    <h2 class="font-display text-xl font-bold text-[#071e49]">{{ user.full_name or user.username }}</h2>
-                    <p class="text-sm text-slate-500 mt-1">Anda sudah masuk ke sistem</p>
+            {% if user %}
+            <!-- Sudah login: portal cepat -->
+            <div class="text-center mb-6 animate-fade-in-up">
+                <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-[#55a7d4] to-[#071e49] flex items-center justify-center text-white text-xl font-bold mb-4 transition-transform duration-300 hover:scale-110 hover:shadow-lg">
+                    {{ (user.full_name or user.username or 'U')[:1]|upper }}
                 </div>
-
-                {% if message %}
-                <div class="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-check-circle"></i><span>{{ message }}</span>
-                </div>
-                {% endif %}
-
-                <div class="space-y-3">
-                    <a href="/dashboard" class="flex items-center justify-center gap-2 w-full bg-[#071e49] hover:bg-[#0a2a5e] text-white font-semibold py-3.5 rounded-2xl text-sm transition">
-                        <i class="fa-solid fa-chart-line"></i> Buka Dashboard
-                    </a>
-                    <a href="/gaji-relawan" class="flex items-center justify-center gap-2 w-full border border-slate-200 hover:bg-slate-50 text-[#071e49] font-semibold py-3.5 rounded-2xl text-sm transition">
-                        <i class="fa-solid fa-users"></i> Gaji Relawan
-                    </a>
-                    <a href="/insentif-pic" class="flex items-center justify-center gap-2 w-full border border-slate-200 hover:bg-slate-50 text-[#071e49] font-semibold py-3.5 rounded-2xl text-sm transition">
-                        <i class="fa-solid fa-user-tie"></i> Insentif PIC
-                    </a>
-
-                </div>
-
-                <div class="mt-6 pt-5 border-t border-slate-100 text-center">
-                    <a href="/logout" class="text-sm text-slate-400 hover:text-red-500 transition">
-                        <i class="fa-solid fa-right-from-bracket mr-1"></i> Keluar &amp; ganti akun
-                    </a>
-                </div>
-
-                {% else %}
-                <!-- Form login -->
-                <div class="mb-6">
-                    <h2 class="font-display text-2xl font-bold text-[#071e49]">Masuk ke Sistem</h2>
-                    <p class="text-slate-500 text-sm mt-1">Gunakan akun Maker SPPG untuk melanjutkan</p>
-                </div>
-
-                {% if message %}
-                <div class="mb-4 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-info-circle"></i><span>{{ message }}</span>
-                </div>
-                {% endif %}
-
-                {% if error %}
-                <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm flex items-start gap-2">
-                    <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
-                    <span>{{ error }}</span>
-                </div>
-                {% endif %}
-
-                <form id="login-form" method="POST" action="/masuk" class="space-y-4" novalidate>
-                    <input type="hidden" name="next" id="next" value="{{ next_url }}">
-
-                    <div>
-                        <label for="username" class="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
-                        <div class="relative">
-                            <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                            <input type="text" id="username" name="username" required autocomplete="username"
-                                   value="{{ username_value or '' }}"
-                                   class="input-field w-full pl-11 pr-4 py-3.5 border border-slate-300 rounded-2xl text-sm"
-                                   placeholder="Masukkan username">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="password" class="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
-                        <div class="relative">
-                            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-                            <input type="password" id="password" name="password" required autocomplete="current-password"
-                                   class="input-field w-full pl-11 pr-12 py-3.5 border border-slate-300 rounded-2xl text-sm"
-                                   placeholder="Masukkan password">
-                            <button type="button" id="toggle-pw" tabindex="-1"
-                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1">
-                                <i class="fa-solid fa-eye text-sm" id="pw-icon"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
-                        <input type="checkbox" id="remember-user" class="rounded border-slate-300 text-emerald-700 focus:ring-emerald-500" checked>
-                        Ingat username saya
-                    </label>
-
-                    <button type="submit" id="btn-login"
-                            class="btn-login w-full bg-emerald-700 text-white font-semibold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-900/20">
-                        <span id="btn-text">Masuk Sekarang</span>
-                        <i class="fa-solid fa-arrow-right" id="btn-arrow"></i>
-                        <i class="fa-solid fa-circle-notch spinner hidden" id="btn-spinner"></i>
-                    </button>
-                </form>
-
-                {% endif %}
+                <h2 class="font-display text-xl font-bold text-[#071e49]">{{ user.full_name or user.username }}</h2>
+                <p class="text-sm text-slate-500 mt-1">Anda sudah masuk ke sistem</p>
             </div>
+
+            {% if message %}
+            <div class="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2 animate-fade-in-up">
+                <i class="fa-solid fa-check-circle"></i><span>{{ message }}</span>
+            </div>
+            {% endif %}
+
+            <div class="space-y-3">
+                <a href="/dashboard" class="portal-btn flex items-center justify-center gap-2 w-full bg-[#071e49] hover:bg-[#0a2a5e] text-white font-semibold py-3.5 rounded-2xl text-sm">
+                    <i class="fa-solid fa-chart-line"></i> Buka Dashboard
+                </a>
+                <a href="/gaji-relawan" class="portal-btn flex items-center justify-center gap-2 w-full border border-slate-200 hover:bg-slate-50 text-[#071e49] font-semibold py-3.5 rounded-2xl text-sm">
+                    <i class="fa-solid fa-users"></i> Gaji Relawan
+                </a>
+                <a href="/insentif-pic" class="portal-btn flex items-center justify-center gap-2 w-full border border-slate-200 hover:bg-slate-50 text-[#071e49] font-semibold py-3.5 rounded-2xl text-sm">
+                    <i class="fa-solid fa-user-tie"></i> Insentif PIC
+                </a>
+            </div>
+
+            <div class="mt-6 pt-5 border-t border-slate-100 text-center animate-fade-in-up">
+                <a href="/logout" class="text-sm text-slate-400 hover:text-red-500 transition-colors duration-300 inline-flex items-center gap-1">
+                    <i class="fa-solid fa-right-from-bracket"></i> Keluar &amp; ganti akun
+                </a>
+            </div>
+
+            {% else %}
+            <!-- Form login -->
+            <div class="mb-6 animate-fade-in-up stagger-1">
+                <h2 class="font-display text-2xl font-bold text-[#071e49]">Masuk ke Sistem</h2>
+                <p class="text-slate-500 text-sm mt-1">Gunakan akun Maker SPPG untuk melanjutkan</p>
+            </div>
+
+            {% if message %}
+            <div class="mb-4 bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-2xl text-sm flex items-center gap-2 animate-fade-in-down">
+                <i class="fa-solid fa-info-circle"></i><span>{{ message }}</span>
+            </div>
+            {% endif %}
+
+            {% if error %}
+            <div id="error-box" class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm flex items-start gap-2 animate-fade-in-down">
+                <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form id="login-form" method="POST" action="/masuk" class="space-y-4" novalidate>
+                <input type="hidden" name="next" id="next" value="{{ next_url }}">
+
+                <div class="animate-fade-in-up stagger-2">
+                    <label for="username" class="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm transition-colors duration-300"></i>
+                        <input type="text" id="username" name="username" required autocomplete="username"
+                               value="{{ username_value or '' }}"
+                               class="input-field w-full pl-11 pr-4 py-3.5 border border-slate-300 rounded-2xl text-sm"
+                               placeholder="Masukkan username">
+                    </div>
+                </div>
+
+                <div class="animate-fade-in-up stagger-3">
+                    <label for="password" class="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm transition-colors duration-300"></i>
+                        <input type="password" id="password" name="password" required autocomplete="current-password"
+                               class="input-field w-full pl-11 pr-12 py-3.5 border border-slate-300 rounded-2xl text-sm"
+                               placeholder="Masukkan password">
+                        <button type="button" id="toggle-pw" tabindex="-1"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 transition-colors duration-300">
+                            <i class="fa-solid fa-eye text-sm" id="pw-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none animate-fade-in-up stagger-4">
+                    <input type="checkbox" id="remember-user" class="rounded border-slate-300 text-emerald-700 focus:ring-emerald-500 transition-all duration-200">
+                    Ingat username saya
+                </label>
+
+                <button type="submit" id="btn-login"
+                        class="btn-login w-full bg-emerald-700 text-white font-semibold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20 animate-fade-in-up stagger-5">
+                    <span id="btn-text">Masuk Sekarang</span>
+                    <i class="fa-solid fa-arrow-right" id="btn-arrow"></i>
+                    <i class="fa-solid fa-circle-notch spinner hidden" id="btn-spinner"></i>
+                </button>
+            </form>
+
+            {% endif %}
+        </div>
+
+        <div class="mt-6 text-[11px] text-white/35 animate-fade-in-up stagger-3">
+            <span><i class="fa-solid fa-shield-halved mr-1"></i> Akses internal SPPG</span>
         </div>
     </div>
 
+    <script src="/static/js/animations.js"></script>
     <script>
         (function () {
             const STORAGE_KEY = 'sppg_last_username';
@@ -180,6 +290,31 @@
             const togglePw = document.getElementById('toggle-pw');
             const passwordEl = document.getElementById('password');
             const pwIcon = document.getElementById('pw-icon');
+            const errorBox = document.getElementById('error-box');
+
+            // Shake error box if exists
+            if (errorBox) {
+                errorBox.classList.add('shake');
+            }
+
+            // Input focus effects
+            if (usernameEl) {
+                usernameEl.addEventListener('focus', () => {
+                    usernameEl.parentElement.querySelector('i').style.color = '#55a7d4';
+                });
+                usernameEl.addEventListener('blur', () => {
+                    usernameEl.parentElement.querySelector('i').style.color = '#94a3b8';
+                });
+            }
+
+            if (passwordEl) {
+                passwordEl.addEventListener('focus', () => {
+                    passwordEl.parentElement.querySelector('i').style.color = '#55a7d4';
+                });
+                passwordEl.addEventListener('blur', () => {
+                    passwordEl.parentElement.querySelector('i').style.color = '#94a3b8';
+                });
+            }
 
             if (usernameEl && rememberEl) {
                 const saved = localStorage.getItem(STORAGE_KEY);
@@ -193,6 +328,8 @@
                     passwordEl.type = show ? 'text' : 'password';
                     pwIcon.classList.toggle('fa-eye', !show);
                     pwIcon.classList.toggle('fa-eye-slash', show);
+                    // Animate icon
+                    pwIcon.style.transform = show ? 'scale(1.2)' : 'scale(1)';
                 });
             }
 
@@ -207,7 +344,10 @@
                     const txt = document.getElementById('btn-text');
                     const arrow = document.getElementById('btn-arrow');
                     const spin = document.getElementById('btn-spinner');
-                    if (btn) btn.disabled = true;
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.style.transform = 'scale(0.98)';
+                    }
                     if (txt) txt.textContent = 'Memproses...';
                     if (arrow) arrow.classList.add('hidden');
                     if (spin) spin.classList.remove('hidden');

@@ -1,7 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
-body { font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; color: #1e293b; }
 .font-display { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; }
-:root { --bgn-navy: #071e49; --bgn-blue: #55a7d4; --bgn-gold: #c9a558; }
+:root {
+    --bgn-navy: {{ theme.primary | default('#071e49') }};
+    --bgn-blue: {{ theme.secondary | default('#55a7d4') }};
+    --bgn-gold: {{ theme.accent | default('#c9a558') }};
+    --bgn-icon: {{ theme.icon | default('#2563eb') }};
+    --icon-radius: {{ theme.icon_radius | default('12px') }};
+}
+{% include 'partials/warm_ui.html' %}
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--warm-bg, #f3efe8);
+    color: var(--warm-text, #3a3530);
+}
 .logo-bgn {
     border-radius: 50%;
     object-fit: cover;
@@ -15,3 +26,21 @@ body { font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; color: 
     border-left: 3px solid var(--bgn-gold);
 }
 .money { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+.nav-brand-typing {
+    position: relative;
+    display: inline-block;
+    vertical-align: bottom;
+}
+.nav-brand-typing__ghost {
+    visibility: hidden;
+    user-select: none;
+    pointer-events: none;
+}
+.nav-brand-typing__live {
+    position: absolute;
+    left: 0;
+    top: 0;
+    white-space: nowrap;
+    transition: opacity 0.28s ease;
+}
+{% include 'partials/mobile_styles.html' %}

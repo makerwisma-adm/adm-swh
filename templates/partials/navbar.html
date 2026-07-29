@@ -1,37 +1,54 @@
-<nav class="bg-white border-b border-slate-200 shadow-sm no-print">
-    <div class="max-w-screen-2xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <img src="/static/images/logo-bgn.jpg" alt="Logo Badan Gizi Nasional" class="w-14 h-14 rounded-full object-cover object-center shrink-0 shadow-sm ring-1 ring-slate-200">
-            <div>
-                <div class="font-display font-bold text-[#071e49] text-2xl sm:text-3xl tracking-tight leading-none">SPPG Wisma Haji</div>
-                <div class="mt-2 pl-3 border-l-[3px] border-[#c9a558]">
-                    <div class="font-display text-[11px] sm:text-xs font-semibold tracking-wide leading-relaxed text-[#0c3d6e]">
-                        Data Keuangan Satuan Pelayanan Pemenuhan Gizi
-                        <span class="text-[#c9a558] font-bold">Ngegong 2</span>
-                    </div>
+<nav class="app-navbar border-b shadow-sm no-print sticky top-0 z-30">
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+            {% include 'partials/mobile_nav.html' %}
+            <img src="/static/images/logo-bgn.jpg" alt="Logo Badan Gizi Nasional"
+                 class="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover object-center shrink-0 shadow-sm ring-1 ring-slate-200">
+            <div class="min-w-0">
+                <div class="font-display font-bold text-lg sm:text-xl tracking-tight leading-tight" style="color: var(--theme-primary)">
+                    <span class="nav-brand-typing" data-text="SPPG Wisma Haji" aria-label="SPPG Wisma Haji">
+                        <span class="nav-brand-typing__ghost" aria-hidden="true">SPPG Wisma Haji</span>
+                        <span class="nav-brand-typing__live" aria-hidden="true"></span>
+                    </span>
+                </div>
+                <div class="text-[10px] sm:text-[11px] font-medium truncate" style="color: color-mix(in srgb, var(--theme-primary) 65%, var(--theme-secondary))">
+                    Data Keuangan SPPG · <span style="color: var(--theme-accent)">Ngegong 2</span>
                 </div>
             </div>
         </div>
-        <div class="flex items-center gap-4 text-sm">
+        <div class="flex items-center gap-2 sm:gap-3 text-sm shrink-0">
             {% if user %}
-            <div class="hidden sm:block text-right leading-tight">
-                {% if is_admin %}
-                <div class="text-slate-600">Halo, <strong class="text-[#071e49]">Maker Wisma Haji</strong></div>
-                <div class="text-xs font-medium mt-0.5 text-[#55a7d4]">Adam Primaskoro</div>
-                {% elif user_role == 'viewer' and user.username == 'wisma' %}
-                <div class="text-slate-600">Halo, <strong class="text-[#071e49]">Bapak Herman</strong></div>
-                <div class="text-xs font-medium mt-0.5 text-[#55a7d4]">Mitra yayasan</div>
-                {% elif user_role == 'viewer' %}
-                <div class="text-slate-600">Halo, <strong class="text-[#071e49]">KSPPG Wisma Haji</strong></div>
-                <div class="text-xs font-medium mt-0.5 text-[#55a7d4]">{{ user.full_name or user.username }}</div>
-                {% else %}
-                <div class="text-slate-600">Halo, <strong class="text-[#071e49]">Akuntan</strong></div>
-                <div class="text-xs font-medium mt-0.5 text-[#55a7d4]">{{ user.full_name or 'Icha Salsabila' }}</div>
-                {% endif %}
+            <div class="hidden md:block text-right leading-tight">
+                <div class="text-slate-600 text-xs">Halo, <strong style="color: var(--theme-primary)">{{ user.full_name or user.username }}</strong></div>
+                <div class="text-[10px] font-medium mt-0.5" style="color: var(--theme-secondary)">
+                    {% if is_admin %}Administrator{% elif is_ka_sppg %}KA SPPG{% elif user_role == 'maker' %}Maker Pembayaran{% elif user_role == 'viewer' %}Viewer{% elif user_role == 'mitra' %}Mitra{% else %}Akuntan{% endif %}
+                </div>
             </div>
+            {% if is_ka_sppg and ka_unread_notification_count > 0 %}
+            <a href="/dashboard-ka?tab=lunas" title="Pembayaran lunas" class="relative hidden sm:flex w-8 h-8 rounded-lg border border-emerald-200 bg-emerald-50 items-center justify-center text-emerald-700">
+                <i class="fa-solid fa-bell text-sm"></i>
+                <span class="absolute -top-1 -right-1 min-w-[1rem] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">{{ ka_unread_notification_count }}</span>
+            </a>
             {% endif %}
-            <a href="/logout" class="px-3 py-1.5 text-xs rounded-xl border border-slate-200 hover:bg-slate-50 text-[#071e49]">Keluar</a>
+            {% if is_admin %}
+            <a href="/setup" title="Setup" class="hidden sm:flex w-8 h-8 rounded-lg border border-slate-200 items-center justify-center transition hover:bg-slate-50"
+               style="color: var(--theme-primary);">
+                <i class="fa-solid fa-gear text-sm"></i>
+            </a>
+            {% endif %}
+            {% endif %}
+            <a href="/logout" class="logout-btn px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 hover:bg-slate-50 transition"
+               style="color: var(--theme-primary);" title="Keluar" aria-label="Keluar">
+                <i class="fa-solid fa-right-from-bracket sm:hidden"></i>
+                <span class="logout-text hidden sm:inline">Keluar</span>
+            </a>
         </div>
     </div>
 </nav>
+{% include 'partials/mobile_nav_drawer.html' %}
 {% include 'partials/flash_cleanup.html' %}
+<script src="/static/js/nav-brand-typing.js" defer></script>
+{% if theme %}
+<script>window.__APP_THEME__ = {{ theme | tojson }};</script>
+<script src="/static/js/theme.js" defer></script>
+{% endif %}

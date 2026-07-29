@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sewa Kendaraan • Pelaporan Keuangan SPPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        {% include 'partials/layout_styles.html' %}
+        {% include 'partials/table_page_styles.html' %}
+        .report-hero {
+            background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 45%, #0284c7 100%);
+            border-radius: 1.5rem; color: #fff; position: relative; overflow: hidden;
+        }
+        .report-hero::after {
+            content: ''; position: absolute; top: -40%; right: -10%;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(201,165,88,0.2) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .report-sheet {
+            background: #fff; border: 1px solid #e2e8f0;
+            border-radius: 1.25rem;
+            box-shadow: 0 12px 48px -16px rgba(7, 30, 73, 0.14);
+        }
+        .hero-kpi {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 1rem; padding: 1rem 1.15rem;
+        }
+        .ledger-table thead th {
+            background: var(--bgn-navy); color: #fff; font-size: 0.68rem;
+            letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+            padding: 0.85rem 1rem; white-space: nowrap;
+        }
+        .ledger-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+        .ledger-table tbody tr:hover { background: #f8fafc; }
+        .ledger-table td { padding: 0.75rem 1rem; font-size: 0.82rem; vertical-align: middle; }
+        .money { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+        .bank-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 0.62rem; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+            background: #eff6ff; color: #1d4ed8;
+        }
+        .plat-badge {
+            display: inline-flex; font-family: ui-monospace, monospace;
+            font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+            background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd;
+        }
+        @media print {
+            aside, nav, .no-print { display: none !important; }
+            body { background: #fff; }
+            main { padding: 0 !important; }
+            .report-sheet, .report-hero { box-shadow: none; }
+        }
+    </style>
+</head>
+<body class="app-body">
+    {% set active_menu = 'sewa_kendaraan' %}
+    {% include 'partials/navbar.html' %}
+
+    <div class="max-w-screen-2xl mx-auto flex">
+        {% include 'partials/sidebar.html' %}
+
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
+            {% if message %}
+            <div class="mb-4 p-3 rounded-2xl no-print {% if success %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
+                <i class="fa-solid {% if success %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-1"></i>{{ message }}
+            </div>
+            {% endif %}
+
+            {% include 'partials/keuangan_flow_guide.html' %}
+            {% set form_action = '/sewa-kendaraan' %}
+            {% include 'partials/report_period_filter.html' %}
+
+            <div class="mb-6 no-print flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h1 class="text-2xl font-bold text-[#071e49] font-display">Sewa Kendaraan</h1>
+                    <p class="text-sm text-slate-500 mt-1">
+                        Anggaran sewa kendaraan operasional — dibiayai dari
+                        <a href="{{ transfer_bgn_href }}" class="text-[#071e49] font-semibold hover:underline">dana Transfer BGN</a>.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a href="/export/sewa-kendaraan/csv" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i> Export CSV
+                    </a>
+                    {% if can_edit %}
+                    <button onclick="showAddModal()" class="inline-flex items-center gap-2 bg-sky-700 hover:bg-sky-800 text-white px-5 py-2.5 text-sm font-semibold rounded-2xl">
+                        <i class="fa-solid fa-plus"></i> Tambah Sewa
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="report-hero px-6 py-6 mb-6 relative no-print">
+                <div class="relative z-10">
+                    <div class="text-[10px] uppercase tracking-[0.35em] text-[#c9a558] font-semibold mb-2">Dana Operasional BGN</div>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div class="hero-kpi">
+                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Total Sewa</div>
+                            <div class="mt-1 text-xl font-bold money">{{ format_rupiah(total_filtered) }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">{{ items|length }} transaksi</div>
+                        </div>
+                        <div class="hero-kpi">
+                            <div class="text-[10px] uppercase tracking-wider text-emerald-300/90 font-semibold">Terbayar</div>
+                            <div class="mt-1 text-xl font-bold money text-emerald-200">{{ format_rupiah(terbayar_total) }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">{{ terbayar_count }} transaksi</div>
+                        </div>
+                        <div class="hero-kpi">
+                            <div class="text-[10px] uppercase tracking-wider text-amber-200/90 font-semibold">Diajukan</div>
+                            <div class="mt-1 text-xl font-bold money text-amber-200">{{ format_rupiah(diajukan_total) }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">{{ diajukan_count }} menunggu</div>
+                        </div>
+                        <div class="hero-kpi">
+                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Status</div>
+                            <div class="mt-1 text-xl font-bold">{{ main_status }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">mengurangi saldo BGN</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if can_edit %}
+            <div id="bulk-toolbar" style="display:none;" class="mb-4 p-3 bg-white border rounded-2xl flex items-center gap-3 no-print">
+                <span class="text-sm font-medium" id="selected-info">0 dipilih</span>
+                <button onclick="bulkDelete()" class="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg">Hapus</button>
+                {% if can_mark_paid %}<button onclick="bulkSetStatus('DIBAYARKAN')" class="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg">Dibayarkan</button>{% endif %}
+                {% if can_submit %}<button onclick="bulkSetStatus('DIAJUKAN')" class="px-3 py-1.5 text-sm bg-amber-500 text-white rounded-lg">Diajukan</button>{% endif %}
+                <button onclick="clearSelection()" class="px-3 py-1.5 text-sm border rounded-lg">Batal</button>
+            </div>
+            {% endif %}
+
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 mb-4 no-print">
+                <form method="GET" class="flex flex-wrap gap-3 items-end">
+                    {% if filters.dari %}<input type="hidden" name="dari" value="{{ filters.dari }}">{% endif %}
+                    {% if filters.sampai %}<input type="hidden" name="sampai" value="{{ filters.sampai }}">{% endif %}
+                    <div class="flex-1 min-w-[160px]">
+                        <label class="block text-xs text-slate-500 mb-1">Cari kendaraan / vendor</label>
+                        <input type="text" name="search" value="{{ filters.search }}" placeholder="Avanza, rental..."
+                               class="w-full text-sm px-3 py-2 border rounded-xl form-input">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Tanggal</label>
+                        <input type="date" name="tanggal" value="{{ filters.tanggal }}" class="text-sm px-3 py-2 border rounded-xl form-input">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">Status</label>
+                        <select name="status" class="text-sm px-3 py-2 border rounded-xl form-input min-w-[120px]">
+                            <option value="">Semua</option>
+                            {% for s in status_options %}
+                            <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="px-4 py-2 text-sm font-semibold bg-[#071e49] text-white rounded-xl">Filter</button>
+                    <a href="/sewa-kendaraan" class="px-4 py-2 text-sm border rounded-xl text-slate-600">Reset</a>
+                </form>
+            </div>
+
+            <div class="report-sheet overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <div>
+                        <h2 class="font-semibold text-[#071e49]">Rincian Sewa Kendaraan</h2>
+                        <p class="text-xs text-slate-500">{{ items|length }} baris</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] uppercase text-slate-400">Total</div>
+                        <div class="text-lg font-bold money text-[#071e49]">{{ format_rupiah(total_filtered) }}</div>
+                    </div>
+                </div>
+                <div class="table-scroll-wrap overflow-x-auto">
+                    <table class="ledger-table w-full">
+                        <thead>
+                            <tr>
+                                {% if can_edit %}<th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>{% endif %}
+                                <th>No. Plat</th>
+                                <th>Tanggal</th>
+                                <th>Kendaraan / Vendor</th>
+                                <th>Periode</th>
+                                <th>Penyedia</th>
+                                <th class="text-right">Biaya Sewa</th>
+                                <th class="text-center">Status</th>
+                                {% if can_edit %}<th class="w-16 no-print">Aksi</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                {% if can_edit %}<td class="no-print"><input type="checkbox" class="row-checkbox" value="{{ item.id }}"></td>{% endif %}
+                                <td>
+                                    {% if item.no %}<span class="plat-badge">{{ item.no }}</span>{% else %}—{% endif %}
+                                </td>
+                                <td class="whitespace-nowrap text-slate-600">{% if item.tanggal %}{{ format_tanggal(item.tanggal) }}{% else %}—{% endif %}</td>
+                                <td class="font-medium text-[#071e49]">{{ item.pengajuan or '—' }}</td>
+                                <td class="text-slate-500 text-xs">{{ item.pos or '—' }}</td>
+                                <td class="text-slate-600 text-sm">{{ item.rekening or '—' }}</td>
+                                <td class="text-right font-bold money text-[#071e49]">{{ format_rupiah(item.jumlah) }}</td>
+                                <td class="text-center">
+                                    {% set status = item.status %}{% set rejection_note = item.rejection_note %}{% include 'partials/status_pill.html' %}
+                                </td>
+                                {% if can_edit %}
+                                <td class="no-print">
+                                    <div class="flex gap-1">
+                                        <button onclick='editItem({{ item | tojson }})' class="p-1.5 text-slate-400 hover:text-[#55a7d4]"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+                                        <form method="POST" action="/sewa-kendaraan/{{ item.id }}/delete" onsubmit="return confirm('Hapus data sewa ini?')">
+                                            <button type="submit" class="p-1.5 text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="{% if can_edit %}9{% else %}7{% endif %}" class="py-16 text-center text-slate-400">
+                                    <i class="fa-solid fa-car text-4xl mb-3 text-slate-200"></i>
+                                    <p class="text-sm">Belum ada data sewa kendaraan.{% if can_edit %} Klik <strong>Tambah Sewa</strong> untuk mencatat biaya.{% endif %}</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if items %}
+                        <tfoot>
+                            <tr class="bg-slate-50 font-bold">
+                                <td colspan="{% if can_edit %}6{% else %}5{% endif %}" class="text-right uppercase text-xs tracking-wider text-[#071e49]">Total Sewa Kendaraan</td>
+                                <td class="text-right money text-sky-800">{{ format_rupiah(total_filtered) }}</td>
+                                <td colspan="{% if can_edit %}2{% else %}1{% endif %}"></td>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    {% if can_edit %}
+    <div id="form-modal" class="hidden fixed inset-0 bg-black/70 z-[90] items-center justify-center p-4 no-print" onclick="if(event.target.id==='form-modal') hideModal()">
+        <div onclick="event.stopImmediatePropagation()" class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl">
+            <div class="px-6 py-5 border-b flex justify-between items-center">
+                <div>
+                    <div id="modal-title" class="font-semibold text-xl text-[#071e49]">Tambah Sewa Kendaraan</div>
+                    <div class="text-xs text-slate-500">Biaya dicatat sebagai pengeluaran dari dana Transfer BGN</div>
+                </div>
+                <button onclick="hideModal()" class="text-slate-400 text-xl">&times;</button>
+            </div>
+            <form id="sewa-form" method="POST" action="/sewa-kendaraan" class="px-6 py-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">No. Plat Kendaraan</label>
+                        <input id="no" name="no" placeholder="AE 1234 XX" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm font-mono">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Tanggal</label>
+                        <input id="tanggal" name="tanggal" type="date" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-xs font-semibold text-slate-600">Kendaraan / Vendor *</label>
+                        <input id="pengajuan" name="pengajuan" required placeholder="Avanza — PT Rental Jaya"
+                               class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Periode Sewa</label>
+                        <input id="pos" name="pos" placeholder="Jan 2026" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Penyedia Sewa</label>
+                        <input id="rekening" name="rekening" placeholder="Nama rental / vendor" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Biaya Sewa (Rp) *</label>
+                        <input id="jumlah" name="jumlah" type="number" min="1" required class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Status</label>
+                        <select id="status" name="status" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                            <option value="DIAJUKAN">DIAJUKAN</option>
+                            <option value="DIBAYARKAN">DIBAYARKAN</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Atas Nama Rek.</label>
+                        <input id="atas_nama" name="atas_nama" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Nomor Rekening</label>
+                        <input id="nomor_rekening" name="nomor_rekening" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm font-mono">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="text-xs font-semibold text-slate-600">Bank</label>
+                        <select id="bank" name="bank" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                            <option value="">— Pilih —</option>
+                            <option value="MANDIRI">MANDIRI</option>
+                            <option value="BRI">BRI</option>
+                            <option value="BCA">BCA</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="hideModal()" class="flex-1 py-3 border rounded-2xl text-sm">Batal</button>
+                    <button type="submit" class="flex-1 py-3 bg-[#071e49] text-white rounded-2xl text-sm font-semibold">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        function showAddModal() {
+            document.getElementById('sewa-form').reset();
+            document.getElementById('sewa-form').action = '/sewa-kendaraan';
+            document.getElementById('modal-title').innerText = 'Tambah Sewa Kendaraan';
+            const m = document.getElementById('form-modal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function editItem(item) {
+            document.getElementById('sewa-form').action = `/sewa-kendaraan/${item.id}/update`;
+            document.getElementById('modal-title').innerText = 'Edit Sewa Kendaraan';
+            document.getElementById('no').value = item.no || '';
+            document.getElementById('tanggal').value = item.tanggal || '';
+            document.getElementById('pengajuan').value = item.pengajuan || '';
+            document.getElementById('pos').value = item.pos || '';
+            document.getElementById('rekening').value = item.rekening || '';
+            document.getElementById('jumlah').value = item.jumlah || '';
+            document.getElementById('status').value = item.status || 'DIAJUKAN';
+            document.getElementById('atas_nama').value = item.atas_nama || '';
+            document.getElementById('nomor_rekening').value = item.nomor_rekening || '';
+            document.getElementById('bank').value = item.bank || '';
+            const m = document.getElementById('form-modal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function hideModal() {
+            const m = document.getElementById('form-modal');
+            m.classList.remove('flex'); m.classList.add('hidden');
+        }
+        const sa = document.getElementById('select-all');
+        if (sa) {
+            sa.addEventListener('change', () => {
+                document.querySelectorAll('.row-checkbox').forEach(cb => { cb.checked = sa.checked; });
+                updateBulk();
+            });
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.addEventListener('change', updateBulk));
+        }
+        function updateBulk() {
+            const n = document.querySelectorAll('.row-checkbox:checked').length;
+            const t = document.getElementById('bulk-toolbar');
+            if (t) { t.style.display = n > 0 ? 'flex' : 'none'; document.getElementById('selected-info').textContent = n + ' dipilih'; }
+        }
+        function clearSelection() {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+            if (sa) sa.checked = false;
+            updateBulk();
+        }
+        async function bulkDelete() {
+            const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (!ids.length || !confirm(`Hapus ${ids.length} data?`)) return;
+            const r = await fetch('/api/sewa-kendaraan/bulk-delete', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                credentials: 'same-origin', body: JSON.stringify({ids})
+            });
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.success) location.reload();
+            else alert('Gagal: ' + (j.error || 'Unknown'));
+        }
+        async function bulkSetStatus(status) {
+            const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (!ids.length) return;
+            const r = await fetch('/api/sewa-kendaraan/bulk-update', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                credentials: 'same-origin', body: JSON.stringify({ids, status})
+            });
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.success) location.reload();
+            else alert('Gagal: ' + (j.error || 'Unknown'));
+        }
+    </script>
+    {% endif %}
+</body>
+</html>

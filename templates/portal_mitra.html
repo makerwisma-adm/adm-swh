@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Portal Mitra • Pelaporan Keuangan SPPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        {% include 'partials/layout_styles.html' %}
+        .report-hero {
+            background: linear-gradient(135deg, #071e49 0%, #0c3d6e 45%, #1a5f8a 100%);
+            border-radius: 1.5rem;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card {
+            background: #fff;
+            border: 1px solid #e8edf3;
+            border-radius: 1rem;
+            padding: 1.1rem 1.25rem;
+        }
+        .panel-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.25rem;
+            box-shadow: 0 8px 32px -12px rgba(7,30,73,0.1);
+        }
+        .saldo-card {
+            background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+            border: 1px solid #a7f3d0;
+            border-radius: 1rem;
+            padding: 1.1rem 1.25rem;
+        }
+        .saldo-card.negative {
+            background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%);
+            border-color: #fed7aa;
+        }
+        .quick-nav-card {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.9rem;
+            background: #fff;
+            text-decoration: none;
+            color: inherit;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .quick-nav-card:hover {
+            border-color: #55a7d4;
+            box-shadow: 0 4px 16px -6px rgba(7,30,73,0.12);
+        }
+        .quick-nav-icon {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 0.65rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body class="app-body">
+    {% set active_menu = 'portal_mitra' %}
+    {% include 'partials/navbar.html' %}
+
+    <div class="max-w-screen-2xl mx-auto flex">
+        {% include 'partials/sidebar.html' %}
+
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
+            <div class="report-hero p-6 sm:p-8 mb-6">
+                <div class="relative z-10">
+                    <div class="text-[10px] uppercase tracking-wider text-[#c9a558] font-semibold mb-1">Portal Mitra</div>
+                    <h1 class="text-2xl sm:text-3xl font-bold font-display">Selamat datang, {{ user.full_name }}</h1>
+                    <p class="text-sm text-white/70 mt-2">Ringkasan keuangan <strong>{{ mitra_nama }}</strong> — pendapatan insentif dikurangi pengeluaran.</p>
+                </div>
+            </div>
+
+            {% include 'partials/mitra_flow_guide.html' %}
+
+            <div class="saldo-card {% if saldo_bersih < 0 %}negative{% endif %} mb-6">
+                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Saldo Bersih (Pendapatan − Pengeluaran)</div>
+                <div class="mt-1 text-2xl sm:text-3xl font-bold money {% if saldo_bersih >= 0 %}text-emerald-700{% else %}text-amber-700{% endif %}">
+                    {{ format_rupiah(saldo_bersih) }}
+                </div>
+                <div class="text-xs text-slate-500 mt-1">
+                    Terbayar: {{ format_rupiah(terbayar_insentif) }} masuk − {{ format_rupiah(terbayar_pengeluaran) }} keluar
+                </div>
+            </div>
+
+            <div class="grid sm:grid-cols-3 gap-3 mb-6">
+                <a href="/pendapatan-mitra" class="quick-nav-card">
+                    <span class="quick-nav-icon bg-emerald-50 text-emerald-700"><i class="fa-solid fa-sack-dollar"></i></span>
+                    <span>
+                        <span class="block text-xs font-semibold text-[#071e49]">Pendapatan</span>
+                        <span class="block text-[10px] text-slate-500">Laporan insentif masuk</span>
+                    </span>
+                </a>
+                <a href="/pengeluaran-mitra" class="quick-nav-card">
+                    <span class="quick-nav-icon bg-amber-50 text-amber-700"><i class="fa-solid fa-money-bill-transfer"></i></span>
+                    <span>
+                        <span class="block text-xs font-semibold text-[#071e49]">Pengeluaran</span>
+                        <span class="block text-[10px] text-slate-500">Biaya yang tercatat</span>
+                    </span>
+                </a>
+                {% if 'insentif_mitra' in user_menu_keys %}
+                <a href="/insentif-mitra" class="quick-nav-card">
+                    <span class="quick-nav-icon bg-blue-50 text-blue-700"><i class="fa-solid fa-handshake"></i></span>
+                    <span>
+                        <span class="block text-xs font-semibold text-[#071e49]">Detail Insentif</span>
+                        <span class="block text-[10px] text-slate-500">Rincian lengkap + lampiran</span>
+                    </span>
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4 mb-6">
+                <div class="kpi-card">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Total Pendapatan</div>
+                    <div class="mt-1 text-2xl font-bold money text-emerald-700">{{ format_rupiah(total_insentif) }}</div>
+                    <div class="text-xs text-slate-500 mt-1">{{ count_insentif }} transaksi</div>
+                    <a href="/pendapatan-mitra" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#071e49] mt-3 hover:underline">
+                        <i class="fa-solid fa-sack-dollar"></i> Lihat laporan pendapatan
+                    </a>
+                </div>
+                <div class="kpi-card">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Total Pengeluaran</div>
+                    <div class="mt-1 text-2xl font-bold money text-amber-700">{{ format_rupiah(total_pengeluaran) }}</div>
+                    <div class="text-xs text-slate-500 mt-1">{{ count_pengeluaran }} transaksi</div>
+                    <a href="/pengeluaran-mitra" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#071e49] mt-3 hover:underline">
+                        <i class="fa-solid fa-money-bill-transfer"></i> Lihat detail pengeluaran
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6">
+                <div class="panel-card overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 font-semibold text-[#071e49]">
+                        <i class="fa-solid fa-sack-dollar text-emerald-600 mr-1"></i> Pendapatan Terbaru
+                        <a href="/pendapatan-mitra" class="float-right text-xs font-normal text-[#55a7d4] hover:underline">Semua →</a>
+                    </div>
+                    <div class="table-scroll-wrap overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                                <tr>
+                                    <th class="px-4 py-2 text-left">Tanggal</th>
+                                    <th class="px-4 py-2 text-left">Keterangan</th>
+                                    <th class="px-4 py-2 text-right">Jumlah</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in recent_insentif %}
+                                <tr class="border-t border-slate-100">
+                                    <td class="px-4 py-2.5">{{ format_tanggal(item.tanggal) }}</td>
+                                    <td class="px-4 py-2.5">{{ item.pengajuan }}</td>
+                                    <td class="px-4 py-2.5 text-right money">{{ format_rupiah(item.jumlah) }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">Belum ada data insentif</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel-card overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 font-semibold text-[#071e49]">
+                        <i class="fa-solid fa-money-bill-transfer text-amber-600 mr-1"></i> Pengeluaran Terbaru
+                        <a href="/pengeluaran-mitra" class="float-right text-xs font-normal text-[#55a7d4] hover:underline">Semua →</a>
+                    </div>
+                    <div class="table-scroll-wrap overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                                <tr>
+                                    <th class="px-4 py-2 text-left">Tanggal</th>
+                                    <th class="px-4 py-2 text-left">Keterangan</th>
+                                    <th class="px-4 py-2 text-right">Jumlah</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in recent_pengeluaran %}
+                                <tr class="border-t border-slate-100">
+                                    <td class="px-4 py-2.5">{{ format_tanggal(item.tanggal) }}</td>
+                                    <td class="px-4 py-2.5">{{ item.pengajuan }}</td>
+                                    <td class="px-4 py-2.5 text-right money">{{ format_rupiah(item.jumlah) }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">Belum ada data pengeluaran</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

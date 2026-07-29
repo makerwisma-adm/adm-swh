@@ -2,228 +2,33 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Petty Cash • Pelaporan Keuangan SPPG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        {% include 'partials/layout_styles.html' %}
-        .report-hero {
-            background: linear-gradient(135deg, #071e49 0%, #0c3d6e 45%, #1a5f8a 100%);
-            border-radius: 1.5rem;
-            color: #fff;
-            position: relative;
-            overflow: hidden;
-        }
-        .report-hero::after {
-            content: '';
-            position: absolute;
-            top: -40%;
-            right: -10%;
-            width: 320px;
-            height: 320px;
-            background: radial-gradient(circle, rgba(201,165,88,0.25) 0%, transparent 70%);
-            border-radius: 50%;
-        }
-        .report-sheet {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 1.25rem;
-            box-shadow: 0 12px 48px -16px rgba(7, 30, 73, 0.18);
-        }
-        .kpi-card {
-            background: #fff;
-            border: 1px solid #e8edf3;
-            border-radius: 1rem;
-            padding: 1.1rem 1.25rem;
-            transition: transform .15s, box-shadow .15s;
-        }
-        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -8px rgba(7,30,73,0.12); }
-        .ledger-table thead th {
-            background: var(--bgn-navy);
-            color: #fff;
-            font-size: 0.68rem;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            font-weight: 600;
-            padding: 0.85rem 1rem;
-            white-space: nowrap;
-        }
-        .ledger-table tbody tr { border-bottom: 1px solid #f1f5f9; }
-        .ledger-table tbody tr:hover { background: #f8fafc; }
-        .ledger-table td { padding: 0.7rem 1rem; font-size: 0.82rem; vertical-align: middle; }
-        .row-income { background: rgba(16, 185, 129, 0.04); }
-        .row-expense { background: transparent; }
-        .badge-tipe {
-            font-size: 0.62rem;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 999px;
-            letter-spacing: 0.03em;
-            white-space: nowrap;
-        }
-        .filter-btn.active { background: var(--bgn-navy); color: #fff; border-color: var(--bgn-navy); }
-        .filter-input {
-            transition: border-color .15s, box-shadow .15s;
-        }
-        .filter-input:focus {
-            border-color: var(--bgn-blue);
-            box-shadow: 0 0 0 3px rgba(85, 167, 212, 0.15);
-            outline: none;
-        }
-        .date-filter-wrap {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .date-picker-input {
-            flex: 1;
-            min-width: 0;
-            color-scheme: light;
-            cursor: pointer;
-        }
-        .date-picker-input::-webkit-calendar-picker-indicator {
-            cursor: pointer;
-            opacity: 0.65;
-        }
-        .btn-clear-date {
-            flex-shrink: 0;
-            font-size: 0.68rem;
-            font-weight: 600;
-            padding: 6px 10px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            background: #f8fafc;
-            color: #64748b;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .btn-clear-date:hover { background: #f1f5f9; color: #071e49; }
-        .ket-cell { position: relative; text-align: center; vertical-align: middle; }
-        .ket-menu-btn {
-            width: 32px; height: 32px;
-            display: inline-flex; align-items: center; justify-content: center;
-            border: 1px solid #e2e8f0; border-radius: 8px;
-            background: #fff; color: #64748b;
-            cursor: pointer; transition: background .15s, color .15s, border-color .15s;
-        }
-        .ket-menu-btn:hover { background: #f8fafc; color: #071e49; border-color: #cbd5e1; }
-        .ket-menu-btn.has-ket { color: #071e49; border-color: #55a7d4; background: #eff6ff; }
-        .ket-popover {
-            display: none;
-            position: absolute;
-            right: 0; top: calc(100% + 4px);
-            z-index: 50;
-            width: 220px;
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            box-shadow: 0 12px 32px -8px rgba(7,30,73,0.18);
-            padding: 10px;
-            text-align: left;
-        }
-        .ket-popover.open { display: block; }
-        .ket-textarea {
-            width: 100%;
-            min-height: 72px;
-            font-size: 0.78rem;
-            padding: 8px 10px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            resize: vertical;
-            color: #071e49;
-        }
-        .ket-textarea:focus {
-            border-color: var(--bgn-blue);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(85, 167, 212, 0.12);
-        }
-        .ket-popover-actions {
-            display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px;
-        }
-        .btn-ket-save {
-            font-size: 0.72rem; font-weight: 600;
-            padding: 5px 12px; border-radius: 8px;
-            background: #071e49; color: #fff; border: none; cursor: pointer;
-        }
-        .btn-ket-save:hover { background: #0c3d6e; }
-        .btn-ket-cancel {
-            font-size: 0.72rem; padding: 5px 10px;
-            border-radius: 8px; border: 1px solid #e2e8f0;
-            background: #fff; color: #64748b; cursor: pointer;
-        }
-        .nota-thumb {
-            width: 52px; height: 66px; object-fit: cover;
-            border-radius: 8px; border: 1px solid #e2e8f0;
-            cursor: pointer; transition: transform .15s;
-        }
-        .nota-thumb-lg {
-            width: 72px; height: 96px; object-fit: cover;
-            border-radius: 10px; border: 2px solid #e2e8f0;
-            box-shadow: 0 2px 8px rgba(7,30,73,0.08);
-            cursor: pointer; transition: transform .15s, box-shadow .15s;
-        }
-        .nota-thumb:hover, .nota-thumb-lg:hover {
-            transform: scale(1.06);
-            box-shadow: 0 4px 16px rgba(7,30,73,0.15);
-        }
-        .employee-card {
-            background: rgba(255,255,255,0.12);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 1rem;
-            padding: 1rem 1.25rem;
-        }
-        .nota-badge {
-            display: inline-flex; align-items: center; gap: 4px;
-            background: rgba(201,165,88,0.2); color: #c9a558;
-            font-size: 0.65rem; font-weight: 700;
-            padding: 3px 10px; border-radius: 999px;
-            letter-spacing: 0.04em; text-transform: uppercase;
-        }
-        .nota-cell { min-width: 110px; }
-        .nota-actions {
-            display: flex; flex-direction: column; align-items: center; gap: 4px;
-        }
-        .btn-nota {
-            font-size: 0.62rem; font-weight: 600; padding: 3px 8px;
-            border-radius: 6px; border: 1px solid #e2e8f0;
-            background: #fff; color: #071e49; cursor: pointer;
-            transition: background .15s, border-color .15s;
-            white-space: nowrap;
-        }
-        .btn-nota:hover { background: #f8fafc; border-color: #cbd5e1; }
-        .btn-nota-add { color: #059669; border-color: #a7f3d0; background: #ecfdf5; }
-        .btn-nota-add:hover { background: #d1fae5; }
-        .btn-nota-del { color: #dc2626; border-color: #fecaca; background: #fef2f2; }
-        .btn-nota-del:hover { background: #fee2e2; }
-        #nota-modal { display: none; }
-        #nota-modal.open { display: flex; }
-        .saldo-negatif { color: #dc2626; }
-        @media print {
-            aside, nav, .no-print { display: none !important; }
-            body { background: #fff; }
-            main { padding: 0 !important; }
-            .report-sheet, .report-hero { box-shadow: none; border: none; border-radius: 0; }
-            .filter-btn { display: none; }
-            .ledger-row.hidden-row { display: table-row !important; }
-        }
+    {% include 'partials/layout_styles.html' %}
+    {% include 'partials/table_page_styles.html' %}
     </style>
+    {% include 'partials/petty_cash_css.html' %}
 </head>
-<body>
+<body class="app-body">
+    {% set active_menu = 'petty_cash' %}
     {% include 'partials/navbar.html' %}
 
     <div class="max-w-screen-2xl mx-auto flex">
-        {% set active_menu = 'petty_cash' %}
         {% include 'partials/sidebar.html' %}
 
-        <main class="flex-1 p-6 md:p-8">
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
             {% if message %}
             <div class="mb-4 p-3 rounded-2xl no-print {% if success %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
                 <i class="fa-solid {% if success %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-1"></i>{{ message }}
             </div>
             {% endif %}
+
+            {% include 'partials/keuangan_flow_guide.html' %}
+            {% set form_action = '/petty-cash' %}
+            {% include 'partials/report_period_filter.html' %}
 
             <div class="mb-6 no-print">
                 <h1 class="text-2xl font-bold text-[#071e49] font-display">Petty Cash</h1>
@@ -250,482 +55,19 @@
             </div>
             {% endif %}
 
+            {% include 'partials/petty_cash_hero.html' %}
+            {% include 'partials/petty_cash_kpi.html' %}
+
             {% if laporan %}
-            {% set is_buku_besar = (laporan.report_type or '') == 'buku_besar' %}
-            {% set is_reimb = is_reimbursement or (not is_buku_besar) %}
-            {% set saldo_akhir = laporan.saldo_akhir or laporan.sisa_dana or 0 %}
-
-            <!-- Hero Header -->
-            <div class="report-hero px-8 py-7 mb-6 relative">
-                <div class="relative z-10 flex flex-wrap items-start justify-between gap-6">
-                    <div class="flex-1 min-w-[260px]">
-                        <div class="text-[10px] uppercase tracking-[0.35em] text-[#c9a558] font-semibold mb-2">
-                            {% if is_buku_besar %}Rincian Buku Besar{% else %}Form Petty Cash / Reimbursement{% endif %}
-                        </div>
-                        <h2 class="font-display text-2xl md:text-3xl font-bold tracking-tight">
-                            Laporan Petty Cash
-                        </h2>
-                        {% if is_reimb %}
-                        <div class="employee-card mt-4 inline-block">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-[#c9a558]/30 flex items-center justify-center text-[#c9a558] font-bold text-sm">
-                                    {{ (laporan.nama_karyawan or '?')[0] }}
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-white">{{ laporan.nama_karyawan or '—' }}</div>
-                                    <div class="text-xs text-white/60">{{ laporan.divisi or 'SPPG Wisma Haji Madiun' }}</div>
-                                </div>
-                            </div>
-                        </div>
-                        {% else %}
-                        <p class="text-sm text-white/75 mt-1">{{ laporan.nama_karyawan or '11010101 — PETTY CASH' }}</p>
-                        {% endif %}
-                        {% if laporan.periode %}
-                        <div class="mt-3 inline-flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-1.5 rounded-full text-xs">
-                            <i class="fa-regular fa-calendar"></i>
-                            <span>Periode: {{ laporan.periode }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="text-right text-xs text-white/60">
-                        {% if is_buku_besar %}
-                        <div>{{ laporan.divisi or 'SPPG Wisma Haji Madiun' }}</div>
-                        {% endif %}
-                        {% if is_reimb and nota_count %}
-                        <div class="nota-badge mt-1 mb-2">
-                            <i class="fa-solid fa-receipt"></i>
-                            {{ nota_count }} nota terlampir
-                        </div>
-                        {% endif %}
-                        <div class="truncate max-w-[240px]">{{ laporan.filename }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- KPI Cards -->
-            {% if is_reimb %}
-            <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                <div class="kpi-card">
-                    <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Saldo Awal</div>
-                    <div class="mt-1 text-xl font-bold money text-[#071e49]">{{ format_rupiah(laporan.saldo_awal or 0) }}</div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">Dana tersedia</div>
-                </div>
-                <div class="kpi-card border-l-4 border-l-[#55a7d4]">
-                    <div class="text-[10px] uppercase tracking-wider text-[#55a7d4] font-semibold">Total Digantikan</div>
-                    <div class="mt-1 text-xl font-bold money text-[#071e49]">{{ format_rupiah(total_pengeluaran or 0) }}</div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">Jumlah semua pengeluaran</div>
-                </div>
-                <div class="kpi-card border-l-4 border-l-[#c9a558]">
-                    <div class="text-[10px] uppercase tracking-wider text-[#071e49] font-semibold">Sisa Dana</div>
-                    <div class="mt-1 text-xl font-bold money {% if not has_filters and (laporan.sisa_dana or 0) < 0 %}saldo-negatif{% else %}text-[#071e49]{% endif %}">
-                        {% if has_filters %}—{% else %}{{ format_rupiah(laporan.sisa_dana or 0) }}{% endif %}
-                    </div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">
-                        {% if has_filters %}{{ items|length }} dari {{ all_items_count }}{% else %}{{ nota_count or 0 }} nota{% endif %}
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div class="kpi-card">
-                    <div class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Saldo Awal</div>
-                    <div class="mt-1 text-xl font-bold money text-[#071e49]">{{ format_rupiah(laporan.saldo_awal or 0) }}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="text-[10px] uppercase tracking-wider text-emerald-600 font-semibold">
-                        {% if has_filters %}Pemasukan (filter){% else %}Total Penerimaan{% endif %}
-                    </div>
-                    <div class="mt-1 text-xl font-bold money text-emerald-700">{{ format_rupiah(total_penerimaan or 0) }}</div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">Debit / Top-up</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="text-[10px] uppercase tracking-wider text-amber-600 font-semibold">
-                        {% if has_filters %}Pengeluaran (filter){% else %}Total Pengeluaran{% endif %}
-                    </div>
-                    <div class="mt-1 text-xl font-bold money text-amber-700">{{ format_rupiah(total_pengeluaran or 0) }}</div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">Kredit / Biaya</div>
-                </div>
-                <div class="kpi-card border-l-4 border-l-[#c9a558]">
-                    <div class="text-[10px] uppercase tracking-wider text-[#071e49] font-semibold">Saldo Akhir</div>
-                    <div class="mt-1 text-xl font-bold money {% if not has_filters and saldo_akhir < 0 %}saldo-negatif{% else %}text-[#071e49]{% endif %}">
-                        {% if has_filters %}—{% else %}{{ format_rupiah(saldo_akhir) }}{% endif %}
-                    </div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">
-                        {% if has_filters %}{{ items|length }} dari {{ all_items_count }}{% else %}{{ all_items_count }}{% endif %} transaksi
-                    </div>
-                </div>
-            </div>
+            {% include 'partials/petty_cash_filter.html' %}
             {% endif %}
 
-            <!-- Filter Bar -->
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 mb-6 shadow-sm no-print">
-                <form method="GET" class="flex flex-wrap gap-3 items-end">
-                    {% if selected_upload_id %}
-                    <input type="hidden" name="upload_id" value="{{ selected_upload_id }}">
-                    {% endif %}
-
-                    <div class="flex-1 min-w-[200px]">
-                        <label class="block text-xs font-semibold text-slate-500 mb-1.5">
-                            <i class="fa-solid fa-magnifying-glass mr-1"></i>Cari
-                        </label>
-                        <input type="text" name="search" value="{{ filters.search }}"
-                               placeholder="Cari keterangan / tipe transaksi..."
-                               class="filter-input w-full text-sm px-4 py-2.5 border border-slate-300 rounded-xl bg-white">
-                    </div>
-
-                    <div class="min-w-[200px]">
-                        <label class="block text-xs font-semibold text-slate-500 mb-1.5">
-                            <i class="fa-regular fa-calendar mr-1"></i>Tanggal
-                        </label>
-                        <div class="date-filter-wrap">
-                            <input type="date" name="tanggal" id="tanggal-filter"
-                                   value="{{ filters.tanggal }}"
-                                   {% if tanggal_min %}min="{{ tanggal_min }}"{% endif %}
-                                   {% if tanggal_max %}max="{{ tanggal_max }}"{% endif %}
-                                   onchange="this.form.submit()"
-                                   title="Kalender Masehi — pilih tanggal transaksi"
-                                   class="filter-input date-picker-input w-full text-sm px-3 py-2.5 border border-slate-300 rounded-xl bg-white">
-                            <button type="button" class="btn-clear-date no-print" onclick="clearDateFilter()"
-                                    title="Tampilkan semua tanggal">
-                                Semua
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="min-w-[150px]">
-                        <label class="block text-xs font-semibold text-slate-500 mb-1.5">
-                            <i class="fa-solid fa-filter mr-1"></i>Jenis Transaksi
-                        </label>
-                        <select name="jenis" onchange="this.form.submit()"
-                                class="filter-input w-full text-sm px-3 py-2.5 border border-slate-300 rounded-xl bg-white">
-                            <option value="" {% if not filters.jenis %}selected{% endif %}>Semua</option>
-                            <option value="pemasukan" {% if filters.jenis == 'pemasukan' %}selected{% endif %}>Pemasukan</option>
-                            <option value="pengeluaran" {% if filters.jenis == 'pengeluaran' %}selected{% endif %}>Pengeluaran</option>
-                        </select>
-                    </div>
-
-                    <div class="flex gap-2">
-                        <button type="submit" class="px-5 py-2.5 text-sm font-semibold bg-[#071e49] text-white rounded-xl hover:bg-[#0c3d6e] flex items-center gap-2">
-                            <i class="fa-solid fa-filter"></i> Terapkan
-                        </button>
-                        <a href="/petty-cash{% if selected_upload_id %}?upload_id={{ selected_upload_id }}{% endif %}"
-                           class="px-4 py-2.5 text-sm font-medium border border-slate-200 rounded-xl hover:bg-slate-50 text-[#071e49]">
-                            Reset
-                        </a>
-                    </div>
-                </form>
-
-                {% if has_filters %}
-                <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs">
-                    <span class="text-slate-500">Filter aktif:</span>
-                    {% if filters.search %}
-                    <span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full font-medium">
-                        Cari: "{{ filters.search }}"
-                    </span>
-                    {% endif %}
-                    {% if filters.tanggal %}
-                    <span class="px-2.5 py-1 bg-violet-50 text-violet-700 rounded-full font-medium">
-                        Tanggal: {{ format_tanggal(filters.tanggal) }}
-                    </span>
-                    {% endif %}
-                    {% if filters.jenis %}
-                    <span class="px-2.5 py-1 {% if filters.jenis == 'pemasukan' %}bg-emerald-50 text-emerald-700{% else %}bg-amber-50 text-amber-700{% endif %} rounded-full font-medium">
-                        {{ 'Pemasukan' if filters.jenis == 'pemasukan' else 'Pengeluaran' }}
-                    </span>
-                    {% endif %}
-                    <span class="text-slate-400 ml-1">— menampilkan {{ items|length }} transaksi</span>
-                </div>
-                {% endif %}
-            </div>
-
-            {% if can_edit %}
-            <!-- Bulk delete toolbar -->
-            <div id="bulk-toolbar" style="display:none;" class="mb-4 p-3 bg-white border border-slate-200 rounded-2xl flex flex-wrap items-center gap-4 shadow-sm no-print">
-                <span class="text-sm font-medium text-[#071e49]" id="selected-info">0 dipilih</span>
-                <button onclick="bulkDelete()" class="px-4 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl flex items-center gap-2 font-medium">
-                    <i class="fa-solid fa-trash"></i>
-                    <span>Hapus yang Dipilih</span>
-                </button>
-                <button onclick="clearSelection()" class="px-3 py-1.5 text-sm border border-slate-200 hover:bg-slate-50 rounded-xl text-[#071e49]">
-                    Batal Pilih
-                </button>
-            </div>
-            {% endif %}
-
-            <!-- Report Table -->
-            <div class="report-sheet overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 no-print">
-                    <div class="font-semibold text-[#071e49] text-sm">
-                        <i class="fa-solid fa-table-list text-[#55a7d4] mr-1"></i>
-                        Rincian Transaksi
-                        {% if has_filters %}<span class="text-slate-400 font-normal">(hasil filter)</span>{% endif %}
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full ledger-table">
-                        <thead>
-                            <tr>
-                                {% if can_edit %}<th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>{% endif %}
-                                <th class="text-left w-10">No</th>
-                                <th class="text-left w-28">Tanggal</th>
-                                {% if is_buku_besar %}
-                                <th class="text-left w-28">Tipe</th>
-                                <th class="text-left min-w-[240px]">Keterangan</th>
-                                <th class="text-right w-28">Debit</th>
-                                <th class="text-right w-28">Kredit</th>
-                                <th class="text-right w-32">Saldo Akhir</th>
-                                {% else %}
-                                <th class="text-left min-w-[200px]">Deskripsi</th>
-                                <th class="text-right w-28">Pemasukan</th>
-                                <th class="text-right w-28">Pengeluaran</th>
-                                <th class="text-center w-32">Nota</th>
-                                <th class="text-left w-32">Ket</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if is_buku_besar and laporan.saldo_awal is not none and not has_filters %}
-                            <tr class="bg-slate-50 font-medium">
-                                {% if can_edit %}<td class="no-print"></td>{% endif %}
-                                <td></td>
-                                <td></td>
-                                <td><span class="badge-tipe bg-slate-200 text-slate-600">SALDO</span></td>
-                                <td class="text-[#071e49]">Saldo Awal Periode</td>
-                                <td class="text-right money text-slate-400">—</td>
-                                <td class="text-right money text-slate-400">—</td>
-                                <td class="text-right money font-semibold text-[#071e49]">{{ format_rupiah(laporan.saldo_awal or 0) }}</td>
-                            </tr>
-                            {% elif not is_buku_besar and not has_filters %}
-                            <tr class="bg-emerald-50/60 font-medium row-income">
-                                {% if can_edit %}<td class="no-print"></td>{% endif %}<td></td><td></td>
-                                <td class="text-[#071e49]">Saldo Awal</td>
-                                <td class="text-right money text-emerald-700 font-semibold">{{ format_rupiah(laporan.saldo_awal or 0) }}</td>
-                                <td class="text-right money text-slate-300">—</td>
-                                <td class="nota-cell"></td>
-                                <td></td>
-                            </tr>
-                            {% endif %}
-
-                            {% for item in items %}
-                            {% set debit = item.debit or 0 %}
-                            {% set kredit = item.kredit or (item.jumlah if debit == 0 else 0) %}
-                            {% set row_type = 'income' if debit > 0 and kredit == 0 else 'expense' %}
-                            <tr class="ledger-row {% if row_type == 'income' %}row-income{% else %}row-expense{% endif %}"
-                                data-type="{{ row_type }}" data-id="{{ item.id }}">
-                                {% if can_edit %}
-                                <td class="no-print px-2">
-                                    <input type="checkbox" class="row-checkbox rounded" value="{{ item.id }}">
-                                </td>
-                                {% endif %}
-                                <td class="text-slate-400 font-mono text-xs">{{ item.no or loop.index }}</td>
-                                <td class="text-slate-600 whitespace-nowrap text-xs">{{ format_tanggal(item.tanggal) }}</td>
-                                {% if is_buku_besar %}
-                                <td>
-                                    <span class="badge-tipe {% if row_type == 'income' %}bg-emerald-100 text-emerald-700{% else %}bg-blue-50 text-blue-700{% endif %}">
-                                        {{ item.tipe_transaksi or 'Jurnal' }}
-                                    </span>
-                                </td>
-                                <td class="font-medium text-[#071e49] leading-snug">{{ item.pengajuan }}</td>
-                                <td class="text-right money {% if debit > 0 %}text-emerald-700 font-semibold{% else %}text-slate-300{% endif %}">
-                                    {% if debit > 0 %}{{ format_rupiah(debit) }}{% else %}—{% endif %}
-                                </td>
-                                <td class="text-right money {% if kredit > 0 %}text-amber-700 font-semibold{% else %}text-slate-300{% endif %}">
-                                    {% if kredit > 0 %}{{ format_rupiah(kredit) }}{% else %}—{% endif %}
-                                </td>
-                                <td class="text-right money font-medium {% if (item.saldo_akhir or 0) < 0 %}saldo-negatif{% else %}text-[#071e49]{% endif %}">
-                                    {% if item.saldo_akhir is not none %}{{ format_rupiah(item.saldo_akhir) }}{% else %}—{% endif %}
-                                </td>
-                                {% else %}
-                                <td class="font-medium text-[#071e49] leading-snug">{{ item.pengajuan }}</td>
-                                <td class="text-right money {% if debit > 0 %}text-emerald-700 font-semibold{% else %}text-slate-300{% endif %}">
-                                    {% if debit > 0 %}{{ format_rupiah(debit) }}{% else %}—{% endif %}
-                                </td>
-                                <td class="text-right money {% if kredit > 0 %}text-amber-700 font-semibold{% else %}text-slate-300{% endif %}">
-                                    {% if kredit > 0 %}{{ format_rupiah(kredit) }}{% elif item.jumlah > 0 %}{{ format_rupiah(item.jumlah) }}{% else %}—{% endif %}
-                                </td>
-                                <td class="text-center nota-cell">
-                                    <div class="nota-actions" id="nota-cell-{{ item.id }}">
-                                        {% if item.nota_path %}
-                                        <img src="/uploads/{{ item.nota_path }}" alt="Nota {{ item.no or loop.index }}"
-                                             class="nota-thumb-lg"
-                                             title="Klik untuk perbesar"
-                                             onclick="openNota('/uploads/{{ item.nota_path }}', '{{ item.pengajuan | e }}')">
-                                        {% if can_upload %}
-                                        <button type="button" class="btn-nota btn-nota-del no-print" onclick="deleteNota({{ item.id }})">
-                                            <i class="fa-solid fa-trash-can"></i> Hapus
-                                        </button>
-                                        {% endif %}
-                                        {% else %}
-                                        <div class="w-[72px] h-[48px] rounded-lg border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-300 text-[10px] no-print">
-                                            Kosong
-                                        </div>
-                                        {% endif %}
-                                        {% if can_upload %}
-                                        <button type="button" class="btn-nota btn-nota-add no-print" onclick="triggerNotaUpload({{ item.id }})">
-                                            <i class="fa-solid fa-plus"></i> Tambah File
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td class="ket-cell">
-                                    {% if can_upload %}
-                                    <div class="no-print">
-                                        <button type="button"
-                                                class="ket-menu-btn {% if item.ket %}has-ket{% endif %}"
-                                                id="ket-btn-{{ item.id }}"
-                                                onclick="toggleKetPopover({{ item.id }}, event)"
-                                                title="{% if item.ket %}{{ item.ket }}{% else %}Tambah keterangan{% endif %}">
-                                            <i class="fa-solid fa-ellipsis-vertical"></i>
-                                        </button>
-                                        <div class="ket-popover" id="ket-popover-{{ item.id }}" onclick="event.stopPropagation()">
-                                            <textarea class="ket-textarea" id="ket-text-{{ item.id }}" placeholder="Tulis keterangan...">{{ item.ket or '' }}</textarea>
-                                            <div class="ket-popover-actions">
-                                                <button type="button" class="btn-ket-cancel" onclick="closeKetPopover({{ item.id }})">Batal</button>
-                                                <button type="button" class="btn-ket-save" onclick="saveKetPopover({{ item.id }})">Simpan</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% else %}
-                                    <span class="text-xs text-slate-600">{{ item.ket or '—' }}</span>
-                                    {% endif %}
-                                    <span class="hidden print:inline text-xs text-slate-600">{{ item.ket or '—' }}</span>
-                                </td>
-                                {% endif %}
-                            </tr>
-                            {% endfor %}
-
-                            {% if not items %}
-                            <tr>
-                                <td colspan="{% if is_buku_besar %}8{% else %}8{% endif %}" class="px-6 py-10 text-center text-sm text-slate-400">
-                                    Tidak ada transaksi yang cocok dengan filter. <a href="/petty-cash{% if selected_upload_id %}?upload_id={{ selected_upload_id }}{% endif %}" class="text-[#55a7d4] underline">Reset filter</a>
-                                </td>
-                            </tr>
-                            {% endif %}
-                        </tbody>
-                        {% if is_buku_besar and items %}
-                        <tfoot class="bg-[#071e49] text-white text-sm font-semibold">
-                            <tr>
-                                <td colspan="5" class="px-4 py-3 text-right uppercase tracking-wider text-xs opacity-80">
-                                    {% if has_filters %}Subtotal Filter{% else %}Total{% endif %}
-                                </td>
-                                <td class="px-4 py-3 text-right money">{{ format_rupiah(total_penerimaan) }}</td>
-                                <td class="px-4 py-3 text-right money">{{ format_rupiah(total_pengeluaran) }}</td>
-                                <td class="px-4 py-3 text-right money {% if saldo_akhir < 0 and not has_filters %}text-red-300{% endif %}">
-                                    {% if has_filters %}—{% else %}{{ format_rupiah(saldo_akhir) }}{% endif %}
-                                </td>
-                            </tr>
-                        </tfoot>
-                        {% else %}
-                        <tfoot class="border-t-2 border-slate-200 bg-slate-50 text-sm font-semibold">
-                            <tr>
-                                <td colspan="4" class="px-4 py-3 text-right text-slate-600">Total Pemasukan</td>
-                                <td class="px-4 py-3 text-right money text-emerald-700">{{ format_rupiah(laporan.saldo_awal or total_penerimaan or 0) }}</td>
-                                <td class="px-4 py-3 text-right money text-slate-300">—</td>
-                                <td></td><td></td>
-                            </tr>
-                            <tr>
-                                <td colspan="4" class="px-4 py-3 text-right text-slate-600">Total Pengeluaran</td>
-                                <td class="px-4 py-3 text-right money text-slate-300">—</td>
-                                <td class="px-4 py-3 text-right money text-amber-700">{{ format_rupiah(total_pengeluaran or 0) }}</td>
-                                <td></td><td></td>
-                            </tr>
-                            <tr>
-                                <td colspan="4" class="px-4 py-3 text-right text-slate-600">Sisa Dana</td>
-                                <td colspan="2" class="px-4 py-3 text-right money {% if (laporan.sisa_dana or 0) < 0 %}saldo-negatif{% else %}text-emerald-700{% endif %}">
-                                    {{ format_rupiah(laporan.sisa_dana or 0) }}
-                                </td>
-                                <td></td><td></td>
-                            </tr>
-                            <tr class="bg-[#071e49]/5">
-                                <td colspan="4" class="px-4 py-4 text-right text-[#071e49] font-bold">Total yang Digantikan</td>
-                                <td class="px-4 py-4 text-right money text-slate-300">—</td>
-                                <td class="px-4 py-4 text-right money text-[#071e49] font-bold">{{ format_rupiah(total_pengeluaran or 0) }}</td>
-                                <td></td><td></td>
-                            </tr>
-                        </tfoot>
-                        {% endif %}
-                    </table>
-                </div>
-
-                <!-- Footer -->
-                <div class="px-8 py-5 border-t border-slate-100 bg-gradient-to-r from-slate-50 to-white text-sm">
-                    {% if laporan.payment_info %}
-                    <div class="font-medium text-[#071e49] mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-circle-info text-[#55a7d4]"></i>{{ laporan.payment_info }}
-                    </div>
-                    {% endif %}
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs text-slate-500">
-                        <div class="border border-slate-200 rounded-xl p-3 bg-white">
-                            <div class="uppercase tracking-wider mb-1 text-slate-400">Dicetak dari</div>
-                            <div class="font-semibold text-[#071e49]">Sistem Pelaporan Keuangan SPPG</div>
-                        </div>
-                        {% if not is_buku_besar %}
-                        <div class="border border-slate-200 rounded-xl p-3 bg-white">
-                            <div class="uppercase tracking-wider mb-1 text-slate-400">Pemohon</div>
-                            <div class="font-semibold text-[#071e49]">{{ laporan.nama_karyawan or '—' }}</div>
-                            {% if laporan.tanggal_ttd_pemohon %}
-                            <div class="mt-2 pt-2 border-t border-slate-100 font-semibold text-[#071e49] text-sm">
-                                {{ format_tanggal(laporan.tanggal_ttd_pemohon) }}
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="border border-slate-200 rounded-xl p-3 bg-white">
-                            <div class="uppercase tracking-wider mb-1 text-slate-400">Yang Menyetujui</div>
-                            <div class="font-semibold text-[#071e49]">{{ laporan.yang_menyetujui or '—' }}</div>
-                            {% if laporan.tanggal_ttd_menyetujui %}
-                            <div class="mt-2 pt-2 border-t border-slate-100 font-semibold text-[#071e49] text-sm">
-                                {{ format_tanggal(laporan.tanggal_ttd_menyetujui) }}
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="border border-slate-200 rounded-xl p-3 bg-white">
-                            <div class="uppercase tracking-wider mb-1 text-slate-400">Rekening Pembayaran</div>
-                            <div class="font-semibold text-[#071e49]">
-                                {{ laporan.bank or '' }} {{ laporan.nomor_rekening or '' }}
-                                {% if laporan.atas_nama %}— a.n. {{ laporan.atas_nama }}{% endif %}
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="border border-slate-200 rounded-xl p-3 bg-white md:col-span-2">
-                            <div class="uppercase tracking-wider mb-1 text-slate-400">Keterangan</div>
-                            <div class="font-semibold text-[#071e49]">Accurate Accounting — Akun 11010101 PETTY CASH</div>
-                            <div class="text-slate-400 mt-1">Data diekstrak otomatis dari PDF Rincian Buku Besar</div>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            {% else %}
-            <div class="report-sheet p-16 text-center">
-                <div class="w-20 h-20 mx-auto mb-5 rounded-2xl bg-[#071e49]/5 flex items-center justify-center">
-                    <i class="fa-solid fa-file-pdf text-3xl text-[#55a7d4]"></i>
-                </div>
-                <h3 class="font-display font-bold text-[#071e49] text-lg mb-2">Belum Ada Laporan Petty Cash</h3>
-                <p class="text-sm text-slate-500 max-w-md mx-auto">
-                    {% if can_upload %}
-                    Upload PDF <strong>Buku Besar Accurate</strong> atau <strong>Form Petty Cash / Reimbursement</strong> — sistem akan mengekstrak transaksi dan memasangkan foto nota secara otomatis.
-                    {% else %}
-                    Belum ada laporan petty cash yang ditampilkan.
-                    {% endif %}
-                </p>
-            </div>
-            {% endif %}
+            {% include 'partials/petty_cash_bulk.html' %}
+            {% include 'partials/petty_cash_table.html' %}
         </main>
     </div>
 
-    <input type="file" id="nota-file-input" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf" class="hidden">
-
-    <div id="nota-modal" class="fixed inset-0 bg-black/80 z-[100] items-center justify-center p-4 no-print" onclick="closeNota()">
-        <div class="max-w-2xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
-            <div class="px-4 py-3 border-b flex justify-between items-center">
-                <span id="nota-modal-title" class="font-semibold text-sm text-[#071e49] truncate"></span>
-                <button onclick="closeNota()" class="text-slate-400 hover:text-slate-700 text-xl">&times;</button>
-            </div>
-            <img id="nota-modal-img" src="" alt="Nota" class="w-full max-h-[70vh] object-contain bg-slate-100">
-        </div>
-    </div>
+    {% include 'partials/petty_cash_modals.html' %}
 
     <script>
         function openNota(src, title) {
@@ -736,8 +78,16 @@
         function closeNota() {
             document.getElementById('nota-modal').classList.remove('open');
         }
+        function openHeaderModal() {
+            document.getElementById('header-modal').classList.remove('hidden');
+            document.getElementById('header-modal').classList.add('flex');
+        }
+        function closeHeaderModal() {
+            document.getElementById('header-modal').classList.add('hidden');
+            document.getElementById('header-modal').classList.remove('flex');
+        }
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') { closeNota(); closeAllKetPopovers(); }
+            if (e.key === 'Escape') { closeNota(); closeHeaderModal(); closeAllKetPopovers(); }
         });
 
         let activeNotaItemId = null;
@@ -802,6 +152,35 @@
         document.addEventListener('click', () => closeAllKetPopovers());
 
 
+        async function updateItemStatus(itemId, status) {
+            try {
+                const resp = await fetch(`/api/petty-cash/${itemId}/status`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'same-origin',
+                    body: JSON.stringify({status}),
+                });
+                const result = await resp.json().catch(() => ({}));
+                if (resp.ok && result.success) {
+                    // Update badge color
+                    const sel = document.querySelector(`select[data-item-id="${itemId}"]`);
+                    if (sel) {
+                        sel.className = `status-select text-[10px] font-bold rounded-full px-2 py-0.5 border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#55a7d4] ` +
+                            (status === 'DIAJUKAN' ? 'bg-blue-100 text-blue-700' :
+                             status === 'DISETUJUI' ? 'bg-emerald-100 text-emerald-700' :
+                             status === 'DIBAYAR' ? 'bg-violet-100 text-violet-700' :
+                             status === 'DIBATALKAN' ? 'bg-red-100 text-red-600' :
+                             'bg-slate-100 text-slate-600');
+                    }
+                } else {
+                    alert('Gagal update status: ' + (result.error || resp.status));
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+
         function triggerNotaUpload(itemId) {
             activeNotaItemId = itemId;
             const input = document.getElementById('nota-file-input');
@@ -852,12 +231,50 @@
             const checked = document.querySelectorAll('.row-checkbox:checked');
             const toolbar = document.getElementById('bulk-toolbar');
             const info = document.getElementById('selected-info');
+            const statusBtn = document.getElementById('bulk-update-status-btn');
             if (!toolbar) return;
             if (checked.length > 0) {
                 toolbar.style.display = 'flex';
                 info.textContent = checked.length + ' dipilih';
             } else {
                 toolbar.style.display = 'none';
+            }
+            if (statusBtn) {
+                statusBtn.disabled = checked.length === 0;
+            }
+        }
+
+        // Enable/disable bulk status button when select changes
+        const bulkStatusSelect = document.getElementById('bulk-status-select');
+        if (bulkStatusSelect) {
+            bulkStatusSelect.addEventListener('change', updateBulkToolbar);
+        }
+
+        async function bulkUpdateStatus() {
+            const ids = getSelectedIds();
+            const statusSelect = document.getElementById('bulk-status-select');
+            const newStatus = statusSelect ? statusSelect.value : '';
+            if (ids.length === 0) return;
+            if (!newStatus) {
+                alert('Pilih status terlebih dahulu.');
+                return;
+            }
+            if (!confirm(`Update ${ids.length} transaksi ke "${newStatus}"?`)) return;
+            try {
+                const resp = await fetch('/api/petty-cash/bulk-update', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ids, status: newStatus}),
+                });
+                const result = await resp.json().catch(() => ({}));
+                if (resp.ok && result.success) {
+                    location.reload();
+                } else {
+                    alert('Gagal update: ' + (result.error || resp.status));
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
             }
         }
 

@@ -1,0 +1,93 @@
+<!-- Nota Modal -->
+<div id="nota-modal" class="fixed inset-0 bg-black/80 z-[100] items-center justify-center p-4 no-print" onclick="closeNota()">
+    <div class="max-w-2xl w-full bg-white rounded-2xl overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+        <div class="px-4 py-3 border-b flex justify-between items-center">
+            <span id="nota-modal-title" class="font-semibold text-sm text-[#071e49] truncate"></span>
+            <button onclick="closeNota()" class="text-slate-400 hover:text-slate-700 text-xl">&times;</button>
+        </div>
+        <img id="nota-modal-img" src="" alt="Nota" class="w-full max-h-[70vh] object-contain bg-slate-100">
+    </div>
+</div>
+
+<!-- Header Meta Modal -->
+<div id="header-modal" class="hidden fixed inset-0 bg-black/70 z-[95] items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200">
+        <div class="px-6 py-5 border-b flex items-center justify-between">
+            <div>
+                <div class="font-semibold text-xl text-[#071e49]">Isi Header Laporan</div>
+                <div class="text-xs text-[#55a7d4]">Saldo, pemohon, payment info</div>
+            </div>
+            <button onclick="closeHeaderModal()" class="text-slate-400 hover:text-slate-700 text-xl leading-none">&times;</button>
+        </div>
+        <form action="/petty-cash/laporan/save" method="POST" class="px-6 py-5">
+            <input type="hidden" name="upload_id" value="{{ selected_upload_id }}">
+            <div class="grid grid-cols-1 gap-4">
+                <div>
+                    <label class="text-xs font-semibold text-[#071e49]">Nama Pemohon</label>
+                    <input name="nama_karyawan" type="text" value="{{ laporan.nama_karyawan or '' }}"
+                           placeholder="Contoh: Icha Salsabila"
+                           class="mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-[#071e49]">Divisi</label>
+                    <input name="divisi" type="text" value="{{ laporan.divisi or '' }}"
+                           placeholder="Contoh: Akuntan"
+                           class="mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-[#071e49]">Saldo Awal (Rp)</label>
+                    <input name="saldo_awal" type="number" step="1"
+                           value="{{ laporan.saldo_awal or '' }}"
+                           placeholder="Contoh: 2000000"
+                           class="mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-mono">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-[#071e49]">Total Pengeluaran (Rp)</label>
+                    <input name="total_digantikan" type="number" step="1"
+                           value="{{ laporan.total_digantikan or laporan.total_kredit or '' }}"
+                           placeholder="Otomatis dari transaksi"
+                           class="mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-mono">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-[#071e49]">Yang Menyetujui</label>
+                    <input name="yang_menyetujui" type="text" value="{{ laporan.yang_menyetujui or '' }}"
+                           placeholder="Contoh: MOCH. ULIL AMRI"
+                           class="mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-[#071e49]">Bank</label>
+                    <input name="bank" type="text" value="{{ laporan.bank or '' }}"
+                           placeholder="Contoh: MANDIRI"
+                           class="mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-[#071e49]">Nomor Rekening</label>
+                    <input name="nomor_rekening" type="text" value="{{ laporan.nomor_rekening or '' }}"
+                           placeholder="Contoh: 1380019797732"
+                           class="mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-mono">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-[#071e49]">Atas Nama</label>
+                    <input name="atas_nama" type="text" value="{{ laporan.atas_nama or '' }}"
+                           placeholder="Contoh: ICHA SALSABILA"
+                           class="mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-[#071e49]">Periode</label>
+                    <input name="periode" type="text" value="{{ laporan.periode or '' }}"
+                           placeholder="Contoh: Juli 2026"
+                           class="mt-1 w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="closeHeaderModal()"
+                        class="flex-1 py-3 text-sm font-medium border border-slate-200 rounded-xl hover:bg-slate-50 text-[#071e49]">Batal</button>
+                <button type="submit"
+                        class="flex-1 py-3 text-sm font-semibold bg-[#071e49] hover:bg-[#0c3d6e] text-white rounded-xl">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Nota Upload Hidden Input -->
+<input type="file" id="nota-file-input" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf" class="hidden">

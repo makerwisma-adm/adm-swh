@@ -1,0 +1,129 @@
+{# Alur modul beranda — set active_menu sebelum include #}
+<style>
+    .beranda-flow {
+        background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
+        border: 1px solid #dbeafe;
+        border-radius: 1rem;
+        padding: 1rem 1.1rem;
+    }
+    .beranda-flow-title {
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .beranda-flow-steps {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem 0.25rem;
+    }
+    .beranda-flow-step {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.45rem 0.75rem;
+        border-radius: 0.75rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #475569;
+        text-decoration: none;
+        transition: border-color .15s, box-shadow .15s;
+        white-space: nowrap;
+    }
+    .beranda-flow-step:hover:not(.is-current) {
+        border-color: #55a7d4;
+        color: #071e49;
+    }
+    .beranda-flow-step.is-current {
+        background: #071e49;
+        border-color: #071e49;
+        color: #fff;
+    }
+    .beranda-flow-step-icon {
+        width: 1.35rem;
+        height: 1.35rem;
+        border-radius: 0.45rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.62rem;
+        background: #f1f5f9;
+        color: #64748b;
+        flex-shrink: 0;
+    }
+    .beranda-flow-step.is-current .beranda-flow-step-icon {
+        background: rgba(255,255,255,0.15);
+        color: #c9a558;
+    }
+    .beranda-flow-arrow {
+        color: #94a3b8;
+        font-size: 0.55rem;
+        padding: 0 0.15rem;
+    }
+    .beranda-flow-note {
+        margin-top: 0.65rem;
+        font-size: 0.7rem;
+        color: #64748b;
+        line-height: 1.45;
+    }
+    @media (max-width: 640px) {
+        .beranda-flow-arrow { display: none; }
+        .beranda-flow-steps { flex-direction: column; align-items: stretch; }
+        .beranda-flow-step { justify-content: flex-start; }
+    }
+</style>
+
+<div class="beranda-flow no-print mb-5">
+    <div class="beranda-flow-title">
+        <i class="fa-solid fa-diagram-project"></i>
+        Alur Keuangan SPPG
+    </div>
+    <div class="beranda-flow-steps">
+        {% if 'dashboard' in user_menu_keys %}
+        <a href="/dashboard" class="beranda-flow-step {% if active_menu == 'dashboard' %}is-current{% endif %}">
+            <span class="beranda-flow-step-icon"><i class="fa-solid fa-chart-line"></i></span>
+            <span>Dashboard</span>
+        </a>
+        <span class="beranda-flow-arrow"><i class="fa-solid fa-chevron-right"></i></span>
+        {% endif %}
+        {% if 'transfer_bgn' in user_menu_keys %}
+        <a href="/transfer-bgn{{ laporan_qs or '' }}" class="beranda-flow-step {% if active_menu == 'transfer_bgn' %}is-current{% endif %}">
+            <span class="beranda-flow-step-icon"><i class="fa-solid fa-building-columns"></i></span>
+            <span>Transfer BGN</span>
+        </a>
+        <span class="beranda-flow-arrow"><i class="fa-solid fa-minus"></i></span>
+        {% endif %}
+        {% if 'laporan' in user_menu_keys %}
+        <a href="/laporan{{ laporan_qs or '' }}" class="beranda-flow-step {% if active_menu == 'laporan' %}is-current{% endif %}">
+            <span class="beranda-flow-step-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+            <span>Laporan Keuangan</span>
+        </a>
+        <span class="beranda-flow-arrow"><i class="fa-solid fa-equals"></i></span>
+        {% endif %}
+        <span class="beranda-flow-step" style="cursor:default;border-style:dashed;">
+            <span class="beranda-flow-step-icon"><i class="fa-solid fa-sack-dollar"></i></span>
+            <span>Saldo BGN</span>
+        </span>
+    </div>
+    <p class="beranda-flow-note">
+        {% if active_menu == 'transfer_bgn' %}
+        <strong>Transfer BGN</strong> = dana operasional masuk. Dikurangi pengeluaran <strong>DIBAYARKAN</strong> = <strong>Saldo kas</strong>. DIAJUKAN/DISETUJUI belum mengurangi saldo.
+        Lihat <a href="/transfer-bgn/laporan{{ laporan_qs or '' }}" class="text-[#071e49] font-semibold hover:underline">Laporan Input & Output</a>
+        atau <a href="/laporan{{ laporan_qs or '' }}" class="text-[#071e49] font-semibold hover:underline">Laporan Keuangan</a>.
+        {% elif active_menu == 'laporan' %}
+        <strong>Laporan Keuangan</strong> merangkum pengeluaran tiap modul. Uang masuk BGN dikelola di
+        <a href="/transfer-bgn{{ laporan_qs or '' }}" class="text-[#071e49] font-semibold hover:underline">Transfer BGN</a>.
+        {% else %}
+        Uang masuk dicatat di <strong>Transfer BGN</strong>, pengeluaran di modul laporan, ringkasan di <strong>Laporan Keuangan</strong>.
+        {% endif %}
+        {% if period_label %} Periode aktif: <strong>{{ period_label }}</strong>.{% endif %}
+    </p>
+</div>

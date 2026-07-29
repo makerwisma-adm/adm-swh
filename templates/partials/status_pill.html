@@ -1,0 +1,17 @@
+{# Render status pill — pass `status`, optional `rejection_note` #}
+{% if status == 'LUNAS' or status == 'DIBAYARKAN' or status == 'TERBAYAR' %}
+<span class="status-pill bg-emerald-100 text-emerald-700">LUNAS</span>
+{% elif status == 'DISETUJUI' %}
+<span class="status-pill bg-sky-100 text-sky-700">DISETUJUI</span>
+{% elif status == 'DIAJUKAN' %}
+<span class="status-pill bg-amber-100 text-amber-700">DIAJUKAN</span>
+{% elif status == 'DITOLAK' %}
+<span class="status-pill bg-red-100 text-red-700">DITOLAK</span>
+{% if rejection_note %}
+<div class="text-[10px] text-red-600 mt-1 max-w-[180px] leading-snug" title="{{ rejection_note }}">
+    <i class="fa-solid fa-comment-dots mr-0.5"></i>{{ rejection_note }}
+</div>
+{% endif %}
+{% else %}
+<span class="status-pill bg-slate-100 text-slate-500">{{ status or '—' }}</span>
+{% endif %}

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dashboard KA SPPG • Pelaporan Keuangan SPPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        {% include 'partials/layout_styles.html' %}
+        {% include 'partials/table_page_styles.html' %}
+        .ka-hero {
+            background: linear-gradient(135deg, #1e3a5f 0%, #0c4a6e 45%, #0369a1 100%);
+            border-radius: 1.5rem; color: #fff;
+        }
+        .ka-kpi {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 1rem; padding: 1rem 1.15rem;
+        }
+        .flow-step {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-size: 0.75rem; color: rgba(255,255,255,0.85);
+        }
+        .flow-arrow { opacity: 0.5; }
+        .ka-tab {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.55rem 1rem; border-radius: 9999px;
+            font-size: 0.82rem; font-weight: 600;
+            color: #64748b; background: #fff; border: 1px solid #e2e8f0;
+            transition: all .15s ease;
+        }
+        .ka-tab:hover { color: #071e49; border-color: #cbd5e1; }
+        .ka-tab.active {
+            background: #071e49; color: #fff; border-color: #071e49;
+        }
+        .ka-tab-badge {
+            min-width: 1.25rem; height: 1.25rem; padding: 0 0.35rem;
+            border-radius: 9999px; font-size: 0.65rem; font-weight: 700;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .ka-tab.active .ka-tab-badge { background: rgba(255,255,255,0.2); color: #fff; }
+        .ka-tab:not(.active) .ka-tab-badge { background: #f1f5f9; color: #475569; }
+    </style>
+</head>
+<body class="app-body">
+    {% set active_menu = 'dashboard_ka' %}
+    {% include 'partials/navbar.html' %}
+    <div class="max-w-screen-2xl mx-auto flex">
+        {% include 'partials/sidebar.html' %}
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
+            <div class="mb-6 flex flex-wrap justify-between gap-3">
+                <div>
+                    <h1 class="text-2xl font-bold text-[#071e49] font-display">Dashboard KA SPPG</h1>
+                    <p class="text-sm text-slate-500 mt-1">
+                        {% if tab == 'diajukan' %}
+                        Tinjau pengajuan <strong>DIAJUKAN</strong> — setujui atau tolak dengan alasan agar akuntan dapat memperbaiki.
+                        {% elif tab == 'disetujui' %}
+                        Riwayat pengajuan <strong>DISETUJUI</strong> — menunggu pembayaran VA oleh Maker.
+                        {% elif tab == 'lunas' %}
+                        Pengajuan <strong>LUNAS</strong> — sudah dibayarkan Maker via VA setelah Anda menyetujui.
+                        {% else %}
+                        Riwayat pengajuan <strong>DITOLAK</strong> beserta alasan penolakan.
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2 no-print">
+                    {% if tab == 'lunas' and lunas_export_href %}
+                    <a href="{{ lunas_export_href }}" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl bg-emerald-700 text-white font-semibold">
+                        <i class="fa-solid fa-file-csv"></i> Export Lunas ({{ lunas_export_count }})
+                    </a>
+                    {% endif %}
+                    <a href="/laporan/status" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50 text-[#071e49] font-semibold">
+                        <i class="fa-solid fa-chart-pie text-indigo-500"></i> Laporan Status
+                    </a>
+                </div>
+            </div>
+
+            {% include 'partials/bgn_saldo_strip.html' %}
+
+            <div class="ka-hero px-6 py-6 mb-6 no-print">
+                <div class="flex flex-wrap items-center gap-2 mb-4 text-sm">
+                    <span class="flow-step"><span class="px-2 py-0.5 rounded-full bg-amber-400/30 text-amber-100 font-semibold">DIAJUKAN</span></span>
+                    <i class="fa-solid fa-arrow-right flow-arrow text-white/40"></i>
+                    <span class="flow-step"><span class="px-2 py-0.5 rounded-full bg-sky-400/30 text-sky-100 font-semibold">DISETUJUI</span></span>
+                    <i class="fa-solid fa-arrow-right flow-arrow text-white/40"></i>
+                    <span class="flow-step"><span class="px-2 py-0.5 rounded-full bg-emerald-400/30 text-emerald-100 font-semibold">LUNAS</span></span>
+                    <span class="text-white/40 mx-1">atau</span>
+                    <span class="flow-step"><span class="px-2 py-0.5 rounded-full bg-red-400/30 text-red-100 font-semibold">DITOLAK</span> + alasan</span>
+                </div>
+                <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div class="ka-kpi">
+                        <div class="text-[10px] uppercase text-white/55 font-semibold">{{ tab_meta.label }}</div>
+                        <div class="text-2xl font-bold">{{ item_count }}</div>
+                        <div class="text-[10px] text-white/45 mt-0.5">pengajuan {{ tab_meta.status }}</div>
+                    </div>
+                    <div class="ka-kpi">
+                        <div class="text-[10px] uppercase text-white/55 font-semibold">Total Nilai</div>
+                        <div class="text-2xl font-bold money">{{ format_rupiah(item_total) }}</div>
+                    </div>
+                    <div class="ka-kpi col-span-2 lg:col-span-1">
+                        <div class="text-[10px] uppercase text-white/55 font-semibold">Modul Terlibat</div>
+                        <div class="text-2xl font-bold">{{ groups | length }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if ka_unread_notification_count > 0 %}
+            <div id="ka-notif-banner" class="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl no-print">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <div class="font-semibold text-emerald-900 text-sm">
+                            <i class="fa-solid fa-bell mr-1"></i>
+                            {{ ka_unread_notification_count }} pembayaran baru lunas
+                        </div>
+                        <p class="text-xs text-emerald-800/80 mt-1">Maker telah memproses pembayaran VA untuk pengajuan yang Anda setujui.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="/dashboard-ka?tab=lunas" class="px-3 py-1.5 text-xs bg-emerald-700 text-white rounded-xl font-semibold">Lihat Lunas</a>
+                        <button type="button" onclick="markAllNotifRead()" class="px-3 py-1.5 text-xs border border-emerald-300 text-emerald-800 rounded-xl">Tandai dibaca</button>
+                    </div>
+                </div>
+                {% if ka_notifications %}
+                <ul class="mt-3 space-y-2 max-h-40 overflow-y-auto">
+                    {% for n in ka_notifications if n.is_unread %}
+                    <li class="text-xs text-emerald-900 bg-white/70 rounded-xl px-3 py-2 border border-emerald-100">
+                        <strong>{{ n.title }}</strong> — {{ n.message }}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="mb-4 flex flex-wrap gap-2 no-print">
+                <a href="/dashboard-ka?tab=diajukan{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.kategori %}&kategori={{ filters.kategori }}{% endif %}"
+                   class="ka-tab {{ 'active' if tab == 'diajukan' else '' }}">
+                    <i class="fa-solid fa-clock"></i> Perlu Disetujui
+                    <span class="ka-tab-badge">{{ tab_counts.diajukan }}</span>
+                </a>
+                <a href="/dashboard-ka?tab=disetujui{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.kategori %}&kategori={{ filters.kategori }}{% endif %}"
+                   class="ka-tab {{ 'active' if tab == 'disetujui' else '' }}">
+                    <i class="fa-solid fa-check"></i> Sudah Disetujui
+                    <span class="ka-tab-badge">{{ tab_counts.disetujui }}</span>
+                </a>
+                <a href="/dashboard-ka?tab=lunas{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.kategori %}&kategori={{ filters.kategori }}{% endif %}"
+                   class="ka-tab {{ 'active' if tab == 'lunas' else '' }}">
+                    <i class="fa-solid fa-circle-check"></i> Sudah Lunas
+                    <span class="ka-tab-badge">{{ tab_counts.lunas }}</span>
+                    {% if ka_unread_notification_count > 0 and tab != 'lunas' %}
+                    <span class="ka-tab-badge bg-red-500 text-white">{{ ka_unread_notification_count }}</span>
+                    {% endif %}
+                </a>
+                <a href="/dashboard-ka?tab=ditolak{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.kategori %}&kategori={{ filters.kategori }}{% endif %}"
+                   class="ka-tab {{ 'active' if tab == 'ditolak' else '' }}">
+                    <i class="fa-solid fa-ban"></i> Ditolak
+                    <span class="ka-tab-badge">{{ tab_counts.ditolak }}</span>
+                </a>
+            </div>
+
+            <form method="GET" action="/dashboard-ka" class="mb-4 flex flex-wrap gap-3 no-print">
+                <input type="hidden" name="tab" value="{{ tab }}">
+                <input type="search" name="search" value="{{ filters.search }}" placeholder="Cari nama / no..."
+                    class="form-input text-sm px-4 py-2.5 border rounded-2xl min-w-[200px]">
+                <select name="kategori" class="form-input text-sm px-3 py-2.5 border rounded-2xl">
+                    <option value="">Semua modul</option>
+                    {% for opt in kategori_options %}
+                    <option value="{{ opt.key }}" {% if filters.kategori == opt.key %}selected{% endif %}>{{ opt.label }}</option>
+                    {% endfor %}
+                </select>
+                {% if tab == 'lunas' %}
+                <input type="date" name="dari" value="{{ filters.dari or filters_dari }}" class="form-input text-sm px-3 py-2.5 border rounded-2xl" title="Dari tanggal dibayar">
+                <input type="date" name="sampai" value="{{ filters.sampai or filters_sampai }}" class="form-input text-sm px-3 py-2.5 border rounded-2xl" title="Sampai tanggal dibayar">
+                {% endif %}
+                <button type="submit" class="px-4 py-2.5 bg-[#071e49] text-white text-sm font-semibold rounded-2xl">
+                    <i class="fa-solid fa-filter mr-1"></i> Filter
+                </button>
+            </form>
+
+            {% if tab == 'diajukan' and can_approve %}
+            <div id="bulk-toolbar" style="display:none;" class="mb-4 p-3 bg-white border rounded-2xl flex flex-wrap items-center gap-3 no-print">
+                <span class="text-sm font-medium" id="selected-info">0 dipilih</span>
+                <button onclick="bulkApprove()" class="px-4 py-2 text-sm bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold">
+                    <i class="fa-solid fa-check-double mr-1"></i> Setujui
+                </button>
+                <button onclick="openRejectModal()" class="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold">
+                    <i class="fa-solid fa-ban mr-1"></i> Tolak
+                </button>
+                <button onclick="clearSelection()" class="px-3 py-2 text-sm border rounded-xl">Batal</button>
+            </div>
+            {% endif %}
+
+            {% for group in groups %}
+            <div class="mb-6 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                <div class="px-5 py-4 border-b bg-slate-50 flex flex-wrap justify-between items-center gap-2">
+                    <div>
+                        <h2 class="font-semibold text-[#071e49]">{{ group.label }}</h2>
+                        <p class="text-xs text-slate-500">{{ group.count }} pengajuan · {{ format_rupiah(group.total) }}</p>
+                    </div>
+                    <a href="{{ group.href }}" class="text-xs text-[#55a7d4] hover:underline font-medium">Lihat modul →</a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs uppercase text-slate-500 border-b">
+                                {% if tab == 'diajukan' and can_approve %}<th class="p-3 w-8"><input type="checkbox" class="group-select-all rounded" data-group="{{ group.kategori }}"></th>{% endif %}
+                                <th class="p-3">No</th>
+                                <th class="p-3">Tanggal</th>
+                                <th class="p-3">Keterangan</th>
+                                <th class="p-3">Penerima</th>
+                                <th class="p-3 text-right">Jumlah</th>
+                                <th class="p-3 text-center">Status</th>
+                                {% if tab == 'disetujui' %}<th class="p-3">Disetujui</th>{% endif %}
+                                {% if tab == 'lunas' %}<th class="p-3">Dibayar VA</th>{% endif %}
+                                {% if tab == 'ditolak' %}<th class="p-3">Alasan</th>{% endif %}
+                                {% if tab == 'diajukan' and can_approve %}<th class="p-3 text-center no-print">Aksi</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in group.entries %}
+                            <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                                {% if tab == 'diajukan' and can_approve %}
+                                <td class="p-3"><input type="checkbox" class="row-checkbox rounded" value="{{ item.id }}" data-group="{{ group.kategori }}"></td>
+                                {% endif %}
+                                <td class="p-3 text-slate-400">{{ item.no or '—' }}</td>
+                                <td class="p-3">{% if item.tanggal %}{{ format_tanggal(item.tanggal) }}{% else %}—{% endif %}</td>
+                                <td class="p-3 font-medium text-[#071e49]">{{ item.pengajuan }}</td>
+                                <td class="p-3 text-slate-600">{{ item.atas_nama or '—' }}</td>
+                                <td class="p-3 text-right font-semibold money">{{ format_rupiah(item.jumlah) }}</td>
+                                <td class="p-3 text-center">{% set status = item.status %}{% set rejection_note = item.rejection_note %}{% include 'partials/status_pill.html' %}</td>
+                                {% if tab == 'disetujui' %}
+                                <td class="p-3 text-xs text-slate-500">
+                                    {% if item.approved_at %}{{ format_tanggal(item.approved_at[:10]) if item.approved_at|length >= 10 else item.approved_at }}{% else %}—{% endif %}
+                                    {% if item.approved_by_name %}<span class="block text-slate-400">oleh {{ item.approved_by_name }}</span>{% endif %}
+                                </td>
+                                {% endif %}
+                                {% if tab == 'lunas' %}
+                                <td class="p-3 text-xs text-slate-500">
+                                    {% if item.paid_at %}{{ format_tanggal(item.paid_at[:10]) if item.paid_at|length >= 10 else item.paid_at }}{% else %}—{% endif %}
+                                    {% if item.paid_by_name %}<span class="block text-emerald-600">oleh {{ item.paid_by_name }}</span>{% endif %}
+                                </td>
+                                {% endif %}
+                                {% if tab == 'ditolak' %}
+                                <td class="p-3 text-xs text-red-700 max-w-xs">
+                                    {{ item.rejection_note or '—' }}
+                                    {% if item.rejected_by_name %}<span class="block text-slate-400 mt-0.5">oleh {{ item.rejected_by_name }}</span>{% endif %}
+                                </td>
+                                {% endif %}
+                                {% if tab == 'diajukan' and can_approve %}
+                                <td class="p-3 text-center no-print whitespace-nowrap">
+                                    <button type="button" onclick="quickApprove([{{ item.id }}])" class="px-2 py-1 text-xs bg-sky-50 text-sky-700 rounded-lg hover:bg-sky-100" title="Setujui">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                    <button type="button" onclick="quickReject([{{ item.id }}])" class="px-2 py-1 text-xs bg-red-50 text-red-700 rounded-lg hover:bg-red-100 ml-1" title="Tolak">
+                                        <i class="fa-solid fa-ban"></i>
+                                    </button>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="py-20 text-center text-slate-400 bg-white border rounded-2xl">
+                {% if tab == 'diajukan' %}
+                <i class="fa-solid fa-circle-check text-5xl mb-3 text-emerald-200"></i>
+                {% elif tab == 'disetujui' %}
+                <i class="fa-solid fa-check text-5xl mb-3 text-sky-200"></i>
+                {% elif tab == 'lunas' %}
+                <i class="fa-solid fa-circle-check text-5xl mb-3 text-emerald-200"></i>
+                {% else %}
+                <i class="fa-solid fa-ban text-5xl mb-3 text-red-200"></i>
+                {% endif %}
+                <p class="font-medium text-slate-600">{{ tab_meta.empty_title }}</p>
+                <p class="text-sm mt-1">{{ tab_meta.empty_desc }}</p>
+            </div>
+            {% endfor %}
+        </main>
+    </div>
+
+    <script>
+        async function markAllNotifRead() {
+            const r = await fetch('/api/dashboard-ka/notifications/read', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({all: true})
+            });
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.success) location.reload();
+            else alert(j.error || 'Gagal menandai notifikasi');
+        }
+    </script>
+
+    {% if tab == 'diajukan' and can_approve %}
+    <div id="reject-modal" class="hidden fixed inset-0 bg-black/60 z-[90] items-center justify-center p-4 no-print" onclick="if(event.target.id==='reject-modal') closeRejectModal()">
+        <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl" onclick="event.stopPropagation()">
+            <div class="px-5 py-4 border-b flex justify-between items-center">
+                <h3 class="font-semibold text-[#071e49]"><i class="fa-solid fa-ban text-red-500 mr-2"></i>Tolak Pengajuan</h3>
+                <button type="button" onclick="closeRejectModal()" class="text-slate-400 text-xl">&times;</button>
+            </div>
+            <div class="px-5 py-4">
+                <p class="text-sm text-slate-600 mb-3">Berikan alasan penolakan agar akuntan dapat memperbaiki dan mengajukan ulang.</p>
+                <label class="text-xs font-semibold text-slate-500 uppercase">Alasan penolakan *</label>
+                <textarea id="reject-note" rows="4" class="form-input mt-1 w-full px-3 py-2.5 border rounded-xl text-sm" placeholder="Contoh: Dokumen nota belum lengkap / jumlah tidak sesuai laporan..."></textarea>
+                <p class="text-[10px] text-slate-400 mt-1">Minimal 3 karakter. Alasan akan tampil di modul terkait.</p>
+            </div>
+            <div class="px-5 py-4 border-t flex gap-2">
+                <button type="button" onclick="closeRejectModal()" class="flex-1 py-2.5 border rounded-xl text-sm">Batal</button>
+                <button type="button" onclick="submitReject()" class="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold">Tolak Pengajuan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let rejectTargetIds = [];
+
+        document.querySelectorAll('.group-select-all').forEach(gcb => {
+            gcb.addEventListener('change', () => {
+                const g = gcb.dataset.group;
+                document.querySelectorAll(`.row-checkbox[data-group="${g}"]`).forEach(cb => cb.checked = gcb.checked);
+                updateBulk();
+            });
+        });
+        document.querySelectorAll('.row-checkbox').forEach(cb => cb.addEventListener('change', updateBulk));
+
+        function selectedIds() {
+            return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+        }
+
+        function updateBulk() {
+            const n = selectedIds().length;
+            const t = document.getElementById('bulk-toolbar');
+            if (t) {
+                t.style.display = n > 0 ? 'flex' : 'none';
+                document.getElementById('selected-info').textContent = n + ' dipilih';
+            }
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.row-checkbox, .group-select-all').forEach(cb => cb.checked = false);
+            updateBulk();
+        }
+
+        async function bulkApprove() {
+            const ids = selectedIds();
+            if (!ids.length || !confirm(`Setujui ${ids.length} pengajuan terpilih?`)) return;
+            await quickApprove(ids);
+        }
+
+        async function quickApprove(ids) {
+            const r = await fetch('/api/dashboard-ka/approve', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ids})
+            });
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.success) location.href = '/dashboard-ka?tab=disetujui';
+            else alert(j.error || 'Gagal menyetujui');
+        }
+
+        function openRejectModal(ids = null) {
+            rejectTargetIds = ids || selectedIds();
+            if (!rejectTargetIds.length) { alert('Pilih pengajuan yang akan ditolak.'); return; }
+            document.getElementById('reject-note').value = '';
+            const m = document.getElementById('reject-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+            document.getElementById('reject-note').focus();
+        }
+
+        function quickReject(ids) {
+            openRejectModal(ids);
+        }
+
+        function closeRejectModal() {
+            const m = document.getElementById('reject-modal');
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+            rejectTargetIds = [];
+        }
+
+        async function submitReject() {
+            const note = document.getElementById('reject-note').value.trim();
+            if (note.length < 3) { alert('Alasan penolakan wajib diisi (minimal 3 karakter).'); return; }
+            if (!rejectTargetIds.length) return;
+            const r = await fetch('/api/dashboard-ka/reject', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ids: rejectTargetIds, note})
+            });
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.success) location.href = '/dashboard-ka?tab=ditolak';
+            else alert(j.error || 'Gagal menolak pengajuan');
+        }
+    </script>
+    {% endif %}
+</body>
+</html>

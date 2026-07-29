@@ -20,7 +20,7 @@ Web aplikasi internal untuk pelaporan keuangan **Tagihan Mitra** SPPG Wisma Haji
 1. Pastikan kamu berada di folder ini:
 
    ```bash
-   cd /Users/adm/PROJECT/WEB
+   cd /Users/masemen/web/adm/appweb-sppg
    ```
 
 2. Install dependencies (sekali saja):
@@ -29,7 +29,13 @@ Web aplikasi internal untuk pelaporan keuangan **Tagihan Mitra** SPPG Wisma Haji
    python3 -m pip install -r requirements.txt
    ```
 
-3. Jalankan aplikasi:
+3. Jalankan aplikasi (pilih salah satu):
+
+   ```bash
+   ./start-local.sh
+   ```
+
+   atau
 
    ```bash
    python3 main.py
@@ -38,19 +44,22 @@ Web aplikasi internal untuk pelaporan keuangan **Tagihan Mitra** SPPG Wisma Haji
    atau
 
    ```bash
-   python3 -m uvicorn main:app --reload --port 8001
+   python3 -m uvicorn main:app --reload --host 127.0.0.1 --port 8001
    ```
 
-4. Buka browser: **http://localhost:8001**
+4. Buka browser: **http://localhost:8001/masuk**
+
+> `./start-dev.sh` adalah alias untuk `./start-local.sh`.
 
 ## Akun Login Default
 
-| Username | Password      | Keterangan     |
-|----------|---------------|----------------|
-| `swhm`   | `Herman@0281` | Admin Utama (Maker SWH) |
-| `admin`  | `sppg123`     | Backup Admin   |
+| Username | Password  | Keterangan              |
+|----------|-----------|-------------------------|
+| `admin`  | `admin123`| Admin utama             |
+| `swhm`   | `A0312`   | Admin cadangan          |
+| `icha`   | `sppg123` | Member (upload terbatas)|
 
-> **Penting**: Ganti password setelah pertama kali login di production.
+> **Penting**: Ganti password setelah pertama kali login di production. Password di DB tidak di-reset otomatis.
 
 ## Struktur Data (sesuai Excel)
 

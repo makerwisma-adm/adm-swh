@@ -2,12 +2,13 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Pengajuan Dana Mitra • Pelaporan Keuangan SPPG</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         {% include 'partials/layout_styles.html' %}
+        {% include 'partials/table_page_styles.html' %}
 
         .report-hero {
             background: linear-gradient(135deg, #071e49 0%, #0c3d6e 45%, #1a5f8a 100%);
@@ -151,19 +152,24 @@
         }
     </style>
 </head>
-<body class="bg-[#f8fafc]">
+<body class="app-body">
+    {% set active_menu = 'pengajuan_dana_mitra' %}
     {% include 'partials/navbar.html' %}
 
     <div class="max-w-screen-2xl mx-auto flex">
-        {% set active_menu = 'pengajuan_dana_mitra' %}
         {% include 'partials/sidebar.html' %}
 
-        <main class="flex-1 p-6 md:p-8">
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
             {% if message %}
             <div class="mb-4 p-3 rounded-2xl no-print {% if success %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
                 <i class="fa-solid {% if success %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-1"></i>{{ message }}
             </div>
             {% endif %}
+
+            {% include 'partials/keuangan_flow_guide.html' %}
+            {% set form_action = '/pengajuan-dana-mitra' %}
+            {% set hidden_fields = [{'name': 'upload_id', 'value': selected_upload_id}] if selected_upload_id else [] %}
+            {% include 'partials/report_period_filter.html' %}
 
             <div class="mb-6 no-print flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -212,22 +218,21 @@
                             </div>
                             <h2 class="font-display text-2xl md:text-3xl font-bold tracking-tight">Pengajuan Dana Mitra</h2>
                             <p class="text-white/60 text-sm mt-1.5">
-                                {% if selected_upload_id and laporan %}
-                                    {{ laporan.periode or laporan.filename }}
-                                {% else %}
-                                    Semua periode • {{ items|length }} transaksi ditampilkan
+                                Semua upload digabung • {{ all_items_count or items|length }} transaksi
+                                {% if total_pages and total_pages > 1 %}
+                                    • halaman {{ page }}/{{ total_pages }}
                                 {% endif %}
                             </p>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
                         <div class="hero-kpi" style="--accent: #55a7d4;">
                             <div class="hero-kpi-icon bg-[#55a7d4]/25 text-[#7ec8eb]">
                                 <i class="fa-solid fa-list-ol"></i>
                             </div>
                             <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Jumlah Transaksi</div>
-                            <div class="mt-1 text-2xl md:text-3xl font-bold money">{{ items|length }}</div>
+                            <div class="mt-1 text-2xl md:text-3xl font-bold money">{{ all_items_count or items|length }}</div>
                             <div class="text-[10px] text-white/45 mt-1">baris rincian</div>
                         </div>
 
@@ -251,6 +256,24 @@
                             <div class="mt-1 text-2xl font-bold text-white/70">—</div>
                             {% endif %}
                             <div class="text-[10px] text-white/45 mt-1">berdasarkan data ditampilkan</div>
+                        </div>
+
+                        <div class="hero-kpi" style="--accent: #ef4444;">
+                            <div class="hero-kpi-icon bg-red-400/20 text-red-200">
+                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                            </div>
+                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Total Tertagih</div>
+                            <div class="mt-1 text-xl md:text-2xl font-bold money text-red-300 leading-tight">{{ format_rupiah(total_tertagih) }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">belum terbayar (DIAJUKAN)</div>
+                        </div>
+
+                        <div class="hero-kpi" style="--accent: #34d399;">
+                            <div class="hero-kpi-icon bg-emerald-400/20 text-emerald-200">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Total Terbayar</div>
+                            <div class="mt-1 text-xl md:text-2xl font-bold money text-emerald-300 leading-tight">{{ format_rupiah(total_terbayar) }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">status LUNAS / DIBAYARKAN</div>
                         </div>
 
                         <div class="hero-kpi hero-kpi-grand" style="--accent: #c9a558;">
@@ -284,11 +307,13 @@
                 <button onclick="bulkDelete()" class="px-4 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium">
                     <i class="fa-solid fa-trash mr-1"></i> Hapus
                 </button>
-                {% if can_edit %}
-                <button onclick="bulkSetStatus('TERBAYAR')" class="px-4 py-1.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium">
-                    <i class="fa-solid fa-check mr-1"></i> Tandai Terbayar
+                {% if can_mark_paid %}
+                <button onclick="bulkSetStatus('DIBAYARKAN')" class="px-4 py-1.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium">
+                    <i class="fa-solid fa-check mr-1"></i> Tandai Dibayarkan
                 </button>
-                <button onclick="bulkSetStatus('DIAJUKAN')" class="px-4 py-1.5 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium">
+                {% endif %}
+                {% if can_submit %}
+                <button onclick="bulkSetStatus('DIAJUKAN')" class="px-4 py-1.5 text-sm bg-amber-500 hover:bg-emerald-600 text-white rounded-xl font-medium">
                     Diajukan
                 </button>
                 {% endif %}
@@ -331,10 +356,18 @@
 
             <!-- Tabel Rincian Transaksi -->
             <div class="report-sheet overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap">
                     <div>
                         <h3 class="font-semibold text-[#071e49] text-lg">Rincian Transaksi</h3>
-                        <p class="text-xs text-slate-500">{{ items|length }} baris pembayaran</p>
+                        <p class="text-xs text-slate-500">
+                            {% set total_count = all_items_count or items|length %}
+                            {% if total_pages and total_pages > 1 %}
+                                Menampilkan {{ items|length }} dari {{ total_count }} baris
+                                (halaman {{ page }}/{{ total_pages }}, max {{ per_page or 10 }}/halaman)
+                            {% else %}
+                                {{ total_count }} baris pembayaran
+                            {% endif %}
+                        </p>
                     </div>
                     <div class="text-right hidden sm:block">
                         <div class="text-[10px] uppercase tracking-wider text-slate-400">Total Pengajuan</div>
@@ -342,12 +375,11 @@
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
+                <div class="table-scroll-wrap overflow-x-auto">
                     <table class="ledger-table w-full">
                         <thead>
                             <tr>
                                 {% if can_edit or can_delete_upload %}<th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>{% endif %}
-                                <th class="text-left w-12">No</th>
                                 <th class="text-left">Tanggal Pengajuan</th>
                                 <th class="text-left min-w-[200px]">Keterangan</th>
                                 <th class="text-left min-w-[160px]">Nama Rekening</th>
@@ -369,12 +401,14 @@
                                 {% elif can_delete_upload %}
                                 <td class="no-print"></td>
                                 {% endif %}
-                                <td class="text-slate-400 font-mono text-xs">{{ item.no or loop.index }}</td>
                                 <td class="whitespace-nowrap text-slate-600">
                                     {% if item.tanggal %}{{ format_tanggal_pengajuan(item.tanggal) }}{% else %}—{% endif %}
                                 </td>
                                 <td>
                                     <div class="font-medium text-[#071e49]">{{ item.pengajuan or '—' }}</div>
+                                    {% if item.ket %}
+                                    <div class="text-xs text-slate-500 mt-0.5">{{ item.ket }}</div>
+                                    {% endif %}
                                 </td>
                                 <td>{{ item.atas_nama or '—' }}</td>
                                 <td>
@@ -402,13 +436,7 @@
                                 {% include 'partials/tagihan_attachment_cell.html' %}
                                 {% endwith %}
                                 <td class="text-center status-cell">
-                                    {% if item.status == 'TERBAYAR' %}
-                                    <span class="status-pill bg-emerald-100 text-emerald-700">TERBAYAR</span>
-                                    {% elif item.status == 'DIAJUKAN' %}
-                                    <span class="status-pill bg-amber-100 text-amber-700">DIAJUKAN</span>
-                                    {% else %}
-                                    <span class="status-pill bg-slate-100 text-slate-500">—</span>
-                                    {% endif %}
+                                    {% set status = item.status %}{% set rejection_note = item.rejection_note %}{% include 'partials/status_pill.html' %}
                                 </td>
                                 {% if can_edit or (can_delete_upload and item.can_delete) %}
                                 <td class="no-print">
@@ -435,7 +463,7 @@
 
                             {% if not items %}
                             <tr>
-                                <td colspan="{% if can_edit or can_delete_upload %}13{% else %}12{% endif %}" class="py-16 text-center text-slate-400">
+                                <td colspan="{% if can_edit or can_delete_upload %}12{% else %}11{% endif %}" class="py-16 text-center text-slate-400">
                                     <i class="fa-solid fa-users text-4xl mb-3 text-slate-200"></i>
                                     <p class="text-sm">
                                         {% if can_edit %}
@@ -451,18 +479,56 @@
                         {% if items %}
                         <tfoot>
                             <tr class="bg-[#f8fafc] border-t-2 border-[#071e49]/10">
-                                <td colspan="{% if can_edit or can_delete_upload %}7{% else %}7{% endif %}" class="px-4 py-3 text-right font-bold text-[#071e49] uppercase text-xs tracking-wider">Total</td>
-                                <td colspan="3" class="no-print"></td>
-                                <td class="px-4 py-3 text-right">
-                                    <div class="text-xl font-bold text-emerald-700 money">{{ format_rupiah(total_filtered) }}</div>
+                                {# Kolom sebelum Jumlah: checkbox? + Tanggal + Ket + Nama Rek + No Rek + Bank #}
+                                <td colspan="{% if can_edit or can_delete_upload %}6{% else %}5{% endif %}"
+                                    class="px-4 py-3 text-right font-bold text-[#071e49] uppercase text-xs tracking-wider">
+                                    Total
                                 </td>
-                                <td class="no-print"></td>
+                                <td class="px-4 py-3 text-right">
+                                    <span class="font-bold text-[#071e49] money text-base">{{ format_rupiah(total_filtered) }}</span>
+                                </td>
+                                {# PICT + NOTA + BUKTI + Status #}
+                                <td colspan="4"></td>
                                 {% if can_edit or can_delete_upload %}<td class="no-print"></td>{% endif %}
                             </tr>
                         </tfoot>
                         {% endif %}
                     </table>
                 </div>
+
+                {% if total_pages and total_pages > 1 %}
+                <div class="px-6 py-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 no-print">
+                    <div class="text-xs text-slate-500">
+                        Halaman <strong class="text-slate-700">{{ page }}</strong> dari
+                        <strong class="text-slate-700">{{ total_pages }}</strong>
+                        · {{ all_items_count }} total baris
+                    </div>
+                    <nav class="flex items-center gap-1.5 flex-wrap" aria-label="Pagination rincian transaksi">
+                        {% set qs_prefix = ('?' ~ pagination_qs ~ '&') if pagination_qs else '?' %}
+
+                        <a href="{{ qs_prefix }}page={{ page - 1 if page > 1 else 1 }}"
+                           class="px-3 py-1.5 text-xs font-semibold rounded-xl border {% if page <= 1 %}pointer-events-none opacity-40 bg-slate-50 text-slate-400{% else %}bg-white text-slate-700 hover:bg-slate-50{% endif %}">
+                            <i class="fa-solid fa-chevron-left mr-1"></i> Prev
+                        </a>
+
+                        {% for p in range(1, total_pages + 1) %}
+                            {% if p == page %}
+                            <span class="min-w-[2rem] text-center px-2.5 py-1.5 text-xs font-bold rounded-xl bg-[#071e49] text-white">{{ p }}</span>
+                            {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                            <a href="{{ qs_prefix }}page={{ p }}"
+                               class="min-w-[2rem] text-center px-2.5 py-1.5 text-xs font-semibold rounded-xl border bg-white text-slate-700 hover:bg-slate-50">{{ p }}</a>
+                            {% elif p == page - 3 or p == page + 3 %}
+                            <span class="px-1 text-slate-400 text-xs">…</span>
+                            {% endif %}
+                        {% endfor %}
+
+                        <a href="{{ qs_prefix }}page={{ page + 1 if page < total_pages else total_pages }}"
+                           class="px-3 py-1.5 text-xs font-semibold rounded-xl border {% if page >= total_pages %}pointer-events-none opacity-40 bg-slate-50 text-slate-400{% else %}bg-white text-slate-700 hover:bg-slate-50{% endif %}">
+                            Next <i class="fa-solid fa-chevron-right ml-1"></i>
+                        </a>
+                    </nav>
+                </div>
+                {% endif %}
             </div>
         </main>
     </div>
@@ -498,7 +564,7 @@
                         <label class="text-xs font-semibold text-slate-600">Status</label>
                         <select id="status" name="status" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
                             <option value="DIAJUKAN">DIAJUKAN</option>
-                            <option value="TERBAYAR">TERBAYAR</option>
+                            <option value="DIBAYARKAN">DIBAYARKAN</option>
                         </select>
                     </div>
                     <div>

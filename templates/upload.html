@@ -2,21 +2,21 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Upload Laporan • SPPG Wisma Haji</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>{% include 'partials/layout_styles.html' %}</style>
 </head>
-<body class="bg-slate-100">
+<body class="app-body">
+    {% set active_menu = 'tagihan' %}
     {% include 'partials/navbar.html' %}
 
     <div class="max-w-screen-2xl mx-auto flex">
-        {% set active_menu = 'tagihan' %}
         {% set active_kategori = 'tagihan' %}
         {% include 'partials/sidebar.html' %}
 
-        <main class="flex-1 p-6 md:p-8 max-w-3xl">
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0 max-w-3xl">
             <div class="mb-6">
                 <h1 class="text-2xl font-semibold tracking-tight">Upload Data Laporan</h1>
                 <p class="text-slate-500 mt-1">Upload Laporan sekarang sudah terintegrasi di setiap halaman menu Dashboard (Tagihan, Petty Cash, Insentif Mitra, dll). Silakan buka halaman kategori yang diinginkan untuk upload PDF.</p>

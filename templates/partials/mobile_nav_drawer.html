@@ -1,0 +1,176 @@
+{# Drawer menu mobile — HARUS di luar <nav> agar position:fixed bekerja #}
+<style>
+    .mobile-drawer-backdrop {
+        position: fixed; inset: 0; z-index: 60;
+        background: rgba(7, 30, 73, 0.45);
+        backdrop-filter: blur(4px);
+        opacity: 0; visibility: hidden;
+        transition: opacity .2s ease, visibility .2s ease;
+    }
+    .mobile-drawer-backdrop.open { opacity: 1; visibility: visible; }
+
+    .mobile-drawer {
+        position: fixed; top: 0; left: 0; z-index: 70;
+        width: min(18rem, 85vw); height: 100%;
+        height: 100dvh;
+        background: #fff;
+        box-shadow: 8px 0 32px rgba(0,0,0,0.12);
+        transform: translateX(-100%);
+        transition: transform .25s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-y: auto;
+        padding: 1rem 0.75rem 2rem;
+        padding-top: max(1rem, env(safe-area-inset-top));
+        padding-bottom: max(2rem, env(safe-area-inset-bottom));
+        padding-left: max(0.75rem, env(safe-area-inset-left));
+    }
+    .mobile-drawer.open { transform: translateX(0); }
+
+    .mobile-drawer-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.5rem 0.5rem 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        margin-bottom: 0.75rem;
+    }
+    .mobile-nav-link {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.7rem 0.85rem; margin-bottom: 0.1rem;
+        border-radius: 0.75rem; font-size: 0.9rem;
+        color: #475569;
+        min-height: 2.75rem;
+    }
+    .mobile-nav-link:hover { background: #f8fafc; color: var(--theme-primary); }
+    .mobile-nav-link.active {
+        background: color-mix(in srgb, var(--theme-accent) 12%, white);
+        color: var(--theme-primary);
+        font-weight: 600;
+    }
+    .mobile-nav-link.mobile-nav-dashboard,
+    .mobile-nav-link.mobile-nav-dashboard.active {
+        color: #0f172a;
+    }
+    .mobile-nav-link i { width: 1.1rem; text-align: center; font-size: 0.85rem; }
+    .mobile-nav-label {
+        font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em;
+        text-transform: uppercase; color: #94a3b8;
+        padding: 0.75rem 0.85rem 0.35rem;
+    }
+    @media (min-width: 1024px) {
+        .mobile-drawer-backdrop,
+        .mobile-drawer { display: none !important; }
+    }
+</style>
+
+<div class="mobile-drawer-backdrop no-print" id="mobile-drawer-backdrop" aria-hidden="true"></div>
+<nav class="mobile-drawer no-print" id="mobile-drawer" aria-label="Menu navigasi" aria-hidden="true">
+    <div class="mobile-drawer-head">
+        <span class="font-display font-bold text-sm" style="color: var(--theme-primary)">Menu</span>
+        <button type="button" id="mobile-nav-close" class="w-9 h-9 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500" aria-label="Tutup menu">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    {% if 'dashboard_ka' in user_menu_keys or 'dashboard_bayar' in user_menu_keys %}
+    <div class="mobile-nav-label">Persetujuan</div>
+    {% if 'dashboard_ka' in user_menu_keys %}
+    <a href="/dashboard-ka" class="mobile-nav-link {{ 'active' if active_menu == 'dashboard_ka' else '' }}"><i class="fa-solid fa-user-check"></i> Dashboard KA SPPG</a>
+    {% endif %}
+    {% if 'dashboard_bayar' in user_menu_keys %}
+    <a href="/dashboard-bayar" class="mobile-nav-link {{ 'active' if active_menu == 'dashboard_bayar' else '' }}"><i class="fa-solid fa-money-bill-wave"></i> Pembayaran VA</a>
+    {% endif %}
+    {% endif %}
+
+    {% if 'dashboard' in user_menu_keys or 'transfer_bgn' in user_menu_keys or 'laporan' in user_menu_keys %}
+    <div class="mobile-nav-label">Beranda</div>
+    {% if 'dashboard' in user_menu_keys %}
+    <a href="/dashboard" class="mobile-nav-link mobile-nav-dashboard {{ 'active' if active_menu == 'dashboard' else '' }}"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+    {% endif %}
+    {% if 'transfer_bgn' in user_menu_keys %}
+    <a href="/transfer-bgn" class="mobile-nav-link {{ 'active' if active_menu == 'transfer_bgn' else '' }}"><i class="fa-solid fa-building-columns"></i> Transfer BGN</a>
+    {% endif %}
+    {% if 'laporan' in user_menu_keys %}
+    <a href="/laporan" class="mobile-nav-link {{ 'active' if active_menu == 'laporan' else '' }}"><i class="fa-solid fa-clipboard-list"></i> Laporan</a>
+    {% endif %}
+    {% endif %}
+
+    {% if 'tagihan' in user_menu_keys or 'petty_cash' in user_menu_keys or 'gaji_relawan' in user_menu_keys or 'gaji_staff' in user_menu_keys or 'insentif_pic' in user_menu_keys or 'insentif_mitra' in user_menu_keys or 'pengembalian_dana' in user_menu_keys or 'sewa_kendaraan' in user_menu_keys %}
+    <div class="mobile-nav-label">Modul Laporan</div>
+    {% if 'tagihan' in user_menu_keys %}
+    <a href="/tagihan" class="mobile-nav-link {{ 'active' if active_menu == 'tagihan' else '' }}"><i class="fa-solid fa-file-invoice-dollar"></i> Tagihan</a>
+    {% endif %}
+    {% if 'petty_cash' in user_menu_keys %}
+    <a href="/petty-cash" class="mobile-nav-link {{ 'active' if active_menu == 'petty_cash' else '' }}"><i class="fa-solid fa-wallet"></i> Petty Cash</a>
+    {% endif %}
+    {% if 'gaji_relawan' in user_menu_keys %}
+    <a href="/gaji-relawan" class="mobile-nav-link {{ 'active' if active_menu == 'gaji_relawan' else '' }}"><i class="fa-solid fa-users"></i> Gaji Relawan</a>
+    {% endif %}
+    {% if 'gaji_staff' in user_menu_keys %}
+    <a href="/gaji-staff" class="mobile-nav-link {{ 'active' if active_menu == 'gaji_staff' else '' }}"><i class="fa-solid fa-id-badge"></i> Gaji Staff</a>
+    {% endif %}
+    {% if 'insentif_pic' in user_menu_keys %}
+    <a href="/insentif-pic" class="mobile-nav-link {{ 'active' if active_menu == 'insentif_pic' else '' }}"><i class="fa-solid fa-user-tie"></i> Insentif PIC</a>
+    {% endif %}
+    {% if 'insentif_mitra' in user_menu_keys %}
+    <a href="/insentif-mitra" class="mobile-nav-link {{ 'active' if active_menu == 'insentif_mitra' else '' }}"><i class="fa-solid fa-handshake"></i> {% if is_mitra %}Insentif Masuk{% else %}Insentif Mitra{% endif %}</a>
+    {% endif %}
+    {% if 'pengembalian_dana' in user_menu_keys %}
+    <a href="/pengembalian-dana" class="mobile-nav-link {{ 'active' if active_menu == 'pengembalian_dana' else '' }}"><i class="fa-solid fa-rotate-left"></i> Pengembalian Dana</a>
+    {% endif %}
+    {% if 'sewa_kendaraan' in user_menu_keys %}
+    <a href="/sewa-kendaraan" class="mobile-nav-link {{ 'active' if active_menu == 'sewa_kendaraan' else '' }}"><i class="fa-solid fa-car"></i> Sewa Kendaraan</a>
+    {% endif %}
+    {% endif %}
+
+    {% if 'portal_mitra' in user_menu_keys or 'pendapatan_mitra' in user_menu_keys or 'pengajuan_dana_mitra' in user_menu_keys or 'pengeluaran_mitra' in user_menu_keys %}
+    <div class="mobile-nav-label">{% if is_mitra %}Portal Mitra{% else %}Mitra{% endif %}</div>
+    {% if 'portal_mitra' in user_menu_keys %}
+    <a href="/portal-mitra" class="mobile-nav-link {{ 'active' if active_menu == 'portal_mitra' else '' }}"><i class="fa-solid fa-house-chimney"></i> Beranda</a>
+    {% endif %}
+    {% if 'pendapatan_mitra' in user_menu_keys %}
+    <a href="/pendapatan-mitra" class="mobile-nav-link {{ 'active' if active_menu == 'pendapatan_mitra' else '' }}"><i class="fa-solid fa-sack-dollar"></i> {% if is_mitra %}Pendapatan{% else %}Pendapatan Mitra{% endif %}</a>
+    {% endif %}
+    {% if 'pengajuan_dana_mitra' in user_menu_keys %}
+    <a href="/pengajuan-dana-mitra" class="mobile-nav-link {{ 'active' if active_menu == 'pengajuan_dana_mitra' else '' }}"><i class="fa-solid fa-file-invoice"></i> Pengajuan Dana Mitra</a>
+    {% endif %}
+    {% if 'pengeluaran_mitra' in user_menu_keys %}
+    <a href="/pengeluaran-mitra" class="mobile-nav-link {{ 'active' if active_menu == 'pengeluaran_mitra' else '' }}"><i class="fa-solid fa-money-bill-transfer"></i> {% if is_mitra %}Pengeluaran{% else %}Pengeluaran Mitra{% endif %}</a>
+    {% endif %}
+    {% endif %}
+
+    {% if is_admin %}
+    <div class="mobile-nav-label">Pengaturan</div>
+    <a href="/setup" class="mobile-nav-link {{ 'active' if active_menu == 'setup' else '' }}"><i class="fa-solid fa-sliders"></i> Setup</a>
+    {% endif %}
+
+    <a href="/logout" class="mobile-nav-link mt-4 text-red-600"><i class="fa-solid fa-right-from-bracket"></i> Keluar</a>
+</nav>
+
+<script>
+(function () {
+    const openBtn = document.getElementById('mobile-nav-open');
+    const closeBtn = document.getElementById('mobile-nav-close');
+    const backdrop = document.getElementById('mobile-drawer-backdrop');
+    const drawer = document.getElementById('mobile-drawer');
+    if (!openBtn || !drawer || !backdrop) return;
+
+    function setOpen(on) {
+        drawer.classList.toggle('open', on);
+        backdrop.classList.toggle('open', on);
+        drawer.setAttribute('aria-hidden', on ? 'false' : 'true');
+        backdrop.setAttribute('aria-hidden', on ? 'false' : 'true');
+        openBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+        document.body.style.overflow = on ? 'hidden' : '';
+    }
+
+    openBtn.addEventListener('click', function () {
+        setOpen(!drawer.classList.contains('open'));
+    });
+    if (closeBtn) closeBtn.addEventListener('click', function () { setOpen(false); });
+    backdrop.addEventListener('click', function () { setOpen(false); });
+    drawer.querySelectorAll('a').forEach(function (a) {
+        a.addEventListener('click', function () { setOpen(false); });
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && drawer.classList.contains('open')) setOpen(false);
+    });
+})();
+</script>

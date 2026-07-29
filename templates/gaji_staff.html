@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Gaji Staff • Pelaporan Keuangan SPPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        {% include 'partials/layout_styles.html' %}
+        {% include 'partials/table_page_styles.html' %}
+        .report-hero {
+            background: linear-gradient(135deg, #312e81 0%, #4338ca 50%, #6366f1 100%);
+            border-radius: 1.5rem; color: #fff; position: relative; overflow: hidden;
+        }
+        .report-sheet {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem;
+            box-shadow: 0 12px 48px -16px rgba(7, 30, 73, 0.14);
+        }
+        .hero-kpi {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 1rem; padding: 1rem 1.15rem;
+        }
+        .ledger-table thead th {
+            background: var(--bgn-navy); color: #fff; font-size: 0.68rem;
+            letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+            padding: 0.85rem 1rem;
+        }
+        .ledger-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+        .ledger-table td { padding: 0.75rem 1rem; font-size: 0.82rem; }
+        .money { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+        .bank-badge {
+            font-size: 0.62rem; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+            background: #eff6ff; color: #1d4ed8;
+        }
+    </style>
+</head>
+<body class="app-body">
+    {% set active_menu = 'gaji_staff' %}
+    {% include 'partials/navbar.html' %}
+    <div class="max-w-screen-2xl mx-auto flex">
+        {% include 'partials/sidebar.html' %}
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
+            {% include 'partials/keuangan_flow_guide.html' %}
+            {% set form_action = '/gaji-staff' %}
+            {% include 'partials/report_period_filter.html' %}
+
+            <div class="mb-6 flex flex-wrap justify-between gap-3 no-print">
+                <div>
+                    <h1 class="text-2xl font-bold text-[#071e49] font-display">Gaji Staff</h1>
+                    <p class="text-sm text-slate-500 mt-1">Pembayaran gaji staff — nama dari <a href="/setup#personel" class="text-[#071e49] font-semibold hover:underline">Setup Personel</a>, dana dari Transfer BGN.</p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="/export/gaji-staff/csv" class="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-slate-50">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i> CSV
+                    </a>
+                    {% if can_edit %}
+                    <button onclick="showAddModal()" class="inline-flex items-center gap-2 bg-indigo-700 hover:bg-indigo-800 text-white px-5 py-2.5 text-sm font-semibold rounded-2xl">
+                        <i class="fa-solid fa-plus"></i> Tambah Gaji
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="report-hero px-6 py-6 mb-6 relative no-print">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="hero-kpi">
+                        <div class="text-[10px] uppercase text-white/55 font-semibold">Total Gaji</div>
+                        <div class="text-xl font-bold money">{{ format_rupiah(total_filtered) }}</div>
+                    </div>
+                    <div class="hero-kpi">
+                        <div class="text-[10px] uppercase text-white/55 font-semibold">Fee Payrol</div>
+                        <div class="text-xl font-bold money">{{ format_rupiah(total_fee_payrol) }}</div>
+                    </div>
+                    <div class="hero-kpi">
+                        <div class="text-[10px] uppercase text-[#c9a558]/90 font-semibold">Grand Total</div>
+                        <div class="text-xl font-bold money text-[#f5d78e]">{{ format_rupiah(total_grand) }}</div>
+                    </div>
+                    <div class="hero-kpi">
+                        <div class="text-[10px] uppercase text-white/55 font-semibold">Status</div>
+                        <div class="text-xl font-bold">{{ main_status }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if can_edit %}
+            <div id="bulk-toolbar" style="display:none;" class="mb-4 p-3 bg-white border rounded-2xl flex gap-3 no-print">
+                <span class="text-sm font-medium" id="selected-info">0 dipilih</span>
+                <button onclick="bulkDelete()" class="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg">Hapus</button>
+                {% if can_submit %}<button onclick="bulkSetStatus('DIAJUKAN')" class="px-3 py-1.5 text-sm bg-amber-500 text-white rounded-lg">Diajukan</button>{% endif %}
+                {% if can_mark_paid %}<button onclick="bulkSetStatus('DIBAYARKAN')" class="px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg">Dibayarkan</button>{% endif %}
+                <button onclick="clearSelection()" class="px-3 py-1.5 text-sm border rounded-lg">Batal</button>
+            </div>
+            {% endif %}
+
+            <div class="report-sheet overflow-hidden">
+                <div class="table-scroll-wrap overflow-x-auto">
+                    <table class="ledger-table w-full">
+                        <thead>
+                            <tr>
+                                {% if can_edit %}<th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>{% endif %}
+                                <th>No</th><th>Tanggal</th><th>Nama Staff</th><th>Rekening</th><th>Bank</th>
+                                <th class="text-right">Gaji</th><th class="text-right">Fee</th><th class="text-right">Total</th>
+                                <th class="text-center">Status</th>
+                                {% if can_edit %}<th class="no-print">Aksi</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                {% if can_edit %}<td class="no-print"><input type="checkbox" class="row-checkbox" value="{{ item.id }}"></td>{% endif %}
+                                <td class="text-xs text-slate-400">{{ item.no or loop.index }}</td>
+                                <td>{% if item.tanggal %}{{ format_tanggal(item.tanggal) }}{% else %}—{% endif %}</td>
+                                <td class="font-medium text-[#071e49]">{{ item.pengajuan }}</td>
+                                <td class="text-sm">{{ item.atas_nama or '—' }}</td>
+                                <td>{% if item.bank %}<span class="bank-badge">{{ item.bank }}</span>{% else %}—{% endif %}</td>
+                                <td class="text-right money font-bold">{{ format_rupiah(item.jumlah) }}</td>
+                                <td class="text-right money text-sm">{{ format_rupiah(item.fee_payrol) }}</td>
+                                <td class="text-right money font-bold text-emerald-700">{{ format_rupiah(item.total_bayar) }}</td>
+                                <td class="text-center">
+                                    {% set status = item.status %}{% set rejection_note = item.rejection_note %}{% include 'partials/status_pill.html' %}
+                                </td>
+                                {% if can_edit %}
+                                <td class="no-print">
+                                    <button onclick='editItem({{ item | tojson }})' class="p-1.5 text-slate-400 hover:text-[#55a7d4]"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+                                    <form method="POST" action="/gaji-staff/{{ item.id }}/delete" class="inline" onsubmit="return confirm('Hapus?')">
+                                        <button type="submit" class="p-1.5 text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+                                    </form>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="{% if can_edit %}11{% else %}9{% endif %}" class="py-16 text-center text-slate-400">
+                                <i class="fa-solid fa-id-badge text-4xl mb-2 text-slate-200"></i>
+                                <p class="text-sm">Belum ada gaji staff. Tambah nama di Setup → Personel, lalu catat gaji di sini.</p>
+                            </td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    {% if can_edit %}
+    <div id="form-modal" class="hidden fixed inset-0 bg-black/70 z-[90] items-center justify-center p-4 no-print" onclick="if(event.target.id==='form-modal') hideModal()">
+        <div onclick="event.stopImmediatePropagation()" class="w-full max-w-2xl bg-white rounded-3xl shadow-2xl">
+            <div class="px-6 py-5 border-b flex justify-between">
+                <div id="modal-title" class="font-semibold text-xl text-[#071e49]">Tambah Gaji Staff</div>
+                <button onclick="hideModal()" class="text-slate-400 text-xl">&times;</button>
+            </div>
+            <form id="gaji-form" method="POST" action="/gaji-staff" class="px-6 py-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% include 'partials/personnel_picker.html' %}
+                    <div><label class="text-xs font-semibold text-slate-600">NO</label>
+                        <input id="no" name="no" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm"></div>
+                    <div><label class="text-xs font-semibold text-slate-600">Tanggal</label>
+                        <input id="tanggal" name="tanggal" type="date" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm"></div>
+                    <div class="md:col-span-2"><label class="text-xs font-semibold text-slate-600">Nama Staff *</label>
+                        <input id="pengajuan" name="pengajuan" required class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm"></div>
+                    <div><label class="text-xs font-semibold text-slate-600">Jumlah Gaji (Rp) *</label>
+                        <input id="jumlah" name="jumlah" type="number" required class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm"></div>
+                    <div><label class="text-xs font-semibold text-slate-600">Status</label>
+                        <select id="status" name="status" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                            <option value="DIAJUKAN">DIAJUKAN</option><option value="DISETUJUI">DISETUJUI</option><option value="DITOLAK">DITOLAK</option><option value="DIBAYARKAN">DIBAYARKAN</option>
+                        </select></div>
+                    <div><label class="text-xs font-semibold text-slate-600">Atas Nama Rek.</label>
+                        <input id="atas_nama" name="atas_nama" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm"></div>
+                    <div><label class="text-xs font-semibold text-slate-600">Nomor Rekening</label>
+                        <input id="nomor_rekening" name="nomor_rekening" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm font-mono"></div>
+                    <div class="md:col-span-2"><label class="text-xs font-semibold text-slate-600">Bank</label>
+                        <select id="bank" name="bank" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                            <option value="">— Pilih —</option>
+                            <option value="MANDIRI">MANDIRI</option><option value="BRI">BRI</option><option value="BCA">BCA</option>
+                        </select></div>
+                    <input type="hidden" id="rekening" name="rekening" value="TRANSFER MASSAL">
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="hideModal()" class="flex-1 py-3 border rounded-2xl text-sm">Batal</button>
+                    <button type="submit" class="flex-1 py-3 bg-[#071e49] text-white rounded-2xl text-sm font-semibold">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        function showAddModal() {
+            document.getElementById('gaji-form').reset();
+            document.getElementById('gaji-form').action = '/gaji-staff';
+            document.getElementById('modal-title').innerText = 'Tambah Gaji Staff';
+            document.getElementById('rekening').value = 'TRANSFER MASSAL';
+            const ps = document.getElementById('personnel-select'); if (ps) ps.value = '';
+            const m = document.getElementById('form-modal'); m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function editItem(item) {
+            document.getElementById('gaji-form').action = `/gaji-staff/${item.id}/update`;
+            document.getElementById('modal-title').innerText = 'Edit Gaji Staff';
+            ['no','tanggal','pengajuan','jumlah','status','atas_nama','nomor_rekening','bank','rekening'].forEach(k => {
+                const el = document.getElementById(k); if (el) el.value = item[k] || (k === 'rekening' ? 'TRANSFER MASSAL' : '');
+            });
+            const m = document.getElementById('form-modal'); m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function hideModal() { const m = document.getElementById('form-modal'); m.classList.remove('flex'); m.classList.add('hidden'); }
+        const sa = document.getElementById('select-all');
+        if (sa) {
+            sa.addEventListener('change', () => { document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = sa.checked); updateBulk(); });
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.addEventListener('change', updateBulk));
+        }
+        function updateBulk() {
+            const n = document.querySelectorAll('.row-checkbox:checked').length;
+            const t = document.getElementById('bulk-toolbar');
+            if (t) { t.style.display = n > 0 ? 'flex' : 'none'; document.getElementById('selected-info').textContent = n + ' dipilih'; }
+        }
+        function clearSelection() { document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false); if (sa) sa.checked = false; updateBulk(); }
+        async function bulkDelete() {
+            const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (!ids.length || !confirm(`Hapus ${ids.length} data?`)) return;
+            const r = await fetch('/api/gaji-staff/bulk-delete', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ids}) });
+            const j = await r.json().catch(() => ({})); if (r.ok && j.success) location.reload(); else alert(j.error || 'Gagal');
+        }
+        async function bulkSetStatus(status) {
+            const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (!ids.length) return;
+            const r = await fetch('/api/gaji-staff/bulk-update', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ids, status}) });
+            const j = await r.json().catch(() => ({})); if (r.ok && j.success) location.reload(); else alert(j.error || 'Gagal');
+        }
+    </script>
+    {% endif %}
+</body>
+</html>

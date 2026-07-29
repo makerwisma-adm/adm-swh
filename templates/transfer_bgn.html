@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Transfer BGN • Pelaporan Keuangan SPPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        {% include 'partials/layout_styles.html' %}
+        {% include 'partials/table_page_styles.html' %}
+        .report-hero {
+            background: linear-gradient(135deg, #041229 0%, #071e49 50%, #0c3d6e 100%);
+            border-radius: 1.35rem; color: #fff; position: relative; overflow: hidden;
+        }
+        .report-hero::after {
+            content: ''; position: absolute; top: -40%; right: -8%;
+            width: 280px; height: 280px;
+            background: radial-gradient(circle, rgba(201,165,88,0.22) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero-kpi {
+            background: rgba(255,255,255,0.1); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.18); border-radius: 1.1rem; padding: 1rem 1.15rem;
+        }
+        .report-sheet {
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 1.25rem;
+            box-shadow: 0 12px 48px -16px rgba(7, 30, 73, 0.14);
+        }
+        .ledger-table thead th {
+            background: var(--bgn-navy); color: #fff; font-size: 0.68rem;
+            letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+            padding: 0.85rem 1rem; white-space: nowrap;
+        }
+        .ledger-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+        .ledger-table tbody tr:hover { background: #f8fafc; }
+        .ledger-table td { padding: 0.75rem 1rem; font-size: 0.82rem; vertical-align: middle; }
+        .money { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+        .mod-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.72rem; font-weight: 600; padding: 0.55rem 0.85rem;
+            border-radius: 0.85rem; border: 1px solid #e8edf3; background: #f8fafc;
+        }
+        .saldo-pos { color: #10b981; }
+        .saldo-neg { color: #ef4444; }
+    </style>
+</head>
+<body class="app-body">
+    {% set active_menu = 'transfer_bgn' %}
+    {% include 'partials/navbar.html' %}
+
+    <div class="max-w-screen-2xl mx-auto flex">
+        {% include 'partials/sidebar.html' %}
+
+        <main class="flex-1 p-4 sm:p-6 md:p-8 min-w-0">
+            {% include 'partials/beranda_flow_guide.html' %}
+
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-3 no-print">
+                <div>
+                    <h1 class="text-2xl font-bold text-[#071e49] font-display">Transfer BGN</h1>
+                    <p class="text-sm text-slate-500 mt-1">
+                        Uang masuk BGN dikurangi pengeluaran <strong>LUNAS</strong> = saldo kas.
+                        Terhubung dengan <a href="{{ laporan_href }}" class="text-[#071e49] font-semibold hover:underline">Laporan Keuangan</a>.
+                    </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <a href="#anggaran-global" class="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-2xl bg-[#071e49] text-white font-semibold">
+                        <i class="fa-solid fa-chart-pie text-[#c9a558]"></i> Laporan Anggaran Global
+                    </a>
+                    <a href="{{ laporan_bgn_href }}" class="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-2xl border bg-white hover:bg-slate-50 text-[#071e49] font-semibold">
+                        <i class="fa-solid fa-file-lines text-[#55a7d4]"></i> Laporan Input & Output
+                    </a>
+                    <a href="/laporan/status{% if filters.dari or filters.sampai %}?dari={{ filters.dari }}&sampai={{ filters.sampai }}{% endif %}" class="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-2xl border bg-white hover:bg-slate-50 text-indigo-700 font-semibold">
+                        <i class="fa-solid fa-list-check"></i> Laporan Status
+                    </a>
+                    <a href="{{ export_bgn_csv_href }}" class="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-2xl border bg-white hover:bg-slate-50 text-slate-700">
+                        <i class="fa-solid fa-file-csv text-emerald-600"></i> Export CSV
+                    </a>
+                    {% if can_edit %}
+                    <button onclick="showAddModal()" class="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 text-sm font-semibold rounded-2xl">
+                        <i class="fa-solid fa-plus"></i> Tambah Transfer
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Hero integrasi -->
+            <div class="report-hero px-6 py-6 mb-6 relative">
+                <div class="relative z-10">
+                    <div class="text-[10px] uppercase tracking-[0.3em] text-[#c9a558] font-semibold mb-2">Integrasi Keuangan</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="hero-kpi">
+                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Uang Masuk BGN</div>
+                            <div class="mt-1 text-xl font-bold money text-emerald-300">{{ format_rupiah(total_masuk) }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">{{ bgn_count }} transfer{% if period_filtered %} (periode aktif){% else %} (semua){% endif %}</div>
+                        </div>
+                        <div class="hero-kpi">
+                            <div class="text-[10px] uppercase tracking-wider text-white/55 font-semibold">Pengeluaran LUNAS</div>
+                            <div class="mt-1 text-xl font-bold money text-amber-200">{{ format_rupiah(total_keluar) }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">{{ expense_count }} transaksi · pemakaian {{ anggaran_global.global.utilization_pct }}%</div>
+                        </div>
+                        <div class="hero-kpi" style="border-color: rgba(201,165,88,0.35);">
+                            <div class="text-[10px] uppercase tracking-wider text-[#f5d78e]/90 font-semibold">Saldo (BGN − Keluar)</div>
+                            <div class="mt-1 text-xl font-bold money {% if saldo >= 0 %}text-emerald-300{% else %}text-red-300{% endif %}">{{ format_rupiah(saldo) }}</div>
+                            <div class="text-[10px] text-white/45 mt-1">sama dengan <a href="{{ laporan_href }}" class="underline text-white/70 hover:text-white">Laporan Keuangan</a></div>
+                            {% if pending_expense_total %}
+                            <div class="text-[10px] text-amber-200/80 mt-2 border-t border-white/10 pt-2">
+                                Menunggu: {{ format_rupiah(pending_expense_total) }}
+                                <span class="text-white/45">({{ pending_expense_count }} DIAJUKAN/DISETUJUI — belum mengurangi saldo)</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% include 'partials/bgn_anggaran_global.html' %}
+
+            {% set form_action = '/transfer-bgn' %}
+            {% include 'partials/report_period_filter.html' %}
+            <div class="report-sheet p-4 mb-5 no-print">
+                <form method="GET" action="/transfer-bgn" class="flex flex-wrap gap-3 items-end">
+                    {% if filters.dari %}<input type="hidden" name="dari" value="{{ filters.dari }}">{% endif %}
+                    {% if filters.sampai %}<input type="hidden" name="sampai" value="{{ filters.sampai }}">{% endif %}
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-xs text-slate-500 mb-1">Cari transfer</label>
+                        <input type="text" name="search" value="{{ filters.search }}" placeholder="Keterangan / referensi..."
+                               class="w-full text-sm px-3 py-2 border rounded-xl form-input">
+                    </div>
+                    <button type="submit" class="px-4 py-2 text-sm font-semibold bg-[#071e49] text-white rounded-xl">Cari</button>
+                </form>
+            </div>
+
+            <!-- Breakdown pengeluaran per modul -->
+            <div class="report-sheet overflow-hidden mb-5">
+                <div class="px-5 py-4 border-b border-slate-100">
+                    <h2 class="font-semibold text-[#071e49]">Pengeluaran per Modul</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Klik modul untuk detail — periode sama dengan Laporan Keuangan</p>
+                </div>
+                <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                    {% for mod in expense_modules %}
+                    <a href="{{ mod.href }}" class="mod-pill hover:border-[#55a7d4] hover:bg-blue-50/50 transition group">
+                        <i class="fa-solid {{ mod.icon }} text-[#55a7d4]"></i>
+                        <span class="flex-1 min-w-0 truncate group-hover:text-[#071e49]">{{ mod.label }}</span>
+                        <span class="text-[10px] text-slate-400 shrink-0">{{ mod.count }}×</span>
+                        <span class="money font-bold text-[#071e49] shrink-0">{{ format_rupiah(mod.total) }}</span>
+                    </a>
+                    {% else %}
+                    <p class="text-sm text-slate-400 col-span-full py-4 text-center">Tidak ada modul pengeluaran untuk akun ini pada periode terpilih.</p>
+                    {% endfor %}
+                </div>
+                <div class="px-5 py-3 border-t border-slate-100 flex justify-between text-sm bg-slate-50">
+                    <span class="font-semibold text-[#071e49]">Total Pengeluaran</span>
+                    <span class="money font-bold text-amber-700">{{ format_rupiah(total_keluar) }}</span>
+                </div>
+            </div>
+
+            <!-- Tabel transfer BGN -->
+            <div class="report-sheet overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <div>
+                        <h2 class="font-semibold text-[#071e49]">Daftar Transfer Masuk BGN</h2>
+                        <p class="text-xs text-slate-500">{{ items|length }} baris</p>
+                    </div>
+                </div>
+
+                {% if can_edit %}
+                <div id="bulk-toolbar" style="display:none;" class="mx-4 mt-3 p-3 bg-slate-50 border rounded-xl flex items-center gap-3 no-print">
+                    <span class="text-sm font-medium" id="selected-info">0 dipilih</span>
+                    <button onclick="bulkDelete()" class="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg">Hapus</button>
+                    <button onclick="clearSelection()" class="px-3 py-1.5 text-sm border rounded-lg">Batal</button>
+                </div>
+                {% endif %}
+
+                <div class="table-scroll-wrap overflow-x-auto">
+                    <table class="ledger-table w-full">
+                        <thead>
+                            <tr>
+                                {% if can_edit %}<th class="w-8 no-print"><input type="checkbox" id="select-all" class="rounded"></th>{% endif %}
+                                <th>Tanggal</th>
+                                <th>Keterangan</th>
+                                <th>No. Referensi</th>
+                                <th>Periode</th>
+                                <th class="text-right">Jumlah</th>
+                                {% if can_edit %}<th class="w-16 no-print">Aksi</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                {% if can_edit %}<td class="no-print"><input type="checkbox" class="row-checkbox" value="{{ item.id }}"></td>{% endif %}
+                                <td class="whitespace-nowrap">{{ format_tanggal(item.tanggal) }}</td>
+                                <td class="font-medium text-[#071e49]">{{ item.keterangan }}</td>
+                                <td class="text-slate-500 font-mono text-xs">{{ item.no_referensi or '—' }}</td>
+                                <td class="text-slate-500 text-xs">{{ item.periode or '—' }}</td>
+                                <td class="text-right font-bold money text-emerald-700">{{ format_rupiah(item.jumlah) }}</td>
+                                {% if can_edit %}
+                                <td class="no-print">
+                                    <div class="flex gap-1">
+                                        <button onclick='editItem({{ item | tojson }})' class="p-1.5 text-slate-400 hover:text-[#55a7d4]"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+                                        <form method="POST" action="/transfer-bgn/{{ item.id }}/delete" onsubmit="return confirm('Hapus transfer ini?')">
+                                            <button type="submit" class="p-1.5 text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash text-xs"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="{% if can_edit %}7{% else %}5{% endif %}" class="py-14 text-center text-slate-400 text-sm">
+                                    Belum ada transfer BGN. {% if can_edit %}Klik <strong>Tambah Transfer</strong> untuk mencatat uang masuk.{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    {% if can_edit %}
+    <div id="form-modal" class="hidden fixed inset-0 bg-black/70 z-[90] items-center justify-center p-4 no-print" onclick="if(event.target.id==='form-modal') hideModal()">
+        <div onclick="event.stopImmediatePropagation()" class="w-full max-w-lg bg-white rounded-3xl shadow-2xl">
+            <div class="px-6 py-5 border-b flex justify-between items-center">
+                <div id="modal-title" class="font-semibold text-xl text-[#071e49]">Tambah Transfer BGN</div>
+                <button onclick="hideModal()" class="text-slate-400 text-xl">&times;</button>
+            </div>
+            <form id="transfer-form" method="POST" action="/transfer-bgn" class="px-6 py-5 space-y-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Tanggal *</label>
+                    <input id="tanggal" name="tanggal" type="date" required class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Keterangan *</label>
+                    <textarea id="keterangan" name="keterangan" rows="2" required class="form-input mt-1 w-full px-4 py-3 border rounded-2xl text-sm"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Jumlah (Rp) *</label>
+                    <input id="jumlah" name="jumlah" type="number" min="1" required class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">No. Referensi</label>
+                        <input id="no_referensi" name="no_referensi" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Periode</label>
+                        <input id="periode" name="periode" placeholder="Jun 2026" class="form-input mt-1 w-full px-4 py-2.5 border rounded-2xl text-sm">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="hideModal()" class="flex-1 py-3 border rounded-2xl text-sm">Batal</button>
+                    <button type="submit" class="flex-1 py-3 bg-[#071e49] text-white rounded-2xl text-sm font-semibold">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        function showAddModal() {
+            document.getElementById('transfer-form').reset();
+            document.getElementById('transfer-form').action = '/transfer-bgn';
+            document.getElementById('modal-title').innerText = 'Tambah Transfer BGN';
+            const m = document.getElementById('form-modal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function editItem(item) {
+            document.getElementById('transfer-form').action = `/transfer-bgn/${item.id}/update`;
+            document.getElementById('modal-title').innerText = 'Edit Transfer BGN';
+            document.getElementById('tanggal').value = item.tanggal || '';
+            document.getElementById('keterangan').value = item.keterangan || '';
+            document.getElementById('jumlah').value = item.jumlah || '';
+            document.getElementById('no_referensi').value = item.no_referensi || '';
+            document.getElementById('periode').value = item.periode || '';
+            const m = document.getElementById('form-modal');
+            m.classList.remove('hidden'); m.classList.add('flex');
+        }
+        function hideModal() {
+            const m = document.getElementById('form-modal');
+            m.classList.remove('flex'); m.classList.add('hidden');
+        }
+        const sa = document.getElementById('select-all');
+        if (sa) {
+            sa.addEventListener('change', () => {
+                document.querySelectorAll('.row-checkbox').forEach(cb => { cb.checked = sa.checked; });
+                updateBulk();
+            });
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.addEventListener('change', updateBulk));
+        }
+        function updateBulk() {
+            const n = document.querySelectorAll('.row-checkbox:checked').length;
+            const t = document.getElementById('bulk-toolbar');
+            if (t) { t.style.display = n > 0 ? 'flex' : 'none'; document.getElementById('selected-info').textContent = n + ' dipilih'; }
+        }
+        function clearSelection() {
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+            if (sa) sa.checked = false;
+            updateBulk();
+        }
+        async function bulkDelete() {
+            const ids = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (!ids.length || !confirm(`Hapus ${ids.length} transfer?`)) return;
+            const r = await fetch('/api/transfer-bgn/bulk-delete', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                credentials: 'same-origin', body: JSON.stringify({ids})
+            });
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.success) location.reload();
+            else alert('Gagal: ' + (j.error || 'Unknown'));
+        }
+    </script>
+    {% endif %}
+</body>
+</html>

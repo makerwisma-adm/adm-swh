@@ -1,0 +1,71 @@
+{# Sisa saldo BGN — butuh: bgn_saldo, format_rupiah. Opsional: user_menu_keys #}
+<style>
+    .bgn-saldo-strip .bgn-saldo-main {
+        background: linear-gradient(135deg, #041229 0%, #071e49 55%, #0c3d6e 100%);
+        border: 1px solid rgba(201, 165, 88, 0.35);
+        border-radius: 1.25rem;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+    }
+    .bgn-saldo-strip .bgn-saldo-main::after {
+        content: '';
+        position: absolute;
+        top: -30%;
+        right: -5%;
+        width: 160px;
+        height: 160px;
+        background: radial-gradient(circle, rgba(201, 165, 88, 0.2) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .bgn-saldo-kpi {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 1rem;
+        padding: 0.85rem 1rem;
+    }
+</style>
+<div class="bgn-saldo-strip mb-5 no-print">
+    <div class="bgn-saldo-main px-5 py-5 relative z-10">
+        <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+                <div class="text-[10px] uppercase tracking-[0.25em] text-[#c9a558] font-semibold">Kas BGN</div>
+                <div class="text-xs text-white/55 mt-0.5">Uang masuk BGN dikurangi pengeluaran <strong class="text-white/80">LUNAS</strong></div>
+            </div>
+            {% if 'transfer_bgn' in user_menu_keys %}
+            <a href="{{ bgn_saldo.transfer_bgn_href }}" class="text-xs px-3 py-1.5 rounded-xl border border-white/20 text-white/90 hover:bg-white/10 font-semibold">
+                <i class="fa-solid fa-building-columns mr-1"></i> Transfer BGN
+            </a>
+            {% endif %}
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bgn-saldo-kpi col-span-2 lg:col-span-1" style="border-color: rgba(201,165,88,0.35);">
+                <div class="text-[10px] uppercase text-[#f5d78e]/90 font-semibold">Sisa Saldo BGN</div>
+                <div class="text-2xl sm:text-3xl font-bold money mt-1 {% if bgn_saldo.saldo >= 0 %}text-emerald-300{% else %}text-red-300{% endif %}">
+                    {{ format_rupiah(bgn_saldo.saldo) }}
+                </div>
+            </div>
+            <div class="bgn-saldo-kpi">
+                <div class="text-[10px] uppercase text-white/55 font-semibold">Uang Masuk</div>
+                <div class="text-lg font-bold money text-emerald-300 mt-0.5">{{ format_rupiah(bgn_saldo.total_masuk) }}</div>
+                <div class="text-[10px] text-white/40 mt-0.5">{{ bgn_saldo.bgn_count }} transfer</div>
+            </div>
+            <div class="bgn-saldo-kpi">
+                <div class="text-[10px] uppercase text-white/55 font-semibold">Sudah Keluar (LUNAS)</div>
+                <div class="text-lg font-bold money text-amber-200 mt-0.5">{{ format_rupiah(bgn_saldo.total_keluar) }}</div>
+                <div class="text-[10px] text-white/40 mt-0.5">{{ bgn_saldo.expense_count }} transaksi</div>
+            </div>
+            <div class="bgn-saldo-kpi">
+                <div class="text-[10px] uppercase text-white/55 font-semibold">Menunggu</div>
+                <div class="text-lg font-bold money text-sky-200 mt-0.5">{{ format_rupiah(bgn_saldo.pending_expense_total) }}</div>
+                <div class="text-[10px] text-white/40 mt-0.5">{{ bgn_saldo.pending_expense_count }} DIAJUKAN/DISETUJUI</div>
+            </div>
+        </div>
+        {% if bgn_saldo.pending_expense_total %}
+        <p class="text-[10px] text-white/45 mt-3 border-t border-white/10 pt-2">
+            Pengajuan menunggu belum mengurangi saldo — baru berkurang setelah status <strong class="text-white/70">LUNAS</strong>.
+        </p>
+        {% endif %}
+    </div>
+</div>
