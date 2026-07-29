@@ -33,7 +33,7 @@ _load_env_files()
 IS_VERCEL = os.getenv("VERCEL") == "1"
 PUBLIC_APP_URL = os.getenv(
     "PUBLIC_APP_URL",
-    "https://sppg-keuangan-wisma-haji.vercel.app" if IS_VERCEL else "http://localhost:8001",
+    "https://swh-madiun.vercel.app" if IS_VERCEL else "http://localhost:8001",
 ).rstrip("/")
 PUBLIC_LOGIN_URL = f"{PUBLIC_APP_URL}/masuk"
 

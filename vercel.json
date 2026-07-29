@@ -9,6 +9,6 @@
   },
   "env": {
     "VERCEL": "1",
-    "PUBLIC_APP_URL": "https://sppg-keuangan-wisma-haji.vercel.app"
+    "PUBLIC_APP_URL": "https://swh-madiun.vercel.app"
   }
 }
