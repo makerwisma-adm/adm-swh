@@ -35,7 +35,7 @@ async def setup_page(request: Request, user=Depends(require_login)):
         "personnel_grouped": list_personnel_grouped(),
         "active_menu": "setup",
         "can_manage_users": is_admin(user),
-        "can_manage_personel": is_admin(user),
+        "can_manage_personel": is_admin(user) or can_member_upload(user),
         "is_admin": is_admin(user),
         "is_akuntan": can_member_upload(user),
     })
