@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from app.auth.session import is_admin, redirect_with_flash, render_template, require_admin, require_login
+from app.auth.session import can_member_upload, is_admin, redirect_with_flash, render_template, require_admin, require_login
 from app.constants import ICON_STYLES, MODULE_ACCESS_GROUPS, ROLE_OPTIONS
 from app.services.user_access import parse_menu_access_raw
 from app.services.settings import get_theme_context, save_settings, settings_for_api
