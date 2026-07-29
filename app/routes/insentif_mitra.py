@@ -12,6 +12,7 @@ from app.auth.session import (
     is_viewer,
     redirect_with_flash,
     render_template,
+    require_admin,
     require_login,
 )
 from app.services.mitra_access import get_mitra_nama
@@ -283,7 +284,7 @@ async def delete_insentif_mitra(item_id: int, user=Depends(require_login)):
 
 
 @router.post("/api/insentif-mitra/bulk-delete")
-async def api_insentif_mitra_bulk_delete(request: Request, user=Depends(require_login)):
+async def api_insentif_mitra_bulk_delete(request: Request, user=Depends(require_admin)):
     try:
         data = await request.json()
         raw_ids = data.get("ids", [])
@@ -312,7 +313,7 @@ async def api_insentif_mitra_bulk_delete(request: Request, user=Depends(require_
 
 
 @router.post("/api/insentif-mitra/bulk-update")
-async def api_insentif_mitra_bulk_update(request: Request, user=Depends(require_login)):
+async def api_insentif_mitra_bulk_update(request: Request, user=Depends(require_admin)):
     try:
         data = await request.json()
         raw_ids = data.get("ids", [])

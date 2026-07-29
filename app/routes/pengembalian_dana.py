@@ -6,7 +6,7 @@ from io import StringIO
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
-from app.auth.session import render_template, require_login
+from app.auth.session import is_admin, redirect_with_flash, render_template, require_admin, require_login
 from app.constants import (
     PENGEMBALIAN_DANA_HARI,
     PENGEMBALIAN_DANA_JUMLAH,
@@ -222,7 +222,7 @@ async def delete_pengembalian_dana(item_id: int, user=Depends(require_login)):
 
 
 @router.post("/api/pengembalian-dana/bulk-delete")
-async def api_pengembalian_dana_bulk_delete(request: Request, user=Depends(require_login)):
+async def api_pengembalian_dana_bulk_delete(request: Request, user=Depends(require_admin)):
     try:
         data = await request.json()
         raw_ids = data.get("ids", [])
@@ -251,7 +251,7 @@ async def api_pengembalian_dana_bulk_delete(request: Request, user=Depends(requi
 
 
 @router.post("/api/pengembalian-dana/bulk-update")
-async def api_pengembalian_dana_bulk_update(request: Request, user=Depends(require_login)):
+async def api_pengembalian_dana_bulk_update(request: Request, user=Depends(require_admin)):
     try:
         data = await request.json()
         raw_ids = data.get("ids", [])

@@ -105,6 +105,17 @@ async def logout(request: Request):
     resp.delete_cookie(SESSION_COOKIE_NAME)
     return resp
 
+
+@router.get("/profile", response_class=HTMLResponse)
+async def profile_page(request: Request, user=Depends(require_login)):
+    from app.auth.session import render_template
+    from app.services.user_access import parse_menu_access_raw
+
+    user = dict(user)
+    user["menu_access_list"] = parse_menu_access_raw(user.get("menu_access")) or []
+    return render_template(request, "profile.html", {"user": user})
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(
     request: Request,

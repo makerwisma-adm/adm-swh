@@ -300,8 +300,10 @@
                     <th class="text-left w-28">Tanggal</th>
                     <th class="text-left min-w-[200px]">Deskripsi</th>
                     <th class="text-right w-28">Pengeluaran</th>
+                    <th class="text-center w-28">Status</th>
                     <th class="text-center w-32">Nota</th>
                     <th class="text-left w-32">Ket</th>
+                    {% if can_edit %}<th class="w-20">Aksi</th>{% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -319,6 +321,33 @@
                     <td class="font-medium text-[#071e49] leading-snug">{{ item.pengajuan }}</td>
                     <td class="text-right money {% if item.jumlah > 0 %}text-amber-700 font-semibold{% else %}text-slate-300{% endif %}">
                         {% if item.jumlah > 0 %}{{ format_rupiah(item.jumlah) }}{% else %}—{% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% set item_status = item.status or 'DIAJUKAN' %}
+                        {% if can_edit %}
+                        <select class="status-select text-[10px] font-bold rounded-full px-2 py-0.5 border-0 cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#55a7d4]
+                            {% if item_status == 'DIAJUKAN' %}bg-blue-100 text-blue-700
+                            {% elif item_status == 'DISETUJUI' %}bg-emerald-100 text-emerald-700
+                            {% elif item_status == 'DIBAYAR' %}bg-violet-100 text-violet-700
+                            {% elif item_status == 'DIBATALKAN' %}bg-red-100 text-red-600
+                            {% else %}bg-slate-100 text-slate-600{% endif %}"
+                            onchange="updateItemStatus({{ item.id }}, this.value)"
+                            data-item-id="{{ item.id }}">
+                            <option value="DIAJUKAN" {% if item_status == 'DIAJUKAN' %}selected{% endif %}>Diajukan</option>
+                            <option value="DISETUJUI" {% if item_status == 'DISETUJUI' %}selected{% endif %}>Disetujui</option>
+                            <option value="DIBAYAR" {% if item_status == 'DIBAYAR' %}selected{% endif %}>Dibayar</option>
+                            <option value="DIBATALKAN" {% if item_status == 'DIBATALKAN' %}selected{% endif %}>Dibatalkan</option>
+                        </select>
+                        {% else %}
+                        <span class="text-[10px] font-bold rounded-full px-2 py-0.5
+                            {% if item_status == 'DIAJUKAN' %}bg-blue-100 text-blue-700
+                            {% elif item_status == 'DISETUJUI' %}bg-emerald-100 text-emerald-700
+                            {% elif item_status == 'DIBAYAR' %}bg-violet-100 text-violet-700
+                            {% elif item_status == 'DIBATALKAN' %}bg-red-100 text-red-600
+                            {% else %}bg-slate-100 text-slate-600{% endif %}">
+                            {{ item_status }}
+                        </span>
+                        {% endif %}
                     </td>
                     <td class="text-center nota-cell">
                         <div class="nota-actions" id="nota-cell-{{ item.id }}">

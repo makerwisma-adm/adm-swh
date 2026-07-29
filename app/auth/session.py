@@ -139,6 +139,7 @@ def render_template(request: Request, name: str, context: Dict = None, status_co
     if user:
         ctx["user"] = user
         ctx["is_admin"] = is_admin(user)
+        ctx["is_akuntan"] = can_member_upload(user)
         ctx["is_ka_sppg"] = is_ka_sppg(user)
         ctx["is_maker"] = is_maker(user)
         ctx["is_mitra"] = is_mitra(user)
@@ -160,6 +161,7 @@ def render_template(request: Request, name: str, context: Dict = None, status_co
         ctx["user_menu_keys"] = get_user_menu_keys(user)
     else:
         ctx.setdefault("is_admin", False)
+        ctx.setdefault("is_akuntan", False)
         ctx.setdefault("is_ka_sppg", False)
         ctx.setdefault("is_maker", False)
         ctx.setdefault("is_mitra", False)

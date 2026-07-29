@@ -191,13 +191,13 @@
     {% endif %}
     {% endif %}
 
-    {% if is_admin %}
+    {% if is_admin or is_akuntan %}
     <div class="side-group-label setup mt-4"><i class="fa-solid fa-gear"></i> Pengaturan</div>
     <a href="/setup" class="side-nav-link {{ 'nav-active' if active_menu == 'setup' else '' }}">
         <span class="side-icon-wrap"><i class="fa-solid fa-sliders"></i></span>
         <span>Setup</span>
     </a>
-    {% if active_menu == 'setup' %}
+    {% if is_admin and active_menu == 'setup' %}
     <a href="/setup#pengguna" class="side-nav-link pl-8 text-[0.78rem]">
         <span class="side-icon-wrap" style="width:26px;height:26px"><i class="fa-solid fa-users-gear"></i></span>
         <span>Pengguna</span>

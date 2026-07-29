@@ -215,11 +215,18 @@
                 <div class="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold mb-3">
-                            <i class="fa-solid fa-gear"></i> Administrator
+                            <i class="fa-solid fa-gear"></i> {{ 'Administrator' if is_admin else 'Akuntan' }}
                         </div>
                         <h1 class="font-display text-2xl sm:text-3xl font-bold tracking-tight">Setup & Pengaturan</h1>
-                        <p class="text-white/75 text-sm mt-2 max-w-xl">Kelola pengguna, data personel (Relawan/PIC/Staff), hak akses, dan tampilan aplikasi.</p>
+                        <p class="text-white/75 text-sm mt-2 max-w-xl">
+                            {% if is_admin %}
+                            Kelola pengguna, data personel (Relawan/PIC/Staff), hak akses, dan tampilan aplikasi.
+                            {% else %}
+                            Kelola data personel (Relawan/PIC/Staff).
+                            {% endif %}
+                        </p>
                     </div>
+                    {% if is_admin %}
                     <div class="flex gap-3">
                         <div class="hero-stat text-center min-w-[5.5rem]">
                             <div class="text-2xl font-bold">{{ users | length }}</div>
@@ -230,17 +237,18 @@
                             <div class="text-[10px] uppercase tracking-wider text-white/60">Tema Aktif</div>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
             </section>
 
             <div class="flex flex-wrap gap-2 mb-6 animate-on-scroll" id="setup-tabs">
-                <button type="button" class="tab-btn active" data-tab="pengguna">
+                <button type="button" class="tab-btn" data-tab="pengguna" id="tab-btn-pengguna">
                     <i class="fa-solid fa-users-gear"></i> Pengguna & Akses
                 </button>
-                <button type="button" class="tab-btn" data-tab="personel">
+                <button type="button" class="tab-btn active" data-tab="personel">
                     <i class="fa-solid fa-address-book"></i> Personel
                 </button>
-                <button type="button" class="tab-btn" data-tab="tema">
+                <button type="button" class="tab-btn" data-tab="tema" id="tab-btn-tema">
                     <i class="fa-solid fa-palette"></i> Tema & Tampilan
                 </button>
             </div>
@@ -253,7 +261,7 @@
                             <h2 class="font-display font-bold text-[var(--theme-primary)]">Daftar Pengguna</h2>
                             <p class="text-xs text-slate-500 mt-0.5">Tambah, ubah role, centang modul akses, atau hapus akun pengguna</p>
                         </div>
-                        <button type="button" id="btn-add-user" class="btn-primary text-sm inline-flex items-center gap-2">
+                        <button type="button" id="btn-add-user" class="btn-primary text-sm inline-flex items-center gap-2" {{ '' if can_manage_users else 'style="display:none"' }}>
                             <i class="fa-solid fa-user-plus"></i> Tambah User
                         </button>
                     </div>
@@ -294,6 +302,7 @@
                                         {% endif %}
                                     </td>
                                     <td class="px-5 py-3.5 text-right">
+                                        {% if is_admin %}
                                         <button type="button" class="btn-edit-user px-3 py-1.5 text-xs rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 transition"
                                                 data-id="{{ u.id }}" data-username="{{ u.username }}" data-name="{{ u.full_name }}" data-role="{{ u.role }}" data-mitra="{{ u.mitra_nama or '' }}" data-menu='{{ u.menu_access_list | tojson }}'>
                                             <i class="fa-solid fa-pen"></i> Edit
@@ -303,6 +312,7 @@
                                                 data-id="{{ u.id }}" data-username="{{ u.username }}">
                                             <i class="fa-solid fa-trash-can"></i>
                                         </button>
+                                        {% endif %}
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -339,7 +349,7 @@
                                 Terhubung ke <a href="{{ meta.module_href }}" class="text-[var(--theme-primary)] font-semibold hover:underline">{{ meta.label }} → {{ meta.module_href }}</a>
                             </div>
                             <button type="button" class="btn-add-personnel text-sm inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-700 text-white font-semibold hover:bg-emerald-800"
-                                    data-tipe="{{ tipe }}" data-label="{{ meta.label }}">
+                                    data-tipe="{{ tipe }}" data-label="{{ meta.label }}" {{ '' if can_manage_personel else 'style="display:none"' }}>
                                 <i class="fa-solid fa-user-plus"></i> Tambah {{ meta.label }}
                             </button>
                         </div>
@@ -371,10 +381,12 @@
                                             </span>
                                         </td>
                                         <td class="px-5 py-3 text-right">
+                                            {% if can_manage_personel %}
                                             <button type="button" class="btn-edit-personnel px-2 py-1 text-xs border rounded-lg hover:bg-slate-50"
                                                     data-json='{{ p | tojson }}'><i class="fa-solid fa-pen"></i></button>
                                             <button type="button" class="btn-del-personnel px-2 py-1 text-xs border border-red-200 text-red-600 rounded-lg hover:bg-red-50 ml-1"
                                                     data-id="{{ p.id }}" data-nama="{{ p.nama }}"><i class="fa-solid fa-trash-can"></i></button>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% else %}
@@ -654,6 +666,12 @@
                 panels[btn.dataset.tab].classList.remove('hidden');
             });
         });
+        // Non-admin: sembunyikan tab Pengguna & Tema, buka Personel
+        {% if not is_admin %}
+        document.getElementById('tab-btn-pengguna')?.remove();
+        document.getElementById('tab-btn-tema')?.remove();
+        document.querySelector('[data-tab="personel"]')?.click();
+        {% endif %}
         if (location.hash === '#tema') {
             document.querySelector('[data-tab="tema"]').click();
         } else if (location.hash === '#personel') {

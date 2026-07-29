@@ -7,7 +7,7 @@ from typing import Dict
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
-from app.auth.session import is_viewer, render_template, require_login
+from app.auth.session import is_viewer, render_template, require_admin, require_login
 from app.db import get_db
 from app.services.report_sync import build_keuangan_link_context, filter_items_by_date_range
 from app.services.sewa_kendaraan import KATEGORI, get_sewa_kendaraan
@@ -186,7 +186,7 @@ async def delete_sewa_kendaraan(item_id: int, user=Depends(require_login)):
 
 
 @router.post("/api/sewa-kendaraan/bulk-delete")
-async def api_sewa_kendaraan_bulk_delete(request: Request, user=Depends(require_login)):
+async def api_sewa_kendaraan_bulk_delete(request: Request, user=Depends(require_admin)):
     if is_viewer(user):
         return JSONResponse({"error": "Akses ditolak"}, status_code=403)
     try:

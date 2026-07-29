@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Profil Saya • Pelaporan Keuangan SPPG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        {% include 'partials/layout_styles.html' %}
+    </style>
+    {% include 'partials/theme_head.html' %}
+</head>
+<body class="app-body min-h-screen">
+    {% set active_menu = 'profile' %}
+    {% include 'partials/navbar.html' %}
+
+    <div class="flex max-w-screen-2xl mx-auto">
+        {% include 'partials/sidebar.html' %}
+
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
+            {% if message %}
+            <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium animate-fade-in {{ 'bg-emerald-50 text-emerald-800 border border-emerald-200' if success else 'bg-red-50 text-red-800 border border-red-200' }}">
+                {{ message }}
+            </div>
+            {% endif %}
+
+            <!-- Hero -->
+            {% set role_icon %}{% if is_admin %}fa-shield-halved{% elif is_ka_sppg %}fa-user-check{% elif user_role == 'maker' %}fa-money-bill-transfer{% elif user_role == 'member' %}fa-calculator{% elif is_mitra %}fa-handshake{% else %}fa-eye{% endif %}{% endset %}
+            <div class="profile-hero p-6 sm:p-8 mb-6 rounded-2xl" style="background: linear-gradient(135deg, var(--theme-primary) 0%, color-mix(in srgb, var(--theme-primary) 70%, var(--theme-secondary)) 55%, var(--theme-secondary) 100%); color:#fff; position:relative; overflow:hidden;">
+                <div style="position:absolute;inset:0;background:radial-gradient(ellipse 50% 70% at 100% 0%, color-mix(in srgb, var(--theme-accent) 35%, transparent) 0%, transparent 55%);pointer-events:none;"></div>
+                <div class="relative z-10 flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold" style="background:color-mix(in srgb, var(--theme-accent) 25%, white)">
+                        {{ (user.full_name or user.username)[0] | upper }}
+                    </div>
+                    <div>
+                        <div class="text-xs uppercase tracking-widest opacity-70 font-semibold mb-1">Profil Saya</div>
+                        <h1 class="font-display text-2xl font-bold">{{ user.full_name or user.username }}</h1>
+                        <div class="text-sm opacity-70 mt-0.5">
+                            @{{ user.username }}
+                            &nbsp;·&nbsp;
+                            <span class="inline-flex items-center gap-1">
+                                <i class="fa-solid {{ role_icon }}"></i>
+                                {{ user.role | upper }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6">
+                <!-- Edit Nama & Password -->
+                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100">
+                        <h2 class="font-display font-bold text-[var(--theme-primary)] flex items-center gap-2">
+                            <i class="fa-solid fa-user-pen text-[var(--theme-accent)]"></i> Informasi Akun
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Ubah nama lengkap dan password Anda.</p>
+                    </div>
+                    <form id="profile-form" class="p-6 space-y-4">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Username</label>
+                            <div class="w-full px-4 py-2.5 rounded-xl bg-slate-100 text-slate-500 text-sm border border-slate-200">@{{ user.username }}</div>
+                            <p class="text-[10px] text-slate-400 mt-1">Username tidak bisa diubah.</p>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Nama Lengkap</label>
+                            <input type="text" id="profile-fullname" value="{{ user.full_name or '' }}"
+                                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)]" required>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Password Baru</label>
+                            <input type="password" id="profile-password" placeholder="Kosongkan jika tidak diubah"
+                                   class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--theme-secondary)]">
+                            <p class="text-[10px] text-slate-400 mt-1">Minimal 4 karakter. Kosongkan jika tidak ingin mengubah.</p>
+                        </div>
+                        <button type="submit" class="w-full py-2.5 rounded-xl text-white text-sm font-semibold transition" style="background: linear-gradient(135deg, var(--theme-primary), color-mix(in srgb, var(--theme-primary) 80%, var(--theme-secondary)))">
+                            <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Perubahan
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Info Akun -->
+                <div class="space-y-4">
+                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100">
+                            <h2 class="font-display font-bold text-[var(--theme-primary)] flex items-center gap-2">
+                                <i class="fa-solid fa-shield-halved text-[var(--theme-accent)]"></i> Hak Akses
+                            </h2>
+                        </div>
+                        <div class="p-6 space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-slate-600">Role</span>
+                                <span class="text-sm font-bold" style="color: var(--theme-primary)">
+                                    <i class="fa-solid {{ role_icon }} mr-1"></i>
+                                    {{ user.role | upper }}
+                                </span>
+                            </div>
+                            {% if user.mitra_nama %}
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-slate-600">Nama Mitra</span>
+                                <span class="text-sm font-semibold text-slate-700">{{ user.mitra_nama }}</span>
+                            </div>
+                            {% endif %}
+                            {% if user.menu_access_list %}
+                            <div class="pt-2 border-t border-slate-100">
+                                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Modul yang bisa diakses</div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    {% for mod in user.menu_access_list %}
+                                    <span class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">{{ mod }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if user_role == 'admin' %}
+                            <div class="pt-3 mt-3 border-t border-slate-100">
+                                <a href="/setup" class="text-xs text-[var(--theme-accent)] hover:underline flex items-center gap-1">
+                                    <i class="fa-solid fa-gear"></i> Kelola semua pengguna di Setup →
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Petunjuk -->
+                    <div class="bg-blue-50 rounded-2xl border border-blue-100 p-4">
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-circle-info text-blue-500 mt-0.5"></i>
+                            <div>
+                                <div class="text-xs font-bold text-blue-700 mb-1">Tentang profil ini</div>
+                                <ul class="text-xs text-blue-600 space-y-0.5">
+                                    <li>· Hanya admin yang bisa menambah atau menghapus user.</li>
+                                    <li>· Username tidak bisa diubah.</li>
+                                    <li>· Hubungi admin untuk mengubah role atau modul akses.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast" class="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl text-sm font-semibold shadow-lg translate-y-24 transition-transform duration-300" style="background:#ecfdf5;color:#047857;opacity:0" id="toast"></div>
+
+    <script>
+        function showToast(msg, ok = true) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.background = ok ? '#ecfdf5' : '#fef2f2';
+            t.style.color = ok ? '#047857' : '#b91c1c';
+            t.style.opacity = '1';
+            t.style.transform = 'translateY(0)';
+            setTimeout(() => {
+                t.style.opacity = '0';
+                t.style.transform = 'translateY(24px)';
+            }, 3000);
+        }
+
+        document.getElementById('profile-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const full_name = document.getElementById('profile-fullname').value.trim();
+            const password = document.getElementById('profile-password').value;
+            if (!full_name) { showToast('Nama lengkap wajib diisi', false); return; }
+            if (password && password.length < 4) { showToast('Password minimal 4 karakter', false); return; }
+
+            const body = { full_name };
+            if (password) body.password = password;
+
+            const resp = await fetch(`/api/setup/users/{{ user.id }}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify(body),
+            });
+            const data = await resp.json();
+            if (!resp.ok) { showToast(data.error || 'Gagal menyimpan', false); return; }
+            showToast('Profil berhasil diperbarui');
+            document.getElementById('profile-password').value = '';
+        });
+    </script>
+</body>
+</html>

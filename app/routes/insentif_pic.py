@@ -11,6 +11,7 @@ from app.auth.session import (
     is_viewer,
     redirect_with_flash,
     render_template,
+    require_admin,
     require_login,
 )
 from app.config import UPLOAD_DIR
@@ -357,7 +358,7 @@ async def delete_insentif_pic(item_id: int, user=Depends(require_login)):
 
 
 @router.post("/api/insentif-pic/bulk-delete")
-async def api_insentif_pic_bulk_delete(request: Request, user=Depends(require_login)):
+async def api_insentif_pic_bulk_delete(request: Request, user=Depends(require_admin)):
     try:
         data = await request.json()
         raw_ids = data.get("ids", [])
@@ -386,7 +387,7 @@ async def api_insentif_pic_bulk_delete(request: Request, user=Depends(require_lo
 
 
 @router.post("/api/insentif-pic/bulk-update")
-async def api_insentif_pic_bulk_update(request: Request, user=Depends(require_login)):
+async def api_insentif_pic_bulk_update(request: Request, user=Depends(require_admin)):
     try:
         data = await request.json()
         raw_ids = data.get("ids", [])

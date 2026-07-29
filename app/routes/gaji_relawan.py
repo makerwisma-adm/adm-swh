@@ -11,6 +11,7 @@ from app.auth.session import (
     is_viewer,
     redirect_with_flash,
     render_template,
+    require_admin,
     require_login,
 )
 from app.config import UPLOAD_DIR
@@ -358,7 +359,7 @@ async def delete_gaji_relawan(item_id: int, user=Depends(require_login)):
 
 
 @router.post("/api/gaji-relawan/bulk-delete")
-async def api_gaji_relawan_bulk_delete(request: Request, user=Depends(require_login)):
+async def api_gaji_relawan_bulk_delete(request: Request, user=Depends(require_admin)):
     """Hapus baris terpilih saja — upload & data periode lain tidak ikut terhapus."""
     try:
         data = await request.json()
