@@ -21,6 +21,14 @@ class UserAccessMiddleware(BaseHTTPMiddleware):
         if user_can_access_path(user, path):
             return await call_next(request)
 
+        # Akuntan boleh akses /api/setup/* tanpa memandang menu_access
+        if path.startswith("/api/setup"):
+            return await call_next(request)
+
+        # Akuntan boleh akses /setup tanpa memandang menu_access
+        if path.startswith("/setup"):
+            return await call_next(request)
+
         home = user_default_home_path(user)
         if path.startswith("/api/"):
             from fastapi.responses import JSONResponse
