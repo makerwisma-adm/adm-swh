@@ -57,7 +57,7 @@ Web aplikasi internal untuk pelaporan keuangan **Tagihan Mitra** SPPG Wisma Haji
 |----------|-----------|-------------------------|
 | `admin`  | `admin123`| Admin utama             |
 | `swhm`   | `A0312`   | Admin cadangan          |
-| `icha`   | `sppg123` | Member (upload terbatas)|
+| `icha`   | `a123`  | Akuntan (Member)|
 
 > **Penting**: Ganti password setelah pertama kali login di production. Password di DB tidak di-reset otomatis.
 
