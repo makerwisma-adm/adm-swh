@@ -26,7 +26,7 @@ cp -r .vercel "$TMP/.vercel"
 
 cd "$TMP"
 OUT=$(vercel deploy --prod --yes --archive=tgz 2>&1 | tee /tmp/adm-swh-deploy.log)
-DEPLOY_URL=$(echo "$OUT" | grep -oE 'https://[a-z0-9-]+-adm-musik\.vercel\.app' | tail -1)
+DEPLOY_URL=$(echo "$OUT" | grep -oE 'https://[a-z0-9-]+-adm-swh\.vercel\.app' | tail -1)
 
 if [ -n "$DEPLOY_URL" ]; then
   vercel alias set "$DEPLOY_URL" "$PROD_DOMAIN" 2>/dev/null || true
