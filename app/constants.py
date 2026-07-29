@@ -238,6 +238,8 @@ MEMBER_WRITE_PATHS = AUTH_ONLY_PATHS | {
     "/gaji-relawan/upload",
     "/insentif-pic/upload",
     "/insentif-mitra/upload",
+    "/api/setup/personnel",
+    "/api/setup/personnel/",
 }
 TAGIHAN_ATTACHMENT_FIELDS = {"pict", "nota", "bukti"}
 TAGIHAN_ATTACHMENT_KATEGORI = {"pengajuan_dana_mitra", "insentif_mitra"}

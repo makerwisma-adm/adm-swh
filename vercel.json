@@ -9,7 +9,6 @@
   },
   "env": {
     "VERCEL": "1",
-    "PUBLIC_APP_URL": "https://adm-swh.vercel.app",
-    "DEBUG_MIDDLEWARE": "1"
+    "PUBLIC_APP_URL": "https://adm-swh.vercel.app"
   }
 }
