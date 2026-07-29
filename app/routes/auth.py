@@ -9,12 +9,15 @@ from app.auth.session import (
     ROLE_MEMBER,
     _login_context,
     _safe_next_url,
+    can_member_upload,
     default_home_path,
     get_current_user,
+    is_admin,
     redirect_with_flash,
     render_template,
     require_login,
 )
+from app.services.approval import is_ka_sppg, is_maker
 from app.services.user_access import user_has_module
 from app.config import SESSION_COOKIE_NAME
 from app.db import get_db
@@ -179,6 +182,7 @@ async def tagihan_page(
             sampai=sampai,
         ),
         "user": user,
+        "can_edit": is_admin(user) or (can_member_upload(user) and not is_ka_sppg(user) and not is_maker(user)),
         "format_rupiah": format_rupiah,
         "format_tanggal": format_tanggal_display,
         "message": message,
