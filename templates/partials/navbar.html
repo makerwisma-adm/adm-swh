@@ -30,12 +30,11 @@
                 <span class="absolute -top-1 -right-1 min-w-[1rem] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">{{ ka_unread_notification_count }}</span>
             </a>
             {% endif %}
-            {% if is_admin %}
+            {% if is_admin or is_akuntan %}
             <a href="/setup" title="Setup" class="hidden sm:flex w-8 h-8 rounded-lg border border-slate-200 items-center justify-center transition hover:bg-slate-50"
                style="color: var(--theme-primary);">
                 <i class="fa-solid fa-gear text-sm"></i>
             </a>
-            {% endif %}
             {% endif %}
             <a href="/profile" title="Profil Saya" class="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-50 transition flex items-center justify-center" style="color: var(--theme-primary);">
                 <i class="fa-solid fa-user text-sm"></i>

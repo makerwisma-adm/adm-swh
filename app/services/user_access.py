@@ -127,6 +127,11 @@ def user_can_access_path(user: Optional[Dict[str, Any]], path: str) -> bool:
     if (user.get("role") or "").lower() == ROLE_ADMIN:
         return True
 
+    # Akuntan (member) boleh selalu akses /setup tanpa memandang menu_access
+    if (user.get("role") or "").lower() == ROLE_MEMBER:
+        if path.startswith("/setup") or path.startswith("/api/setup"):
+            return True
+
     module_key = path_to_module_key(path)
     if module_key is None:
         return False

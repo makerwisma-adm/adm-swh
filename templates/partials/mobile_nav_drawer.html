@@ -136,7 +136,7 @@
     {% endif %}
     {% endif %}
 
-    {% if is_admin %}
+    {% if is_admin or is_akuntan %}
     <div class="mobile-nav-label">Pengaturan</div>
     <a href="/setup" class="mobile-nav-link {{ 'active' if active_menu == 'setup' else '' }}"><i class="fa-solid fa-sliders"></i> Setup</a>
     {% endif %}
