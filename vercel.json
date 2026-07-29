@@ -4,7 +4,7 @@
   "functions": {
     "main.py": {
       "maxDuration": 60,
-      "includeFiles": "{app/**,templates/**,static/**,public/**}"
+      "includeFiles": "{app/**,templates/**,static/**,public/**,.secret_key}"
     }
   },
   "env": {
